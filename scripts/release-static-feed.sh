@@ -80,12 +80,11 @@ dotnet publish "$APP_CSPROJ" -c Release -r win-x64 --no-self-contained \
   -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version="$VERSION" \
   -o "publish/win-$VERSION"
 
-# Framework-dependent single-file apps retain a small .runtimeconfig.json sidecar;
-# all managed/native app dependencies are bundled into E2ETester.Desktop.exe.
+# .NET 10 embeds the runtime configuration and all application dependencies in the
+# framework-dependent single executable. The target machine supplies only .NET 10.
 [[ -f "publish/win-$VERSION/E2ETester.Desktop.exe" ]] || { echo 'Missing desktop executable.' >&2; exit 1; }
-[[ -f "publish/win-$VERSION/E2ETester.Desktop.runtimeconfig.json" ]] || { echo 'Missing runtime configuration.' >&2; exit 1; }
-if find "publish/win-$VERSION" -maxdepth 1 -type f \( -name '*.dll' -o -name '*.deps.json' \) | grep -q .; then
-  echo 'Unexpected loose DLL/deps file: publish must remain single-file.' >&2
+if [[ "$(find "publish/win-$VERSION" -maxdepth 1 -type f | wc -l)" -ne 1 ]]; then
+  echo 'Unexpected loose files: publish must remain a single framework-dependent executable.' >&2
   find "publish/win-$VERSION" -maxdepth 1 -type f -printf '%f\n' >&2
   exit 1
 fi
