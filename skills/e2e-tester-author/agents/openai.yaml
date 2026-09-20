@@ -1,0 +1,4 @@
+interface:
+  display_name: "E2E Tester Author"
+  short_description: "Generate .jsee suites and configure E2E Tester MCP"
+  default_prompt: "Use $e2e-tester-author to generate and validate an API test suite from my requirements."

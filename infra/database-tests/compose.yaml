@@ -1,0 +1,22 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${E2E_DATABASE_PASSWORD:?Test password required}
+    ports:
+      - "127.0.0.1::1433"
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${E2E_DATABASE_PASSWORD:?Test password required}
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "127.0.0.1::3306"
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${E2E_DATABASE_PASSWORD:?Test password required}
+    ports:
+      - "127.0.0.1::5432"

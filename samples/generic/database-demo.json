@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.1",
+  "id": "database-demo",
+  "revision": 1,
+  "title": "Database-backed API test",
+  "description": "Read a local SQLite fixture, echo it through the demo API, then verify the response ID against the database.",
+  "baseUrl": "http://localhost:5188",
+  "cases": [
+    {
+      "id": "db-round-trip",
+      "parentId": null,
+      "title": "01 \u00B7 Verify an API result against the database",
+      "instructions": "Select the first fixture row in Query Studio. Send the request, then run Verify database. HTTP success alone remains inconclusive until the database check passes.",
+      "request": {
+        "method": "POST",
+        "url": "/echo",
+        "query": [],
+        "headers": [],
+        "body": "{\n  \u0022id\u0022: \u0022{{fixture.id}}\u0022,\n  \u0022name\u0022: \u0022{{fixture.name}}\u0022\n}",
+        "contentType": "application/json",
+        "sendBody": true,
+        "bodySensitive": false,
+        "timeoutSeconds": 30,
+        "identityRef": "none"
+      },
+      "assertions": [
+        {
+          "id": "26f16ee8152d469db9baf6a9f02b8a39",
+          "kind": "status",
+          "selector": "",
+          "expected": "200",
+          "required": true
+        }
+      ],
+      "fixtureQueryId": "demo-fixtures",
+      "databaseChecks": [
+        {
+          "id": "verify-name",
+          "queryId": "demo-verify",
+          "kind": "scalarEquals",
+          "column": "name",
+          "expectedJson": "\u0022Example fixture\u0022",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "id": "demo-fixtures",
+      "title": "Choose a demo fixture",
+      "connectionRef": "demo-sqlite",
+      "provider": "sqlite",
+      "sql": "SELECT id, name, enabled FROM demo_fixture ORDER BY id",
+      "parameters": [],
+      "sensitiveColumns": [],
+      "timeoutSeconds": 30,
+      "rowLimit": 1000
+    },
+    {
+      "id": "demo-verify",
+      "title": "Verify returned ID in database",
+      "connectionRef": "demo-sqlite",
+      "provider": "sqlite",
+      "sql": "SELECT name FROM demo_fixture WHERE id = @id",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "int64",
+          "value": "{{response./id}}",
+          "isNull": false,
+          "sensitive": false
+        }
+      ],
+      "sensitiveColumns": [],
+      "timeoutSeconds": 30,
+      "rowLimit": 1000
+    }
+  ]
+}

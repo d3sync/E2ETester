@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "1.0",
+  "id": "local-demo",
+  "revision": 1,
+  "title": "API essentials",
+  "description": "Run the bundled local demo server first. No external service is contacted.",
+  "baseUrl": "http://localhost:5188",
+  "cases": [
+    {
+      "id": "health",
+      "parentId": null,
+      "title": "01 \u00B7 Check service health",
+      "instructions": "Confirm the service is healthy. Try changing the query parameter, then add a variation.",
+      "request": {
+        "method": "GET",
+        "url": "/health",
+        "query": [
+          {
+            "id": "d5f0fbaf1bac4bb7aebc8e87cc8b39d5",
+            "name": "source",
+            "value": "e2e-tester",
+            "enabled": true,
+            "required": true,
+            "sensitive": false
+          }
+        ],
+        "headers": [
+          {
+            "id": "0dfb1f19be4f4010a14c1b02e37edff2",
+            "name": "Accept",
+            "value": "application/json",
+            "enabled": true,
+            "required": true,
+            "sensitive": false
+          }
+        ],
+        "body": "",
+        "contentType": "application/json",
+        "sendBody": false,
+        "bodySensitive": false,
+        "timeoutSeconds": 30,
+        "identityRef": "none"
+      },
+      "assertions": [
+        {
+          "id": "7d1b7b941bec481e900e330bee8e51cc",
+          "kind": "status",
+          "selector": "",
+          "expected": "200",
+          "required": true
+        },
+        {
+          "id": "abb7e16daf7b43feaa4f26f10fbd806a",
+          "kind": "jsonEquals",
+          "selector": "/status",
+          "expected": "\u0022ok\u0022",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "echo",
+      "parentId": null,
+      "title": "02 \u00B7 Submit a payload",
+      "instructions": "Send the fixture payload and verify the echoed name. Changes remain visible in attempt history.",
+      "request": {
+        "method": "POST",
+        "url": "/echo",
+        "query": [],
+        "headers": [],
+        "body": "{\n  \u0022name\u0022: \u0022Example test\u0022,\n  \u0022enabled\u0022: true\n}",
+        "contentType": "application/json",
+        "sendBody": true,
+        "bodySensitive": false,
+        "timeoutSeconds": 30,
+        "identityRef": "none"
+      },
+      "assertions": [
+        {
+          "id": "b479f0101d054cccb6e539e8e397b96a",
+          "kind": "status",
+          "selector": "",
+          "expected": "200",
+          "required": true
+        },
+        {
+          "id": "90a8dd599436459dbb7d0450c3072fc5",
+          "kind": "jsonEquals",
+          "selector": "/name",
+          "expected": "\u0022Example test\u0022",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "denied",
+      "parentId": null,
+      "title": "03 \u00B7 Verify access rejection",
+      "instructions": "This endpoint intentionally rejects the request. The expected 403 is a passing test.",
+      "request": {
+        "method": "GET",
+        "url": "/denied",
+        "query": [],
+        "headers": [],
+        "body": "",
+        "contentType": "application/json",
+        "sendBody": false,
+        "bodySensitive": false,
+        "timeoutSeconds": 30,
+        "identityRef": "none"
+      },
+      "assertions": [
+        {
+          "id": "1368965b6eb84c51b65882618c82ea90",
+          "kind": "status",
+          "selector": "",
+          "expected": "403",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

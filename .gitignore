@@ -1,0 +1,81 @@
+# .NET build, test and distribution output
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+**/TestResults/
+coverage/
+*.coverage
+*.coveragexml
+*.trx
+*.nupkg
+*.snupkg
+
+# Per-user IDE settings
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# Local workspaces, journals and credentials (never portable test definitions)
+workspaces/
+workspace/
+secrets/
+.env
+.env.*
+!.env.example
+*.local.json
+*.pfx
+*.p12
+*.key
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+workspace.lock
+*.protected
+
+# Developer tooling and transient files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+*.tmp
+*.dmp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Keep NuGet lockfiles, schemas, samples and shared configuration tracked.
+
+# Private integrations, original research and local test packages
+/private/
+**/*.private.*
+**/*.local.*
+/reports/
+/fixtures/
+/Browser/
+/Sessions/
+**/*.WebView2/
+*.pem
+*.cer
+*.crt
+*.har
+*.bak
+*.zip
+*.exe
+*.dll
+*.pdb
+
+# Ad-hoc suites are private by default; only reviewed templates are public.
+*.jsee
+!samples/generic/*.jsee
+!skills/e2e-tester-author/assets/test-suite.jsee

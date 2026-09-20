@@ -1,0 +1,5 @@
+# Timeline outcome symbols
+
+Edited with OpenAI image generation on 2026-09-20. Edit target: the v3 master, retained as `e2e-tester-icon-v3.png`. The new master supplies the app PNG/ICO and wordmark exports.
+
+Edit this exact E2E Tester branching timeline app icon. Preserve the dark rounded square, transparent outer margin, the off-white horizontal line, all five nodes, two green branches and their green endpoints, their placement and palette. Change ONLY the interiors of the THREE WHITE circles along the horizontal timeline: add a bold green check mark centered INSIDE the left white circle, a bold green check mark centered INSIDE the middle white circle, and a bold red X centered INSIDE the right white circle. Exactly two green checks and one red X. All three symbols must have generous white space around them inside their circles, clearly separated from the connecting lines, legible bold simple strokes. Green #238636 or similar strong green with good contrast on white, red #CF222E. Do not add symbols to the green endpoints. No other changes, no letters or text. Preserve actual transparent outer background.

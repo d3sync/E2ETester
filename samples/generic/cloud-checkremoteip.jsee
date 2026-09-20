@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.4",
+  "id": "example-suite",
+  "revision": 1,
+  "title": "example API suite",
+  "description": "Sign in, validate access, then run the requested business cases.",
+  "baseUrl": "https://api.example.test",
+  "queries": [],
+  "cases": [
+    {
+      "id": "swagger-sign-in",
+      "kind": "swaggerAuthentication",
+      "title": "01 · Sign in with Swagger",
+      "instructions": "Complete Swagger sign-in and import the bearer token. This step sends no API request.",
+      "request": {
+        "method": "GET",
+        "url": "/swagger/",
+        "identityRef": "cloud-user"
+      },
+      "assertions": [],
+      "fixtureRequired": false
+    },
+    {
+      "id": "remote-ip",
+      "kind": "http",
+      "title": "02 · Validate remote IP",
+      "instructions": "Expect HTTP 200 and a non-empty string. Review the returned IP value.",
+      "request": {
+        "method": "GET",
+        "url": "/whoami",
+        "identityRef": "cloud-user"
+      },
+      "assertions": [
+        {
+          "id": "ip-status",
+          "kind": "status",
+          "expected": "200",
+          "required": true
+        },
+        {
+          "id": "ip-body",
+          "kind": "bodyNotEmpty",
+          "expected": "",
+          "required": true
+        }
+      ],
+      "fixtureRequired": false
+    }
+  ]
+}

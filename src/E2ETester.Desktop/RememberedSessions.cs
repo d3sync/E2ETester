@@ -1,0 +1,49 @@
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using E2ETester.Core;
+
+namespace E2ETester.Desktop;
+
+internal sealed record RememberedIdentity(string Origin, string Alias, string BrowserProfileKey, AuthKind Kind, string Secret, string HeaderName, string Prefix);
+
+internal sealed class RememberedSessions(string directory)
+{
+    internal static string Root => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "E2ETester");
+    internal static string DefaultDirectory => Path.Combine(Root, "Sessions");
+    internal static string BrowserDirectory => Path.Combine(Root, "Browser"); // Keep existing cookies in place.
+    private string FilePath => Path.Combine(directory, "identities.protected");
+    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("E2ETester.Sessions.v1");
+    internal static string Origin(string address) => new Uri(address).GetLeftPart(UriPartial.Authority);
+    internal List<RememberedIdentity> Read() => Locked(() => ReadCore());
+    internal void Update(Action<List<RememberedIdentity>> change) => Locked(() =>
+    {
+        var entries = ReadCore(); change(entries); Directory.CreateDirectory(directory);
+        var plain = JsonSerializer.SerializeToUtf8Bytes(entries);
+        var temporary = FilePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, ProtectedData.Protect(plain, Entropy, DataProtectionScope.CurrentUser));
+            File.Move(temporary, FilePath, true);
+        }
+        finally { CryptographicOperations.ZeroMemory(plain); if (File.Exists(temporary)) File.Delete(temporary); }
+        return true;
+    });
+    private List<RememberedIdentity> ReadCore()
+    {
+        if (!File.Exists(FilePath)) return [];
+        var plain = ProtectedData.Unprotect(File.ReadAllBytes(FilePath), Entropy, DataProtectionScope.CurrentUser);
+        try { return JsonSerializer.Deserialize<List<RememberedIdentity>>(plain) ?? []; }
+        finally { CryptographicOperations.ZeroMemory(plain); }
+    }
+    private T Locked<T>(Func<T> action)
+    {
+        var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(directory).ToUpperInvariant())));
+        using var mutex = new Mutex(false, "Local\\E2ETester-Sessions-" + key);
+        bool acquired;
+        try { acquired = mutex.WaitOne(TimeSpan.FromSeconds(5)); } catch (AbandonedMutexException) { acquired = true; }
+        if (!acquired) throw new IOException("Session storage is busy. Try again.");
+        try { return action(); } finally { mutex.ReleaseMutex(); }
+    }
+}

@@ -1,0 +1,68 @@
+using System.Windows;
+using E2ETester.Application;
+using E2ETester.Core;
+
+namespace E2ETester.Desktop;
+public sealed partial class MainViewModel
+{
+    private bool showAdvanced;
+    public bool ShowAdvanced { get => showAdvanced; set => Set(ref showAdvanced, value); }
+    public ParameterCommand<FieldEditor> RemoveField { get; private set; } = null!;
+    public AsyncCommand LoadCloudSample { get; private set; } = null!;
+    public ActionCommand OpenUpdates { get; private set; } = null!;
+    public string ThemeLabel => ThemeManager.IsDark ? "☀ Light" : "☾ Dark";
+    public string RequestDetails => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication-only step: no HTTP request or cURL was generated." : SelectedAttempt is null ? "Send a request to inspect its resolved URL, headers, body and redacted cURL here." : RequestDiagnostics.Describe(SelectedAttempt);
+    private string swaggerUrl = "https://api.example.test/swagger/";
+    public string SwaggerUrl { get => swaggerUrl; set => Set(ref swaggerUrl, value); }
+    public ActionCommand ToggleTheme { get; private set; } = null!;
+    public ActionCommand CopyCurl { get; private set; } = null!;
+    public AsyncCommand OpenSwagger { get; private set; } = null!;
+    private void InitializeDiagnostics()
+    {
+        OpenUpdates = new(() => new UpdatesWindow(new UpdatesViewModel(async () =>
+        {
+            if (Busy || Database.Busy) throw new InvalidOperationException("Finish or cancel the current operation before changing version.");
+            await SaveDraftExplicitlyAsync();
+            var backups = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "E2ETester", "Backups");
+            System.IO.Directory.CreateDirectory(backups);
+            await store.BackupAsync(System.IO.Path.Combine(backups, "before-update-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8] + ".db"));
+        })) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog(), () => !Busy);
+        RemoveField = new(field => { SelectedCase?.Query.Remove(field); SelectedCase?.Headers.Remove(field); Message = "Field removed from the draft. Previous attempts are unchanged."; }, _ => !Busy && SelectedCase is not null);
+        LoadCloudSample = Command(async () => { await SaveDraftAsync(); LoadGatewayAuthCheck(); await SaveDraftAsync(); });
+        ToggleTheme = new(() => { ThemeManager.Apply(!ThemeManager.IsDark); Changed(nameof(ThemeLabel)); });
+        CopyCurl = new(() =>
+        {
+            if (SelectedAttempt?.Response?.Requests.FirstOrDefault() is not { } request) return;
+            Clipboard.SetText(RequestDiagnostics.Curl(request, SelectedAttempt.Request.TimeoutSeconds));
+            Message = "Redacted cURL copied (Bash syntax). Replace secret placeholders locally before replaying.";
+        }, () => SelectedAttempt?.Response?.Requests.Count > 0);
+        OpenSwagger = Command(async () =>
+        {
+            if (await ImportSwaggerTokenAsync() && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication)
+                await SendAsync();
+        });
+    }
+    private Task<bool> ImportSwaggerTokenAsync()
+    {
+            _ = SwaggerTokenCapture.ValidateAddress(SwaggerUrl);
+            if (SelectedIdentity is not { IsConfigurable: true }) NewIdentity.Execute(null);
+            var identity = SelectedIdentity!;
+            var imported = false;
+            new SwaggerLoginWindow(SwaggerUrl, token =>
+            {
+                identity.Kind = AuthKind.Bearer; identity.Secret = token; Changed(nameof(SelectedIdentity));
+                imported = true;
+                Message = $"Swagger token ready for '{identity.Alias}'. This supplied token does not refresh automatically.";
+                try { RememberIdentity(identity); }
+                catch { Message = "Token imported for this session, but could not be saved in AppData. Check disk space and access permissions."; }
+            }, identity.BrowserProfileKey) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog();
+            return Task.FromResult(imported);
+    }
+    public void LoadGatewayAuthCheck()
+    {
+        var resource = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Samples/cloud-checkremoteip.json"));
+        using var reader = new System.IO.StreamReader(resource.Stream);
+        LoadPackage(SuiteDefaults.Create("Example Cloud · Remote IP round trip")); ShowAdvanced = false;
+        Message = "Start with Swagger sign-in, then validate the remote IP. Nothing has been sent.";
+    }
+}

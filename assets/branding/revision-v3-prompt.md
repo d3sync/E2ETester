@@ -1,0 +1,5 @@
+# Branching timeline revision
+
+Generated with OpenAI image generation on 2026-09-20, using the previous icon as a visual reference. The previous masters remain as v1 and v2 PNGs. This revision replaces the check mark with branching test paths.
+
+Edit the supplied E2E Tester icon into a branching timeline logo. Keep only the same palette and dark rounded-square app tile with genuinely transparent outer margins. Replace ALL existing internal artwork with a centered bold branch diagram: a clean horizontal off-white timeline with three circular nodes, and one bright green branch that forks upward from the middle node and ends at a separate circular node; a second shorter green branch forks downward. Think test-flow timeline with alternative test cases. Geometric flat vector-like artwork, bold simple strokes, rounded joins and large solid circular endpoints. Balanced centered composition, ample safe padding, instantly readable at 24-32 pixels. No check mark, no letters, no text, no gears or arrows, no shadows, no gradients. Only one app icon. Off-white #f0f6fc, green #3fb950, charcoal #161b22. Simplify to four or five total nodes, no crossings.

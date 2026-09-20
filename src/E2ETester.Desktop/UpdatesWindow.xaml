@@ -1,0 +1,9 @@
+<Window x:Class="E2ETester.Desktop.UpdatesWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Updates and rollback" Width="720" Height="570" WindowStartupLocation="CenterOwner">
+ <Grid Margin="24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel><TextBlock Text="Updates and rollback" FontSize="24" FontWeight="SemiBold"/><TextBlock Text="{Binding CurrentVersion, StringFormat=Current version: {0}}" Foreground="{DynamicResource Muted}" Margin="0,8,0,20"/></StackPanel>
+  <StackPanel Grid.Row="1"><TextBlock Text="Release feed (HTTPS address or local folder)"/><DockPanel Margin="0,8,0,16"><Button DockPanel.Dock="Right" Content="Check versions" Command="{Binding RefreshVersions}" Margin="8,0,0,0"/><TextBox Text="{Binding Source, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"/></DockPanel></StackPanel>
+  <ListBox Grid.Row="2" ItemsSource="{Binding Versions}" SelectedItem="{Binding Selected}" DisplayMemberPath="Version" IsEnabled="{Binding CanEdit}"/>
+  <TextBlock Grid.Row="3" Text="{Binding Status}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,18"/>
+  <WrapPanel Grid.Row="4" HorizontalAlignment="Right"><Button Content="Cancel download" Command="{Binding Cancel}"/><Button Content="{Binding InstallLabel}" Style="{StaticResource Primary}" Command="{Binding Install}"/></WrapPanel>
+ </Grid>
+</Window>

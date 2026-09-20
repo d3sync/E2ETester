@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem with a synthetic example.
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, browser profiles or customer data. Follow SECURITY.md for sensitive reports."
+  - type: input
+    id: version
+    attributes:
+      label: App version and Windows version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal sanitized package when useful.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or screenshots

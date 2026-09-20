@@ -1,0 +1,112 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using E2ETester.Application;
+using E2ETester.Core;
+namespace E2ETester.Desktop;
+internal static class FeatureSmoke
+{
+    public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
+    {
+        var file=Path.Combine(Path.GetTempPath(),"package with spaces-"+Guid.NewGuid().ToString("N")+".jsee");
+        await File.WriteAllTextAsync(file,AgentResources.Template);model.OpenPackageFile(file);
+        if(model.Cases.Count!=2 || model.SelectedCase?.Baseline.Kind!=TestStepKind.SwaggerAuthentication)throw new InvalidOperationException(".jsee package did not open its setup flow.");
+        if(!PackageAssociation.Command(@"C:\Program Files\E2E Tester.exe").Contains("\"%1\""))throw new InvalidOperationException("Association argument must be quoted.");
+        model.SelectedIdentity!.Secret="local-ui-test-token";await model.Send.RunAsync();
+        if(model.SelectedAttempt?.Verdict!=Verdict.Pass || model.SelectedAttempt.Response is not null)throw new InvalidOperationException("Authentication-only UI sent HTTP or did not record success.");
+        bool inspected=false;
+        _ = window.Dispatcher.BeginInvoke(new Action(()=>
+        {
+            var report=System.Windows.Application.Current.Windows.OfType<TextDocumentWindow>().Single();
+            var tabs=((DockPanel)report.Content).Children.OfType<TabControl>().Single();
+            if(tabs.Items.Count==2 && ((TextBox)((TabItem)tabs.Items[0]).Content).IsReadOnly)inspected=true;
+            Save(report,path+".report.png");report.Close();
+        }),DispatcherPriority.ApplicationIdle);
+        model.ViewReport.Execute(null);
+        if(!inspected)throw new InvalidOperationException("Readable/JSON report modal missing.");
+        var help=new TextDocumentWindow("AI test generator",("Prompt",AgentResources.Prompt),("Template",AgentResources.Template)){Owner=window};help.Show();await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Save(help,path+".help.png");help.Close();
+        var importer=new OpenApiWindow(model.BaseUrl){Owner=window};importer.Show();await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Save(importer,path+".openapi.png");importer.Close();
+        if (!window.Title.Contains(AppInfo.VersionLabel)) throw new InvalidOperationException("Window title lacks the running version.");
+        var about = new AboutWindow { Owner=window }; about.Show();
+        await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+        if (!AppInfo.ReadNotice("LICENSE").Contains("d3sync") || !AppInfo.Details.Contains("https://d3sync.org")) throw new InvalidOperationException("About credits or license missing.");
+        Save(about,path+".about.png"); about.Close();
+        var sessions = Path.Combine(Path.GetTempPath(),"remembered-session-test-"+Guid.NewGuid().ToString("N"));
+        string profileKey;
+        using (var first = new MainViewModel(Path.Combine(sessions,"workspace-a"),sessions))
+        {
+            first.LoadNewSuite(); first.NewIdentity.Execute(null);
+            first.SelectedIdentity!.Secret="remembered-canary-663";
+            profileKey=first.SelectedIdentity.BrowserProfileKey;
+            await first.Send.RunAsync();
+            await first.ChangeIdentityAsync(first.SelectedIdentity,rename:"returning-user");
+        }
+        using (var second = new MainViewModel(Path.Combine(sessions,"workspace-b"),sessions))
+        {
+            second.LoadNewSuite();
+            if(second.SelectedIdentity?.Alias!="returning-user" || second.SelectedIdentity.Secret!="remembered-canary-663" || second.SelectedIdentity.BrowserProfileKey!=profileKey)
+                throw new InvalidOperationException("Session or browser profile did not survive workspace restart and rename.");
+            second.BaseUrl="https://unrelated.example";
+            if(second.SelectedIdentity.Secret.Length!=0)throw new InvalidOperationException("Remembered token crossed server origins.");
+            second.BaseUrl="https://api.example.test";
+            if(second.SelectedIdentity.Secret!="remembered-canary-663")throw new InvalidOperationException("Returning to the server did not restore its token.");
+            await second.ChangeIdentityAsync(second.SelectedIdentity,clearToken:true);
+        }
+        using (var third = new MainViewModel(Path.Combine(sessions,"workspace-c"),sessions))
+        {
+            third.LoadNewSuite(); var restored=third.Identities.Single(i=>i.Alias=="returning-user");
+            if(restored.Secret.Length!=0 || restored.BrowserProfileKey!=profileKey)throw new InvalidOperationException("Clearing token lost browser mapping or restored credentials.");
+            await third.ChangeIdentityAsync(restored);
+        }
+        if(new RememberedSessions(sessions).Read().Count!=0)throw new InvalidOperationException("Deleted identity remained remembered.");
+        using (var savedModel = new MainViewModel(Path.Combine(Path.GetTempPath(),"identity-profile-test-"+Guid.NewGuid().ToString("N"))))
+        {
+            var savedIdentity = savedModel.CreateIdentity("saved-user"); savedIdentity.Secret="synthetic-saved-token";
+            savedModel.SelectedIdentity=savedIdentity;
+            await savedModel.SaveEnvironment.RunAsync();
+            await savedModel.ChangeIdentityAsync(savedIdentity,rename:"saved-renamed");
+            await savedModel.LoadEnvironment.RunAsync();
+            var renamed = savedModel.Identities.Single(i=>i.Alias=="saved-renamed");
+            if (renamed.Secret!="synthetic-saved-token" || savedModel.Identities.Any(i=>i.Alias=="saved-user")) throw new InvalidOperationException("Saved environment rename failed.");
+            await savedModel.ChangeIdentityAsync(renamed,clearToken:true);
+            await savedModel.LoadEnvironment.RunAsync();
+            renamed=savedModel.Identities.Single(i=>i.Alias=="saved-renamed");
+            if(renamed.Secret.Length!=0)throw new InvalidOperationException("Saved token was not cleared.");
+            await MustReject(()=>savedModel.ChangeIdentityAsync(renamed));
+            await MustReject(()=>savedModel.ChangeIdentityAsync(savedModel.Identities[0],rename:"forbidden"));
+            await MustReject(()=>Task.FromResult(savedModel.CreateIdentity("SAVED-RENAMED")));
+            await savedModel.ChangeIdentityAsync(renamed,replacement:savedModel.Identities[0]);
+            await savedModel.LoadEnvironment.RunAsync();
+            if(savedModel.Identities.Any(i=>i.Alias=="saved-renamed"))throw new InvalidOperationException("Saved environment resurrected a deleted identity.");
+        }
+        var original = model.SelectedIdentity!; var originalAlias = original.Alias;
+        await model.ChangeIdentityAsync(original, rename:"renamed-user");
+        if (model.Cases.Any(c=>c.IdentityRef==originalAlias) || model.SelectedAttempt!.IdentityAlias!=originalAlias) throw new InvalidOperationException("Rename lost references or changed history.");
+        var replacement = model.CreateIdentity("replacement-user"); replacement.Secret="local-replacement-token";
+        await model.ChangeIdentityAsync(original,replacement:replacement);
+        if (model.Identities.Contains(original) || original.Secret.Length!=0 || model.Cases.Any(c=>c.IdentityRef=="renamed-user")) throw new InvalidOperationException("Delete did not clear identity and update references.");
+        await model.Send.RunAsync();
+        if (model.SelectedAttempt?.IdentityAlias!="replacement-user" || model.SelectedAttempt.Verdict!=Verdict.Pass) throw new InvalidOperationException("Replacement identity cannot complete sign-in.");
+        await model.RestoreDraft.RunAsync();
+        if (model.Identities.Any(i=>i.Alias==originalAlias || i.Alias=="renamed-user")) throw new InvalidOperationException("Recovery resurrected a deleted identity.");
+        var manager = new IdentityManagerWindow(model) { Owner=window }; manager.Show();
+        await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle); Save(manager,path+".identities.png"); manager.Close();
+        window.RequestTabs.SelectedIndex=3;
+    }
+    private static void Save(Window window,string path)
+    {
+        window.UpdateLayout();var image=new RenderTargetBitmap((int)window.ActualWidth,(int)window.ActualHeight,96,96,PixelFormats.Pbgra32);image.Render(window);
+        var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(image));using var stream=File.Create(path);encoder.Save(stream);
+    }
+    private static async Task MustReject(Func<Task> action)
+    {
+        try { await action(); }
+        catch (InvalidOperationException) { return; }
+        throw new InvalidOperationException("Invalid identity operation was accepted.");
+    }
+}
+
+
