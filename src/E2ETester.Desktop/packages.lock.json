@@ -245,6 +245,11 @@
           "Microsoft.IdentityModel.Tokens": "8.16.0"
         }
       },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "BKt0SQgq2lq3ESE68jkeLwv95ypANrPDtkTOIFGcnhg2aRUeUUBDrQlkVDZctrg1WenVcvn5P5XZnuYI7q6rFQ=="
+      },
       "System.Threading.RateLimiting": {
         "type": "Transitive",
         "resolved": "9.0.18",
@@ -253,7 +258,7 @@
       "e2etester.application": {
         "type": "Project",
         "dependencies": {
-          "E2ETester.Core": "[0.6.0, )"
+          "E2ETester.Core": "[0.7.5, )"
         }
       },
       "e2etester.core": {
@@ -263,13 +268,14 @@
         "type": "Project",
         "dependencies": {
           "Duende.IdentityModel.OidcClient": "[7.1.0, )",
-          "E2ETester.Application": "[0.6.0, )",
+          "E2ETester.Application": "[0.7.5, )",
           "Microsoft.Data.SqlClient": "[7.1.0, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
           "MySqlConnector": "[2.6.2, )",
           "Npgsql": "[10.0.3, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
-          "System.IdentityModel.Tokens.Jwt": "[8.16.0, )"
+          "System.IdentityModel.Tokens.Jwt": "[8.16.0, )",
+          "System.Security.Cryptography.ProtectedData": "[10.0.10, )"
         }
       }
     }
