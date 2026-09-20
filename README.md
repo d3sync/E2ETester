@@ -23,7 +23,7 @@ dotnet restore --locked-mode
 
 The local demo starts its own API. Send a request, review the result, edit a parameter, add a variation and continue. Finish the run to export a report. The demo does not contact external services.
 
-For the Example example, click **Cloud test** or open [cloud-checkremoteip.json](samples/generic/cloud-checkremoteip.json). Follow the [walkthrough](samples/generic/cloud-checkremoteip.md). This GET workflow needs **no database fixtures**. Authenticated results require your own account and permissions.
+For a generic cloud template, click **Cloud test** or open [cloud-checkremoteip.json](samples/generic/cloud-checkremoteip.json). Replace the placeholder URL and endpoint with your environment, then follow the [walkthrough](samples/generic/cloud-checkremoteip.md). This GET workflow needs **no database fixtures**. Authenticated results require your own account and permissions.
 
 ## Features
 

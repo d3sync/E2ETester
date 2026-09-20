@@ -1,0 +1,86 @@
+{
+  "reviewedOn": "2026-09-21",
+  "method": "Visual inspection of screenshots and source artwork; generated branding variants verified by provenance. Changes require a fresh review.",
+  "files": {
+    "assets/branding/e2e-tester-icon-128.png": {
+      "sha256": "d835c9e0e6e5eda2b1e0361b6d38ae84284e4564dd677ed148eeb1b5d8455740",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-16.png": {
+      "sha256": "c1044e3bd7af90422fa6889fe1223ceabeea6b5f3035316c0130d5f86a0c5772",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-24.png": {
+      "sha256": "e2f4ae563058104929011ffca582aa4e80d2db4e454d862ce13213d17549b647",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-256.png": {
+      "sha256": "a7634a02ba000c210bf827ce51a1fd1e6f52e4e298ac66c49af2b44c7dca5f8d",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-32.png": {
+      "sha256": "6fbb900d117cc37092931fc3bd0638b010bdb1c8f22a8d04eb1498abe19e842f",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-48.png": {
+      "sha256": "274817981392a02da2c68f01e43fc9635fd39aa9339a4b00f072d26162064927",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-512.png": {
+      "sha256": "3b4fa79b5dd448f8fe9f528cf4319992d188ebde91143b539e7ff80aead66871",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-64.png": {
+      "sha256": "d7b44c384da67c07d8fad4b2d097935ae38390fa4bcb535889ea4183adfe9a8d",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-master.png": {
+      "sha256": "de203c896828375fb1bb67fb7903a566218ca15ca8a535289383210417709f69",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-v1.png": {
+      "sha256": "67b7fce34ca70e3af210e9d8469398d1a0b67da8196f225c4a70d053f122426a",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-v2.png": {
+      "sha256": "8a0ff7baeffa633c012056f2917181d2ce14879c6a3a0b55c81eb4e89332102f",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-icon-v3.png": {
+      "sha256": "fad196741d6763d691aa523decb7217391781aa50179d2eb9c6ff035b05e53f1",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-wordmark-dark.svg": {
+      "sha256": "5313273770803f8be0f2444f0996a7d2f0127ad675f2332765cd6ad055120a0b",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester-wordmark-light.svg": {
+      "sha256": "3cf6668c46f40e151fc7aa642033fb84126c5f182cbfcfdb6c867a1c177c8632",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "assets/branding/e2e-tester.ico": {
+      "sha256": "24a12868a7c3e216e4723c2a73b8e89324c45adad1e5e1f0016bbc98772ee9ff",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "docs/images/report-modal.png": {
+      "sha256": "d5dcf0fbefa8a33033e3a710340a709a73a8f2017228b7b1fc01eb91026c9d38",
+      "review": "Generic isolated UI capture visually reviewed"
+    },
+    "docs/images/workspace-dark.png": {
+      "sha256": "c6d0d757c8ca0cbc95f4080ad91a7dd54835b97d705cfcbeff07c82b49eeb937",
+      "review": "Generic isolated UI capture visually reviewed"
+    },
+    "docs/images/workspace-light.png": {
+      "sha256": "e5b86e3d9cc7e4f53bf7ee83deaa55bd70d50a32734137ec44bdf4a81538be51",
+      "review": "Generic isolated UI capture visually reviewed"
+    },
+    "src/E2ETester.Desktop/Assets/e2e-tester.ico": {
+      "sha256": "24a12868a7c3e216e4723c2a73b8e89324c45adad1e5e1f0016bbc98772ee9ff",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    },
+    "src/E2ETester.Desktop/Assets/e2e-tester.png": {
+      "sha256": "d835c9e0e6e5eda2b1e0361b6d38ae84284e4564dd677ed148eeb1b5d8455740",
+      "review": "Reviewed logo artwork or generated icon/wordmark derivative"
+    }
+  }
+}

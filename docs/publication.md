@@ -1,5 +1,9 @@
 # Publishing safely
 
+Text searches do not inspect screenshot pixels. Every public image or other media file must be visually inspected for private URLs, account names, fixture values, tokens and personal data. Approved bytes are recorded by SHA-256 in `docs/public-media-review.json`. The publication check rejects new or changed media until reviewed; it does not perform OCR or automatically approve images. Do not blindly regenerate the review record.
+
+The documentation screenshots were regenerated from the generic, isolated smoke workspace and visually reviewed. Old images remain in ignored local backups/artifacts and may remain in earlier Git commits until history is explicitly cleaned. Logos and their generated size/icon/wordmark variants were reviewed separately.
+
 Run `python tools/check_publication.py` before staging or publishing. CI and both release scripts run it too. It checks all Git-visible files, including tracked files that now match ignore rules, for excluded file types, private integration markers and common credential formats. It prints paths and reasons, never matched credentials. This is a focused guard, not a guarantee that every possible secret format can be detected. Enable GitHub secret scanning and push protection when creating the repository.
 
 Keep organization packages, fixtures, research and exports in `private/`, or use `*.local.*` / `*.private.*` names. Arbitrary `.jsee` packages are ignored; only reviewed generic examples and the authoring template are allowed. Browser data, encrypted sessions, environment files, databases, logs, build output and release archives are excluded. Synthetic test credentials are intentionally used by local regression tests; Docker test credentials are generated per run.
