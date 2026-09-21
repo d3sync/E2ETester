@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '0.7.5',
+    [string]$Version = '0.7.6',
     [string]$OutputDirectory = '',
     [string]$PackId = 'E2ETester',
     [string]$Shortcuts = 'Desktop,StartMenuRoot'
@@ -23,6 +23,8 @@ try {
     if ($files.Count -ne 1 -or $files[0].Name -ne 'E2ETester.Desktop.exe') { throw 'Expected one self-contained desktop executable.' }
     python (Join-Path $root 'tools/check_publication.py') --stage $publish
     if ($LASTEXITCODE -ne 0) { throw 'Public asset staging failed.' }
+    dotnet publish src/E2ETester.Mcp --configuration Release --runtime win-x64 --self-contained true --output (Join-Path $publish 'mcp') -p:PackagingRestore=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version=$Version
+    if ($LASTEXITCODE -ne 0) { throw 'MCP companion publish failed.' }
     dotnet vpk pack --packId $PackId --packVersion $Version --packDir $publish --mainExe E2ETester.Desktop.exe --packTitle 'E2E Tester' --packAuthors 'd3sync and E2E Tester contributors' --icon (Join-Path $root 'assets/branding/e2e-tester.ico') --channel win --runtime win-x64 --outputDir $OutputDirectory --shortcuts $Shortcuts --delta None
     if ($LASTEXITCODE -ne 0) { throw 'Velopack packaging failed.' }
     Write-Output "Velopack installer, portable bundle and release feed: $OutputDirectory"

@@ -9,7 +9,7 @@ public static class SuiteDefaults
         if (package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication) is { } existing)
         {
             package.Cases.Remove(existing); package.Cases.Insert(0, existing);
-            if (package.Cases.Count > 1 && package.Cases[1].Request.Url == "/whoami") return package;
+            if (package.Cases.Count > 1 && package.Cases[1].Kind == TestStepKind.Http && (package.Cases[1].Request.Url == "/whoami" || package.Cases[1].Id == "remote-ip" || package.Cases[1].Id.EndsWith("-ip", StringComparison.Ordinal))) return package;
             var validation = Create().Cases[1]; validation.Request.IdentityRef = existing.Request.IdentityRef;
             package.Cases.Insert(1, validation); return package;
         }

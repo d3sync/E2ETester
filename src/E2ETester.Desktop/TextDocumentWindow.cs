@@ -4,11 +4,18 @@ using System.Windows.Media;
 namespace E2ETester.Desktop;
 public sealed class TextDocumentWindow : Window
 {
+    private readonly StackPanel actions;
+    public void AddAction(string label, Action action)
+    {
+        var button = new Button {Content=label, Margin=new Thickness(8)};
+        button.Click += (_,_) => action(); actions.Children.Insert(0,button);
+    }
     public TextDocumentWindow(string title, params (string Title, string Text)[] documents)
     {
         Title = title; Width = 1000; Height = 740; MinWidth = 620; MinHeight = 400; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var dock = new DockPanel { Margin = new Thickness(20) }; var tabs = new TabControl();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        actions = buttons;
         var copy = new Button { Content = "Copy entire tab", Margin = new Thickness(8) };
         copy.Click += (_, _) => { if (tabs.SelectedItem is TabItem { Content: TextBox text }) Clipboard.SetText(text.Text); };
         var close = new Button { Content = "Close", Margin = new Thickness(8) }; close.Click += (_, _) => Close();

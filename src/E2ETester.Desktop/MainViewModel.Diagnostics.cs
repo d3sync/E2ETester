@@ -60,6 +60,8 @@ public sealed partial class MainViewModel
     }
     public void LoadGatewayAuthCheck()
     {
+        var localSuite=System.IO.Path.Combine(RememberedSessions.Root,"Packages","default-suite.jsee");
+        if(useLocalDefaultSuite && System.IO.File.Exists(localSuite)) { OpenPackageFile(localSuite); ShowAdvanced=false; return; }
         var resource = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Samples/cloud-checkremoteip.json"));
         using var reader = new System.IO.StreamReader(resource.Stream);
         LoadPackage(SuiteDefaults.Create("Example Cloud · Remote IP round trip")); ShowAdvanced = false;

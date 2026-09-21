@@ -95,8 +95,27 @@ internal static class FeatureSmoke
         var manager = new IdentityManagerWindow(model) { Owner=window }; manager.Show();
         await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle); Save(manager,path+".identities.png"); manager.Close();
         window.RequestTabs.SelectedIndex=3;
+        _ = window.Dispatcher.BeginInvoke(new Action(()=>
+        {
+            var agent=System.Windows.Application.Current.Windows.OfType<TextDocumentWindow>().Single();
+            if(((DockPanel)agent.Content).Children.OfType<TabControl>().Single().Items.Count!=4)throw new InvalidOperationException("AI assistant resources missing.");
+            Save(agent,path+".agent.png");agent.Close();
+        }),DispatcherPriority.ApplicationIdle);
+        model.AgentHelp.Execute(null);
+        var kit=Path.Combine(Path.GetTempPath(),"agent-kit-smoke-"+Guid.NewGuid().ToString("N"));AgentResources.ExportKit(kit);
+        if(!File.Exists(Path.Combine(kit,"e2e-tester-author","SKILL.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.4.schema.json")))throw new InvalidOperationException("Exported skill incomplete.");
+        var toolsButton=Descendants(window).OfType<Button>().Single(b=>b.ContextMenu is not null);
+        toolsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+        if(!toolsButton.ContextMenu.IsOpen || toolsButton.ContextMenu.DataContext!=model)throw new InvalidOperationException("Tools menu not connected.");
+        Save(toolsButton.ContextMenu,path+".menu.png");toolsButton.ContextMenu.IsOpen=false;
     }
-    private static void Save(Window window,string path)
+    private static System.Collections.Generic.IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for(var i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++)
+        {var child=VisualTreeHelper.GetChild(parent,i);yield return child;foreach(var nested in Descendants(child))yield return nested;}
+    }
+    private static void Save(FrameworkElement window,string path)
     {
         window.UpdateLayout();var image=new RenderTargetBitmap((int)window.ActualWidth,(int)window.ActualHeight,96,96,PixelFormats.Pbgra32);image.Render(window);
         var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(image));using var stream=File.Create(path);encoder.Save(stream);

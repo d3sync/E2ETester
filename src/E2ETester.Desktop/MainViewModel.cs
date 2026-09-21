@@ -96,6 +96,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public MainViewModel(string workspace, string? sessionDirectory = null)
     {
         rememberedSessions = sessionDirectory is null ? null : new RememberedSessions(sessionDirectory);
+        useLocalDefaultSuite = sessionDirectory is not null && Path.GetFullPath(sessionDirectory).Equals(Path.GetFullPath(RememberedSessions.DefaultDirectory), StringComparison.OrdinalIgnoreCase);
         store = new SqliteRunStore(workspace); coordinator = new(store, new HttpTransport());
         Import = Command(ImportAsync); ExportPackage = Command(ExportPackageAsync);
         Send = Command(SendAsync, () => SelectedCase is not null && (run?.FinishedAt is null || IsPlayground));

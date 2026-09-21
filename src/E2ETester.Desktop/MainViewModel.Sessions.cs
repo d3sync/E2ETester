@@ -3,6 +3,7 @@ namespace E2ETester.Desktop;
 public sealed partial class MainViewModel
 {
     private readonly RememberedSessions? rememberedSessions;
+    private readonly bool useLocalDefaultSuite;
     private void RestoreRememberedSessions()
     {
         if (rememberedSessions is null || !Uri.TryCreate(BaseUrl, UriKind.Absolute, out var uri)) return;

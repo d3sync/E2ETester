@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.6
+
+- Tools is a visible dropdown button with themed menu rows in light and dark mode.
+- Added a direct AI assistant button, embedded skill/setup tabs and exportable agent kit; installers now include the MCP companion executable.
+- Optional AppData default suite preserves private environment-specific sign-in and validation cases without publishing them.
+
 ## 0.7.5
 
 - Readable reports now start with a copyable TC-number, title and result summary for every test case.

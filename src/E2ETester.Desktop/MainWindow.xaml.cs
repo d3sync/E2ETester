@@ -56,6 +56,14 @@ public partial class MainWindow : Window
         Closed += (_, _) => { model.PropertyChanged -= ModelChanged; model.OpenDatabaseRequested -= ShowDatabase; model.Dispose(); };
     }
     private void ShowDatabase() => new DatabaseWindow(viewModel.Database) { Owner = this }.ShowDialog();
+    private void OpenToolsMenu(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.ContextMenu.DataContext = viewModel;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        button.ContextMenu.IsOpen = true;
+    }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.SelectedCase) && viewModel.SelectedCase?.Baseline.Kind == Core.TestStepKind.SwaggerAuthentication) RequestTabs.SelectedIndex = 3;

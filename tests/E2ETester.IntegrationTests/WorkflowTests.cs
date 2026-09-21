@@ -9,6 +9,8 @@ internal static class WorkflowTests
         var package=SuiteDefaults.Create();package.Cases.Add(new TestCase { Id="business",Title="Business",Request=new(){Url="/business",IdentityRef="cloud-user"},Assertions=[new()] });
         check(package.Cases[0].Kind==TestStepKind.SwaggerAuthentication && package.Cases[1].Request.Url=="/whoami", "suite begins with auth-only and remote IP");
         check(SuiteDefaults.Ensure(package).Cases.Count==3,"suite setup is not duplicated");
+        var custom=PackageJson.Clone(package);custom.Cases[1].Id="remote-ip";custom.Cases[1].Request.Url="/custom-validation";
+        check(SuiteDefaults.Ensure(custom).Cases.Count==3 && SuiteDefaults.Ensure(custom).Cases[1].Request.Url=="/custom-validation","private validation endpoint remains unchanged");
         var run=await coordinator.StartAsync(package,package.BaseUrl);var identity=new IdentitySession("cloud-user",AuthKind.Bearer,"workflow-secret");
         Task<Attempt> Send(int index,IdentitySession session)=>coordinator.ExecuteAsync(run,package.Cases[index],package.Cases[index].Request,package.Cases[index].Assertions,session,default);
         await reject(()=>Send(2,identity),"business case cannot bypass sign-in");

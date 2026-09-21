@@ -41,7 +41,7 @@ public sealed partial class MainViewModel
             }
         }, () => !Busy);
         ViewReport = new(ShowReport, () => !Busy && run is not null);
-        AgentHelp = new(() => new TextDocumentWindow("Generate test cases with an AI agent", ("Copy prompt", AgentResources.Prompt), ("Package template", AgentResources.Template)) { Owner=System.Windows.Application.Current.MainWindow }.ShowDialog());
+        AgentHelp = new(() => AgentResources.ShowHelp(System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w=>w.DataContext==this)));
     }
     private void ShowReport()
     {
@@ -51,7 +51,9 @@ public sealed partial class MainViewModel
     private bool IsSetupCase(CaseEditor item) => !IsPlayground && Cases.FirstOrDefault()?.Baseline.Kind == TestStepKind.SwaggerAuthentication && Cases.IndexOf(item) < 2;
     public void LoadNewSuite()
     {
-        LoadPackage(SuiteDefaults.Create());
+        var localSuite=Path.Combine(RememberedSessions.Root,"Packages","default-suite.jsee");
+        if(useLocalDefaultSuite && File.Exists(localSuite)) OpenPackageFile(localSuite);
+        else LoadPackage(SuiteDefaults.Create());
         if (SelectedIdentity?.Secret.Length == 0 && rememberedSessions is not null)
         {
             // A new default suite can reuse the most recently remembered identity for its server.
@@ -63,6 +65,8 @@ public sealed partial class MainViewModel
     {
         if(new FileInfo(path).Length>5_000_000)throw new InvalidDataException("Package exceeds 5 MB.");
         LoadPackage(SuiteDefaults.Ensure(PackageJson.Import(File.ReadAllText(path))));
+        if(Cases.FirstOrDefault()?.Baseline.Kind==TestStepKind.SwaggerAuthentication)
+            SwaggerUrl=new Uri(new Uri(BaseUrl.TrimEnd('/')+"/"),Cases[0].Url).AbsoluteUri;
         Message="Package opened. Nothing has been sent. Start with Swagger sign-in.";
     }
 }

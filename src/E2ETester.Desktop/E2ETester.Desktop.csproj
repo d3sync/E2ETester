@@ -29,6 +29,7 @@
     <Resource Include="../../THIRD_PARTY_NOTICES.md" Link="About/THIRD_PARTY_NOTICES.md" />
     <Resource Include="../../skills/e2e-tester-author/references/generation-prompt.md" Link="Agent/generation-prompt.md" />
     <Resource Include="../../skills/e2e-tester-author/assets/test-suite.jsee" Link="Agent/test-suite.jsee" />
+    <Resource Include="../../skills/e2e-tester-author/**/*" Link="AgentSkill/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
