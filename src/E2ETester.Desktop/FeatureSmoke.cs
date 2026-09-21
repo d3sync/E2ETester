@@ -34,7 +34,11 @@ internal static class FeatureSmoke
         var about = new AboutWindow { Owner=window }; about.Show();
         await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
         if (!AppInfo.ReadNotice("LICENSE").Contains("d3sync") || !AppInfo.Details.Contains("https://d3sync.org")) throw new InvalidOperationException("About credits or license missing.");
-        Save(about,path+".about.png"); about.Close();
+        Save(about,path+".about.png");
+        var aboutTabs = ((DockPanel)about.Content).Children.OfType<TabControl>().Single();
+        aboutTabs.SelectedIndex = 2;
+        await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+        Save(about,path+".notices.png"); about.Close();
         var sessions = Path.Combine(Path.GetTempPath(),"remembered-session-test-"+Guid.NewGuid().ToString("N"));
         string profileKey;
         using (var first = new MainViewModel(Path.Combine(sessions,"workspace-a"),sessions))

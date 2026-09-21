@@ -32,7 +32,9 @@ public sealed class AboutWindow : Window
         buttons.Children.Add(copy); buttons.Children.Add(close); DockPanel.SetDock(buttons,Dock.Bottom); root.Children.Add(buttons);
         var tabs = new TabControl();
         foreach (var entry in new[] { ("About", AppInfo.Details + "\n\nPrepare reusable API test suites, authenticate with named identities, explore requests, verify optional database evidence, and export reports for people and AI agents.\n\nThird-party components retain their own licenses. The MIT license applies to this project's code."), ("MIT license", AppInfo.ReadNotice("LICENSE")), ("Third-party notices", AppInfo.ReadNotice("THIRD_PARTY_NOTICES.md")) })
-            tabs.Items.Add(new TabItem { Header = entry.Item1, Content = new TextBox { Text = entry.Item2, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalContentAlignment = VerticalAlignment.Top, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontSize = 14, Margin = new Thickness(0,12,0,0) } });
+            tabs.Items.Add(new TabItem { Header = entry.Item1, Content = entry.Item1 == "Third-party notices"
+                ? (object)NoticesDocument.Create(entry.Item2)
+                : new TextBox { Text = entry.Item2, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalContentAlignment = VerticalAlignment.Top, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontSize = 14, Margin = new Thickness(0,12,0,0) } });
         tabs.SelectedIndex = 0; root.Children.Add(tabs); Content = root;
     }
 }
