@@ -1,5 +1,5 @@
 param(
-    [string]$Version = '0.7.6',
+    [string]$Version = '0.7.7',
     [string]$OutputDirectory = '',
     [string]$PackId = 'E2ETester',
     [string]$Shortcuts = 'Desktop,StartMenuRoot'

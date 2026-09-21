@@ -10,6 +10,18 @@ public sealed partial class MainViewModel
     public ParameterCommand<FieldEditor> RemoveField { get; private set; } = null!;
     public AsyncCommand LoadCloudSample { get; private set; } = null!;
     public ActionCommand OpenUpdates { get; private set; } = null!;
+    private string updateLabel="Updates…";
+    public string UpdateLabel {get=>updateLabel;private set=>Set(ref updateLabel,value);}
+    internal async Task CheckForUpdatesOnStartupAsync(Window owner)
+    {
+        var check=new UpdatesViewModel(()=>Task.CompletedTask);
+        if(await check.CheckAtStartupAsync())
+        {
+            UpdateLabel=$"Update {check.NewestVersion} available";
+            if(owner.IsVisible && !Busy && !Database.Busy && owner.OwnedWindows.Count==0 && MessageBox.Show(owner,$"E2E Tester {check.NewestVersion} is available. Open Updates to download and install it?", "Update available", MessageBoxButton.YesNo,MessageBoxImage.Information)==MessageBoxResult.Yes)
+                OpenUpdates.Execute(null);
+        }
+    }
     public string ThemeLabel => ThemeManager.IsDark ? "☀ Light" : "☾ Dark";
     public string RequestDetails => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication-only step: no HTTP request or cURL was generated." : SelectedAttempt is null ? "Send a request to inspect its resolved URL, headers, body and redacted cURL here." : RequestDiagnostics.Describe(SelectedAttempt);
     private string swaggerUrl = "https://api.example.test/swagger/";

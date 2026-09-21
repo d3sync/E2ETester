@@ -1,4 +1,4 @@
-param([string]$Version = '0.7.6')
+param([string]$Version = '0.7.7')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 python (Join-Path $root 'tools/check_publication.py')

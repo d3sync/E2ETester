@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.7
+
+- Visible Updates toolbar/menu access, manual checks and persistent startup-check preferences.
+- Startup checks the public release feed and offers to open Updates when a newer version exists; download and installation remain explicit.
+- Server releases now include the AI skill kit and MCP companion.
+
 ## 0.7.6
 
 - Tools is a visible dropdown button with themed menu rows in light and dark mode.

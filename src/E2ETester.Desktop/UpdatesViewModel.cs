@@ -9,12 +9,16 @@ namespace E2ETester.Desktop;
 public sealed class UpdatesViewModel : Observable
 {
     private readonly Func<Task> prepare;
-    private string source = "", status = "Choose your project's HTTPS release feed or a local release folder. No background updates are performed.";
+    private string source = "", status = "Set a release feed, save settings, then check for updates. Updates are downloaded and installed only when you choose.";
     private UpdateManager? manager;
     private VelopackAsset? selected;
     private bool busy;
     private CancellationTokenSource? cancellation;
-    private static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "E2ETester", "update-source.txt");
+    private readonly string settingsDirectory;
+    private bool checkOnStartup=true;
+    public bool CheckOnStartup {get=>checkOnStartup;set=>Set(ref checkOnStartup,value);}
+    public bool HasNewerVersion => Versions.Any(a=>a.Version>Velopack.SemanticVersion.Parse(CurrentVersion));
+    public string? NewestVersion => HasNewerVersion ? Versions.First().Version.ToString() : null;
     public string Source { get => source; set { if (Set(ref source, value)) { Versions.Clear(); Selected = null; manager = null; Refresh(); } } }
     public string Status { get => status; private set => Set(ref status, value); }
     public string CurrentVersion => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "unknown";
@@ -26,15 +30,33 @@ public sealed class UpdatesViewModel : Observable
     public AsyncCommand RefreshVersions { get; }
     public AsyncCommand Install { get; }
     public ActionCommand Cancel { get; }
-    public UpdatesViewModel(Func<Task> prepare)
+    public ActionCommand SaveSettings {get;}
+    public UpdatesViewModel(Func<Task> prepare, string? settingsDirectory=null)
     {
         this.prepare = prepare;
-        try { if (File.Exists(SettingsPath)) source = File.ReadAllText(SettingsPath); } catch (IOException) { }
-        RefreshVersions = new(LoadAsync, _ => Status = "Could not read this release feed. Check the address and network connection.", () => !Busy);
+        this.settingsDirectory=settingsDirectory??UpdatePreferences.DirectoryPath;
+        try {var saved=UpdatePreferences.Load(this.settingsDirectory);source=saved.Source;checkOnStartup=saved.CheckOnStartup;} catch {status="Update settings could not be read. Enter and save your feed again.";}
+        SaveSettings=new(()=>
+        {
+            try {SavePreferences();Status="Update settings saved. Startup checks never download or install automatically.";}
+            catch {Status="Could not save settings. Use an HTTPS feed directory or an absolute local folder.";}
+        },()=>!Busy);
+        RefreshVersions = new(LoadAsync, _ => Status = "Could not read this release feed. It must serve releases.win.json and its package files. Check the address and network connection.", () => !Busy);
         Install = new(InstallAsync, _ => Status = "Version installation did not complete. Your current application and workspace remain available.", () => !Busy && Selected is not null && manager?.IsInstalled == true && Selected.Version != manager.CurrentVersion);
         Cancel = new(() => cancellation?.Cancel(), () => Busy && cancellation is not null);
     }
-    private void Refresh() { RefreshVersions?.Refresh(); Install?.Refresh(); Cancel?.Refresh(); }
+    private void Refresh() { RefreshVersions?.Refresh(); Install?.Refresh(); Cancel?.Refresh(); SaveSettings?.Refresh(); }
+    private void SavePreferences()
+    {
+        var input=Source.Trim();if(input.Length>0)_=CreateSource(input);
+        new UpdatePreferences(input,CheckOnStartup).Save(settingsDirectory);
+    }
+    internal async Task<bool> CheckAtStartupAsync()
+    {
+        if(!CheckOnStartup || string.IsNullOrWhiteSpace(Source))return false;
+        try {await LoadAsync();return HasNewerVersion;}
+        catch {Status="Could not check for updates. Retry from Tools → Updates and settings.";return false;}
+    }
     internal static IUpdateSource CreateSource(string value)
     {
         if (Path.IsPathFullyQualified(value) && !value.Contains("://")) return new SimpleFileSource(new DirectoryInfo(value));
@@ -53,8 +75,9 @@ public sealed class UpdatesViewModel : Observable
             manager = nextManager;
             foreach (var asset in feed.Assets.Where(a => a.Type == VelopackAssetType.Full && a.PackageId == "E2ETester").OrderByDescending(a => a.Version)) Versions.Add(asset);
             Selected = Versions.FirstOrDefault();
-            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!); await File.WriteAllTextAsync(SettingsPath, input);
-            Status = manager.IsInstalled ? $"{Versions.Count} available versions. Select an earlier version to roll back. A workspace backup is created before applying." : "Versions loaded. Use the Velopack installer to enable installation and rollback; the standalone executable cannot replace itself.";
+            SavePreferences();
+            var summary=Versions.Count==0 ? "The feed contains no compatible versions." : HasNewerVersion ? $"Version {NewestVersion} is available." : "You're up to date.";
+            Status = summary + (manager.IsInstalled ? " Select a version to install or roll back. A workspace backup is created before applying." : " Use the Velopack installer to enable installation and rollback; the standalone executable cannot replace itself.");
         }
         finally { Busy = false; }
     }

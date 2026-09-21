@@ -74,7 +74,7 @@ if [[ -d "$SITE_ROOT/releases" ]]; then
   cp -f "$SITE_ROOT/releases"/RELEASES "$SITE_ROOT/releases"/assets.win.json "$SITE_ROOT/releases"/releases.win.json Releases/ 2>/dev/null || true
 fi
 
-dotnet publish "$APP_CSPROJ" -c Release -r win-x64 --no-self-contained \
+dotnet publish "$APP_CSPROJ" -c Release -r win-x64 --no-self-contained -p:PackagingRestore=true \
   -p:EnableWindowsTargeting=true -p:PublishSingleFile=true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true \
   -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version="$VERSION" \
@@ -90,6 +90,11 @@ if [[ "$(find "publish/win-$VERSION" -maxdepth 1 -type f | wc -l)" -ne 1 ]]; the
 fi
 
 notes="$(mktemp)"
+python3 tools/check_publication.py --stage "publish/win-$VERSION"
+dotnet publish src/E2ETester.Mcp/E2ETester.Mcp.csproj -c Release -r win-x64 --no-self-contained -p:PackagingRestore=true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true \
+  -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version="$VERSION" \
+  -o "publish/win-$VERSION/mcp"
 printf '# E2E Tester %s\n\nStatic-feed release built from commit %s. Requires the .NET 10 Desktop Runtime.\n' "$VERSION" "$(git rev-parse --short HEAD)" > "$notes"
 vpk '[win]' pack --packId "$PACK_ID" --packVersion "$VERSION" \
   --packDir "publish/win-$VERSION" --mainExe E2ETester.Desktop.exe \

@@ -10,7 +10,11 @@ Run `./tools/Publish-Installer.ps1 -Version 0.6.0`. It restores the pinned `vpk`
 
 ## Use a feed
 
-Host release JSON and referenced `.nupkg` files in an HTTPS directory you control, or use a trusted local folder. In **Workspace → Maintenance → Updates / rollback**, enter the directory address/path and choose **Check versions**. The source is remembered locally, without credentials in its URL. Checks are not automatic.
+The default feed is `https://e2e.dev.xpk.gr/releases/`. It must serve `releases.win.json` and each referenced `.nupkg`. Open **Updates…** in the main toolbar or **Tools → Updates and settings…**. You can check manually, change the HTTPS/local feed, and toggle **Check for newer versions when the app starts**. Choose **Save update settings** to persist preferences in `%LOCALAPPDATA%/E2ETester/Updates/settings.json`. Existing `update-source.txt` settings are migrated when saved.
+
+Startup checks are enabled by default. A newer version produces a notification and an Updates button showing the available version. Nothing downloads or installs automatically. Offline/unavailable feeds do not block startup; retry manually to see the failure status. If an API operation or modal dialog is active, the button announces the update without interrupting it.
+
+Versions before 0.7.7 do not gain startup checking remotely. Install 0.7.7 once manually, or use their existing **Workspace → Maintenance → Updates / rollback** screen with the feed above. New builds become discoverable only after deployment of the release JSON and packages. Keep older full packages for rollback.
 
 Select a version and choose Install or Roll back. The app confirms the exact version, downloads it, saves the redacted draft, creates a SQLite backup under `%LOCALAPPDATA%/E2ETester/Backups`, and restarts via Velopack. Active API/database operations must finish first. Cancelling a download does not apply it.
 

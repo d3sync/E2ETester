@@ -18,7 +18,7 @@ public partial class MainWindow : Window
         model.OpenDatabaseRequested += ShowDatabase;
         if (restoreDraft)
         {
-            Loaded += async (_, _) => { if (recoverOnStartup) await model.RestoreDraft.RunAsync(); draftTimer.Start(); };
+            Loaded += async (_, _) => { if (recoverOnStartup) await model.RestoreDraft.RunAsync(); draftTimer.Start(); await model.CheckForUpdatesOnStartupAsync(this); };
             draftTimer.Tick += async (_, _) =>
             {
                 if (model.Busy || autosaving) return;

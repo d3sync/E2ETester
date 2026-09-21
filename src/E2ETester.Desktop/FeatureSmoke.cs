@@ -11,6 +11,7 @@ internal static class FeatureSmoke
 {
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
+        await UpdateSettingsSmoke.RunAsync(window,path);
         var file=Path.Combine(Path.GetTempPath(),"package with spaces-"+Guid.NewGuid().ToString("N")+".jsee");
         await File.WriteAllTextAsync(file,AgentResources.Template);model.OpenPackageFile(file);
         if(model.Cases.Count!=2 || model.SelectedCase?.Baseline.Kind!=TestStepKind.SwaggerAuthentication)throw new InvalidOperationException(".jsee package did not open its setup flow.");
