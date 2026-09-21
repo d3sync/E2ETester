@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
     private void RefreshDatabaseEvidence()
     {
         var selectedId = SelectedAttempt?.Id; LoadAttempts(); SelectedAttempt = Attempts.FirstOrDefault(a => a.Id == selectedId);
-        if (SelectedCase is not null && run is not null) SelectedCase.Status = run.Attempts.LastOrDefault(a => a.CaseId == SelectedCase.Baseline.Id)?.Verdict.ToString().ToUpperInvariant() ?? "NOT RUN";
+        if (SelectedCase is not null && run is not null) SelectedCase.Status = CaseStatus(run.Attempts.LastOrDefault(a => a.CaseId == SelectedCase.Baseline.Id));
         NotifyRun();
     }
 }

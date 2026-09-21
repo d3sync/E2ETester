@@ -13,6 +13,25 @@ internal static class FeatureSmoke
     {
         await UpdateSettingsSmoke.RunAsync(window,path);
         await CheckNavigationAsync(window, path);
+        if (ResponsePreferences.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "responses.json")).RedactSensitiveValues)
+            throw new InvalidOperationException("Response redaction must default to off.");
+        _ = window.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            var settings = System.Windows.Application.Current.Windows.OfType<Window>().Single(w => w.Title == "Response settings");
+            Save(settings, path + ".response-settings.png");
+            var toggle = Descendants(settings).OfType<CheckBox>().Single(); toggle.IsChecked = false;
+            Descendants(settings).OfType<Button>().Single(b => Equals(b.Content, "Save")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        }), DispatcherPriority.ApplicationIdle);
+        model.OpenResponseSettings.Execute(null);
+        _ = window.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            var settings = System.Windows.Application.Current.Windows.OfType<Window>().Single(w => w.Title == "Response settings");
+            var toggle = Descendants(settings).OfType<CheckBox>().Single();
+            if (toggle.IsChecked != false) throw new InvalidOperationException("Response setting was not saved.");
+            toggle.IsChecked = true;
+            Descendants(settings).OfType<Button>().Single(b => Equals(b.Content, "Save")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        }), DispatcherPriority.ApplicationIdle);
+        model.OpenResponseSettings.Execute(null);
         var file=Path.Combine(Path.GetTempPath(),"package with spaces-"+Guid.NewGuid().ToString("N")+".jsee");
         await File.WriteAllTextAsync(file,AgentResources.Template);model.OpenPackageFile(file);
         if(model.Cases.Count!=2 || model.SelectedCase?.Baseline.Kind!=TestStepKind.SwaggerAuthentication)throw new InvalidOperationException(".jsee package did not open its setup flow.");
@@ -35,6 +54,18 @@ internal static class FeatureSmoke
         if(!PackageAssociation.Command(@"C:\Program Files\E2E Tester.exe").Contains("\"%1\""))throw new InvalidOperationException("Association argument must be quoted.");
         model.SelectedIdentity!.Secret="local-ui-test-token";await model.Send.RunAsync();
         if(model.SelectedAttempt?.Verdict!=Verdict.Pass || model.SelectedAttempt.Response is not null)throw new InvalidOperationException("Authentication-only UI sent HTTP or did not record success.");
+        _ = window.Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            var dialog = System.Windows.Application.Current.Windows.OfType<ManualAssessmentWindow>().Single();
+            var editor = (AssessmentEditor)dialog.DataContext;
+            if (editor.Verdict != Verdict.Fail) throw new InvalidOperationException("Mark as failed must preselect FAIL.");
+            editor.Reviewer = "UI tester"; editor.Reason = "Data does not match the expected result.";
+            await editor.Record.RunAsync(); dialog.Close();
+        }), DispatcherPriority.ApplicationIdle);
+        model.MarkAttemptFailed.Execute(null);
+        if (model.SelectedAttempt.Verdict != Verdict.Pass || !model.HasFailureVerdict || !model.SelectedCase!.Status.Contains("MANUAL: FAIL"))
+            throw new InvalidOperationException("Manual FAIL must be visible beside automated PASS.");
+        Save(window, path + ".manual-fail.png");
         bool inspected=false;
         _ = window.Dispatcher.BeginInvoke(new Action(()=>
         {
@@ -165,6 +196,15 @@ internal static class FeatureSmoke
                 || view.NextCaseButton.Background != System.Windows.Application.Current.Resources["Accent"])
                 throw new InvalidOperationException("An untested variation did not restore Next case as primary.");
             Save(view, path + ".next-primary.png");
+            for (var i = 0; i < 30; i++) model.Cases.Add(new CaseEditor(new TestCase { Title = "Scroll test " + i }));
+            model.SelectedCase = model.Cases[^2];
+            await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ContextIdle);
+            model.Next.Execute(null);
+            await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ContextIdle);
+            var item = (ListBoxItem)view.CaseList.ItemContainerGenerator.ContainerFromItem(model.SelectedCase);
+            var position = item.TransformToAncestor(view.CaseList).Transform(new Point());
+            if (position.Y < 0 || position.Y + item.ActualHeight > view.CaseList.ActualHeight + 1)
+                throw new InvalidOperationException("Next case did not scroll the selected item into view.");
         }
         finally { view.DataContext = null; view.Close(); }
     }

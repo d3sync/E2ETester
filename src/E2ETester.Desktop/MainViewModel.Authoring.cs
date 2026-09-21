@@ -109,7 +109,7 @@ public sealed partial class MainViewModel
             foreach (var c in Cases)
             {
                 c.RestoreDraft(draft.Edited.Cases.Single(d => d.Id == c.Baseline.Id));
-                c.Status = saved?.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id)?.Verdict.ToString().ToUpperInvariant() ?? "NOT RUN";
+                c.Status = CaseStatus(saved?.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id));
             }
             // Reassign after restoring identity references so selection resolves the saved alias.
             SelectedCase = null; SelectedCase = Cases.FirstOrDefault(c => c.Baseline.Id == draft.SelectedCaseId) ?? Cases.FirstOrDefault();

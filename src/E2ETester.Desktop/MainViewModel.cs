@@ -55,7 +55,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public Attempt? SelectedAttempt
     {
         get => selectedAttempt;
-        set { Set(ref selectedAttempt, value); Changed(nameof(VerdictText)); Changed(nameof(ResponseText)); Changed(nameof(RequestDetails)); CopyCurl?.Refresh(); Changed(nameof(ResponseMeta)); Changed(nameof(ResponseHeaders)); Changed(nameof(ChangesText)); Changed(nameof(DatabaseEvidenceText)); VerifyDatabase?.Refresh(); ReviewAttempt?.Refresh(); SaveResponse?.Refresh(); }
+        set { Set(ref selectedAttempt, value); Changed(nameof(VerdictText)); Changed(nameof(HasFailureVerdict)); Changed(nameof(ResponseText)); Changed(nameof(RequestDetails)); CopyCurl?.Refresh(); Changed(nameof(ResponseMeta)); Changed(nameof(ResponseHeaders)); Changed(nameof(ChangesText)); Changed(nameof(DatabaseEvidenceText)); VerifyDatabase?.Refresh(); ReviewAttempt?.Refresh(); MarkAttemptFailed?.Refresh(); SaveResponse?.Refresh(); }
     }
     public IdentityEditor? SelectedIdentity
     {
@@ -82,6 +82,9 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public AsyncCommand Resume { get; }
     public AsyncCommand BrowseRuns { get; }
     public AsyncCommand ReviewAttempt { get; }
+    public ActionCommand MarkAttemptFailed { get; }
+    public bool HasFailureVerdict => SelectedAttempt?.Verdict == Verdict.Fail || SelectedAttempt?.ManualAssessments.LastOrDefault()?.Verdict == Verdict.Fail;
+    private static string CaseStatus(Attempt? attempt) => attempt is null ? "NOT RUN" : attempt.Verdict.ToString().ToUpperInvariant() + (attempt.ManualAssessments.LastOrDefault() is { } review ? $" · MANUAL: {review.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(attempt, review) ? "" : " · REVIEW AGAIN")}" : "");
     public AsyncCommand AddVariation { get; }
     public ActionCommand Cancel { get; }
     public ActionCommand Next { get; }
@@ -108,6 +111,11 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Resume = Command(ResumeAsync); AddVariation = Command(AddVariationAsync, () => SelectedCase is not null && run?.FinishedAt is null);
         BrowseRuns = Command(BrowseRunsAsync);
         ReviewAttempt = Command(ReviewAttemptAsync, () => SelectedAttempt is { State: not AttemptState.Running });
+        MarkAttemptFailed = new(() =>
+        {
+            var editor = CreateAssessmentEditor(); editor.Verdict = Verdict.Fail;
+            new ManualAssessmentWindow(editor) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog();
+        }, () => !Busy && run is { FinishedAt: null } && SelectedAttempt is { State: not AttemptState.Running });
         Cancel = new(() => cancellation?.Cancel(), () => Busy);
         Next = new(() => Navigate(1), () => !Busy && SelectedCase is not null && Cases.IndexOf(SelectedCase) < Cases.Count - 1);
         Previous = new(() => Navigate(-1), () => !Busy && SelectedCase is not null && Cases.IndexOf(SelectedCase) > 0);
@@ -122,6 +130,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         InitializeDatabase();
         InitializeAuthoring();
         InitializeWorkspace(workspace);
+        InitializeResponseSettings(workspace);
         InitializeDiagnostics();
         InitializeTools();
         LoadDatabaseDemo = Command(() => LoadDatabaseDemoAsync(workspace));
@@ -136,7 +145,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         OpenDatabase?.Refresh(); AddDatabaseCheck?.Refresh(); VerifyDatabase?.Refresh();
         LoadDatabaseDemo?.Refresh();
         LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
-        ReviewAttempt?.Refresh();
+        ReviewAttempt?.Refresh(); MarkAttemptFailed?.Refresh();
         CopyCurl?.Refresh(); OpenSwagger?.Refresh(); RemoveField?.Refresh(); LoadCloudSample?.Refresh(); OpenUpdates?.Refresh(); ManageIdentities?.Refresh(); OpenPlayground?.Refresh(); ImportOpenApi?.Refresh(); ViewReport?.Refresh();
         foreach (var command in new[] { OpenWorkspace, SaveEnvironment, LoadEnvironment, ForgetEnvironment, SaveLibrary, LoadLibrary, BackupWorkspace, ExportDiagnostics }) command?.Refresh();
         SaveDraft?.Refresh(); RestoreDraft?.Refresh(); DuplicateCase?.Refresh(); DeleteCase?.Refresh(); MoveCaseUp?.Refresh(); MoveCaseDown?.Refresh(); Changed(nameof(CanAuthor));
@@ -212,8 +221,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
-            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture);
-            editor.Status = attempt.Verdict.ToString().ToUpperInvariant();
+            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues);
+            editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
         }
         finally { identityEditor.RefreshSession(); cancellation.Dispose(); cancellation = null; Busy = false; NotifyRun(); LoadAttempts(); }
@@ -265,7 +274,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         var saved = await coordinator.ResumeAsync(id);
         if (saved is null) { Message = "No saved run is available yet."; return; }
         LoadPackage(saved.Package); run = saved; BaseUrl = saved.BaseUrl;
-        foreach (var c in Cases) c.Status = run.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id)?.Verdict.ToString().ToUpperInvariant() ?? "NOT RUN";
+        foreach (var c in Cases) c.Status = CaseStatus(run.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id));
         LoadAttempts(); NotifyRun(); Message = saved.FinishedAt is null ? "Run restored. Re-enter redacted values and tokens before sending. Requests were not replayed." : "Finished run opened for review and report export. Start a new run to send more requests.";
         }
         finally { Busy = false; }
@@ -293,6 +302,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             try { await coordinator.AssessAsync(recordedRun, attempt, reviewer, verdict, reason, Identities.Select(i => i.Secret).Concat(Database.Connections.Select(c => c.Profile.ConnectionString))); }
             finally { Busy = false; }
             RefreshDatabaseEvidence();
+            Message = $"Manual {verdict.ToString().ToUpperInvariant()} recorded. The automated result and review reason are retained in the report.";
         });
     }
     private Task ReviewAttemptAsync()

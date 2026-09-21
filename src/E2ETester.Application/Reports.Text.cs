@@ -17,6 +17,7 @@ public static partial class Reports
         if (report.Coverage.Count == 0) text.AppendLine("No test cases.");
         text.AppendLine("Latest automated result per test case. Manual assessments are shown separately below.");
         if (report.Summary.HadFailures) text.AppendLine("Historical failures are retained in the detailed results.");
+        text.AppendLine().AppendLine(report.Redactions);
         text.AppendLine().AppendLine("DETAILED RESULTS");
         foreach (var test in run.Package.Cases)
         {

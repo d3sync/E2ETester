@@ -111,6 +111,15 @@ Check(!ReadShared(Path.Combine(directory, "runs.db")).Contains(token), "SQLite p
 var wal = Path.Combine(directory, "runs.db-wal");
 Check(!File.Exists(wal) || !ReadShared(wal).Contains(token), "SQLite write-ahead log excludes token");
 await DatabaseTests.RunAsync(Check, Reject, server.Url);
+var visibleRun = await coordinator.StartAsync(package, server.Url);
+var fullBody = await coordinator.ExecuteAsync(visibleRun, test, test.Request with { Url = "/secret" }, [new()],
+    new("none", AuthKind.Bearer, "response-setting-auth-canary"), default, redactResponseBody: false);
+Check(fullBody.Response!.Body.Contains("server-canary-681"), "response redaction can be disabled for capture");
+Check(!PackageJson.Write(fullBody).Contains("response-setting-auth-canary"), "unredacted response capture still masks authentication headers");
+Check((await store.LoadAsync(visibleRun.Id))!.Attempts[0].Response!.Body == fullBody.Response.Body
+    && Reports.Json(visibleRun).Contains("server-canary-681"), "full response survives saved run and report export");
+var maskedBody = await coordinator.ExecuteAsync(visibleRun, test, test.Request with { Url = "/secret" }, [new()], none, default);
+Check(!maskedBody.Response!.Body.Contains("server-canary-681") && fullBody.Response.Body.Contains("server-canary-681"), "redaction resumes for future captures without changing history");
 await RunHistoryTests.RunAsync(Check, Reject);
 await AuthenticationTests.RunAsync(Check, Reject, server.Url);
 await DraftTests.RunAsync(Check);

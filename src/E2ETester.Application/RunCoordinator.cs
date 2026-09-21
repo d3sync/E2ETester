@@ -55,7 +55,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
-    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null)
+    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
         try
@@ -144,6 +144,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 .Concat(assertionSecrets).Concat(response.SessionSecrets).Concat(Redaction.BodySecrets(response.Body)).Concat(response.Headers.Where(h => Redaction.IsSensitive(h.Key)).SelectMany(h => h.Value)).Append(identity.Secret));
             for (var i = 0; i < attempt.Assertions.Count; i++) attempt.Assertions[i] = attempt.Assertions[i] with { Expected = redactor.Body(attempt.Assertions[i].Expected) };
             attempt.Response = redactor.Response(response);
+            if (!redactResponseBody) attempt.Response = attempt.Response with { Body = response.Body };
             attempt.Checks = Assertions.Evaluate(frozenAssertions, response).Select(c => c with
             { Expected = redactor.Body(c.Expected), Actual = redactor.Body(c.Actual), Message = redactor.Text(c.Message) }).ToList();
             attempt.State = response.ErrorCode == "cancelled" ? AttemptState.Cancelled : AttemptState.Completed;

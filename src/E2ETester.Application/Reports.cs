@@ -7,7 +7,7 @@ public static partial class Reports
     public static string Json(TestRun run) => PackageJson.Write(Create(run));
     public static TestReport Create(TestRun source, DateTimeOffset? exportedAt = null)
     {
-        // Snapshot the already-redacted journal; rendering must never mutate a live run.
+        // Snapshot the captured journal; rendering must never mutate a live run.
         var run = PackageJson.Clone(source);
         var checks = new List<ReportCheck>();
         for (var ai = 0; ai < run.Attempts.Count; ai++)
@@ -25,7 +25,7 @@ public static partial class Reports
             new(Outcomes.ForRun(run), run.Package.Cases.Count, run.Package.Cases.Count(c => run.Attempts.Any(a => a.CaseId == c.Id)), run.Attempts.Count,
                 run.Attempts.Any(a => a.Verdict == Verdict.Fail || a.DatabaseEvidence.Any(e => e.Assessment?.Verdict == Verdict.Fail) || a.ManualAssessments.Any(m => m.Verdict == Verdict.Fail)), "latest attempt per case; all historical attempts retained"),
             run.Package.Cases.Select(c => { var latest = run.Attempts.LastOrDefault(a => a.CaseId == c.Id); var assessment = latest?.ManualAssessments.LastOrDefault(); return new CaseCoverage(c.Id, c.Title, c.ParentId, latest?.Id, latest?.Verdict, latest?.State.ToString() ?? "NotRun", assessment?.Verdict, assessment?.Id, assessment is null ? null : ManualAssessments.IsCurrent(latest!, assessment)); }).ToList(),
-            checks, "Credentials, sensitive fields and known credential echoes are omitted. This is not a replay bundle.", run);
+            checks, "Request credentials and sensitive check evidence are masked. Response bodies follow the capture setting used for each request and may contain unredacted values. This is not a replay bundle.", run);
     }
     private static System.Text.Json.JsonElement? Value(string value, bool structured)
     {

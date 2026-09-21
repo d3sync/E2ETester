@@ -66,6 +66,12 @@ public partial class MainWindow : Window
     }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.SelectedCase))
+            _ = Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (viewModel.SelectedCase is { } selected) CaseList.ScrollIntoView(selected);
+                CaseInstructions.ScrollToHome();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         if (e.PropertyName == nameof(MainViewModel.SelectedCase) && viewModel.SelectedCase?.Baseline.Kind == Core.TestStepKind.SwaggerAuthentication) RequestTabs.SelectedIndex = 3;
         if (e.PropertyName != nameof(MainViewModel.SelectedIdentity)) return;
         updatingToken = true; TokenBox.Password = viewModel.SelectedIdentity?.Secret ?? ""; updatingToken = false;
