@@ -31,6 +31,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public string Message { get => message; set => Set(ref message, value); }
     public bool Busy { get => busy; private set { Set(ref busy, value); Changed(nameof(CanEdit)); RefreshCommands(); } }
     public bool CanEdit => !Busy;
+    public bool AllCasesCompleted => run is not null && Cases.Count > 0
+        && Cases.All(c => run.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id)?.State == AttemptState.Completed);
     public string Progress => run is null ? $"{Cases.Count} cases · ready to start" : $"{Cases.Count(c => run.Attempts.Any(a => a.CaseId == c.Baseline.Id))}/{Cases.Count} tested · {run.Attempts.Count} attempts · {(run.FinishedAt is null ? "IN PROGRESS" : Outcomes.ForRun(run).ToString().ToUpperInvariant())}";
     public string RunLabel => run is null ? "NEW SESSION" : $"RUN {run.Id[..8].ToUpperInvariant()}";
     public string VerdictText => SelectedAttempt is null ? "AWAITING REQUEST" : "AUTOMATED: " + SelectedAttempt.Verdict.ToString().ToUpperInvariant() + (SelectedAttempt.ManualAssessments.LastOrDefault() is { } assessment ? $"\nMANUAL: {assessment.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(SelectedAttempt, assessment) ? "" : " · REVIEW AGAIN")}" : "");
@@ -128,6 +130,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private AsyncCommand Command(Func<Task> action, Func<bool>? allowed = null) => new(action, ex => Message = "Could not complete action: " + ex.Message, () => !Busy && (allowed?.Invoke() ?? true));
     private void RefreshCommands()
     {
+        Changed(nameof(AllCasesCompleted));
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();
         foreach (var command in new[] { Cancel, Next, Previous, NewCase, NewRun, AddQuery, AddHeader, AddCheck, NewIdentity }) command?.Refresh();
         OpenDatabase?.Refresh(); AddDatabaseCheck?.Refresh(); VerifyDatabase?.Refresh();

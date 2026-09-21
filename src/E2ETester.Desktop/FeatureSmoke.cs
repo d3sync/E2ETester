@@ -12,6 +12,7 @@ internal static class FeatureSmoke
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
         await UpdateSettingsSmoke.RunAsync(window,path);
+        await CheckNavigationAsync(window, path);
         var file=Path.Combine(Path.GetTempPath(),"package with spaces-"+Guid.NewGuid().ToString("N")+".jsee");
         await File.WriteAllTextAsync(file,AgentResources.Template);model.OpenPackageFile(file);
         if(model.Cases.Count!=2 || model.SelectedCase?.Baseline.Kind!=TestStepKind.SwaggerAuthentication)throw new InvalidOperationException(".jsee package did not open its setup flow.");
@@ -135,6 +136,37 @@ internal static class FeatureSmoke
     {
         for(var i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++)
         {var child=VisualTreeHelper.GetChild(parent,i);yield return child;foreach(var nested in Descendants(child))yield return nested;}
+    }
+    private static async Task CheckNavigationAsync(MainWindow owner, string path)
+    {
+        var workspace = Path.Combine(Path.GetTempPath(), "navigation-smoke-" + Guid.NewGuid().ToString("N"));
+        var package = SuiteDefaults.Create();
+        var run = new TestRun { Package = package, BaseUrl = package.BaseUrl };
+        run.Attempts = package.Cases.Select((c, i) => new Attempt
+        {
+            CaseId = c.Id, CaseTitle = c.Title, State = AttemptState.Completed,
+            Verdict = i == 0 ? Verdict.Fail : Verdict.Inconclusive, FinishedAt = DateTimeOffset.UtcNow
+        }).ToList();
+        using (var store = new E2ETester.Infrastructure.SqliteRunStore(workspace)) await store.SaveAsync(run);
+        using var model = new MainViewModel(workspace);
+        var view = new MainWindow(model, restoreDraft: false) { Owner = owner };
+        view.Show();
+        try
+        {
+            await model.RestoreRunAsync(run.Id);
+            await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
+            if (!model.AllCasesCompleted || Grid.GetColumn(view.FinishRunButton) != 4
+                || view.FinishRunButton.Background != System.Windows.Application.Current.Resources["Accent"])
+                throw new InvalidOperationException("Completed cases did not promote Finish run.");
+            Save(view, path + ".finish-primary.png");
+            await model.AddVariation.RunAsync();
+            await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
+            if (model.AllCasesCompleted || Grid.GetColumn(view.NextCaseButton) != 4
+                || view.NextCaseButton.Background != System.Windows.Application.Current.Resources["Accent"])
+                throw new InvalidOperationException("An untested variation did not restore Next case as primary.");
+            Save(view, path + ".next-primary.png");
+        }
+        finally { view.DataContext = null; view.Close(); }
     }
     private static void Save(FrameworkElement window,string path)
     {
