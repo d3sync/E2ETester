@@ -26,6 +26,15 @@ public sealed partial class MainViewModel
     public string RequestDetails => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication-only step: no HTTP request or cURL was generated." : SelectedAttempt is null ? "Send a request to inspect its resolved URL, headers, body and redacted cURL here." : RequestDiagnostics.Describe(SelectedAttempt);
     private string swaggerUrl = "https://api.example.test/swagger/";
     public string SwaggerUrl { get => swaggerUrl; set => Set(ref swaggerUrl, value); }
+    private void UpdateSwaggerUrlFromPackage()
+    {
+        var address = Cases.FirstOrDefault(c => c.Baseline.Kind == TestStepKind.SwaggerAuthentication)?.Url ?? "/swagger/";
+        // Base URL can be temporarily incomplete while the user types. Never keep
+        // another package's sign-in address when the new address cannot resolve.
+        SwaggerUrl = Uri.TryCreate(BaseUrl.TrimEnd('/') + "/", UriKind.Absolute, out var origin)
+            && Uri.TryCreate(origin, address, out var resolved)
+            && resolved.Scheme is "https" or "http" ? resolved.AbsoluteUri : "";
+    }
     public ActionCommand ToggleTheme { get; private set; } = null!;
     public ActionCommand CopyCurl { get; private set; } = null!;
     public AsyncCommand OpenSwagger { get; private set; } = null!;

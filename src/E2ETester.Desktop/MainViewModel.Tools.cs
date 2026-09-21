@@ -65,8 +65,6 @@ public sealed partial class MainViewModel
     {
         if(new FileInfo(path).Length>5_000_000)throw new InvalidDataException("Package exceeds 5 MB.");
         LoadPackage(SuiteDefaults.Ensure(PackageJson.Import(File.ReadAllText(path))));
-        if(Cases.FirstOrDefault()?.Baseline.Kind==TestStepKind.SwaggerAuthentication)
-            SwaggerUrl=new Uri(new Uri(BaseUrl.TrimEnd('/')+"/"),Cases[0].Url).AbsoluteUri;
         Message="Package opened. Nothing has been sent. Start with Swagger sign-in.";
     }
 }

@@ -27,7 +27,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public static AuthKind[] AuthKinds { get; } = Enum.GetValues<AuthKind>();
     public static CheckKind[] CheckKinds { get; } = Enum.GetValues<CheckKind>();
     public string PackageTitle { get => package.Title; set { package.Title = value; Changed(); } }
-    public string BaseUrl { get => baseUrl; set { if(Set(ref baseUrl, value)) RestoreRememberedSessions(); } }
+    public string BaseUrl { get => baseUrl; set { if(Set(ref baseUrl, value)) { RestoreRememberedSessions(); UpdateSwaggerUrlFromPackage(); } } }
     public string Message { get => message; set => Set(ref message, value); }
     public bool Busy { get => busy; private set { Set(ref busy, value); Changed(nameof(CanEdit)); RefreshCommands(); } }
     public bool CanEdit => !Busy;
@@ -149,6 +149,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Database.LoadQueries(package.Queries);
         foreach (var c in package.Cases) Cases.Add(new(c));
         BaseUrl = package.BaseUrl; SelectedCase = selectFirst ? Cases.FirstOrDefault() : null; SelectedIdentity ??= Identities[0];
+        UpdateSwaggerUrlFromPackage();
         RestoreRememberedSessions();
         if (Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0)) ShowAdvanced = true;
         MarkWorkSaved(); NotifyRun();

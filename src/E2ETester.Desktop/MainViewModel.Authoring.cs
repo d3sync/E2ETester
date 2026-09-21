@@ -113,6 +113,7 @@ public sealed partial class MainViewModel
             }
             // Reassign after restoring identity references so selection resolves the saved alias.
             SelectedCase = null; SelectedCase = Cases.FirstOrDefault(c => c.Baseline.Id == draft.SelectedCaseId) ?? Cases.FirstOrDefault();
+            UpdateSwaggerUrlFromPackage();
             lastDraft = PackageJson.Write(CaptureDraft().Redacted(Identities.Select(i => i.Secret)));
             MarkWorkSaved(); NotifyRun(); LoadAttempts();
             Message = Cases.Any(c => c.FixtureRequired) ? "Draft restored. Re-enter credentials and select required database fixtures before sending. Optional fixtures can be skipped when using manual values. No requests were replayed." : "Draft restored. Sign in or load saved credentials before sending authenticated requests. No requests were replayed.";
