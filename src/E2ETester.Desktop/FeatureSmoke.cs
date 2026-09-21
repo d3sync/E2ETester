@@ -13,6 +13,26 @@ internal static class FeatureSmoke
     {
         await UpdateSettingsSmoke.RunAsync(window,path);
         await CheckNavigationAsync(window, path);
+        var originalCase = model.SelectedCase;
+        model.SelectedCase = model.Cases.First(c => c.Baseline.Kind == TestStepKind.Http);
+        const string compactJson = "{\"items\":[{\"name\":\"Example result\",\"active\":true}],\"description\":\"A long response value that should wrap to the available width instead of requiring horizontal scrolling.\"}";
+        var displayResponse = new ResponseSnapshot { Body = compactJson, StatusCode = 200 };
+        model.SelectedAttempt = new Attempt { Response = displayResponse, State = AttemptState.Completed };
+        await window.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
+        if (!model.PrettyPrintResponse || !model.WrapResponse || !model.ResponseText.Contains('\n') || window.ResponseBodyText.TextWrapping != TextWrapping.Wrap)
+            throw new InvalidOperationException("Response must default to pretty JSON and wrapped lines.");
+        Save(window, path + ".pretty-response.png");
+        model.PrettyPrintResponse = false; model.WrapResponse = false;
+        await window.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
+        if (model.ResponseText != compactJson || window.ResponseBodyText.TextWrapping != TextWrapping.NoWrap || displayResponse.Body != compactJson)
+            throw new InvalidOperationException("Response display toggles changed captured evidence or did not update the view.");
+        model.PrettyPrintResponse = true; model.WrapResponse = true;
+        foreach (var text in new[] { "Plain text response", "{\"incomplete\":", "" })
+        {
+            model.SelectedAttempt = new Attempt { Response = new ResponseSnapshot { Body = text } };
+            if (model.ResponseText != text) throw new InvalidOperationException("Non-JSON responses must remain readable verbatim.");
+        }
+        model.SelectedCase = originalCase; model.SelectedAttempt = null;
         if (ResponsePreferences.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "responses.json")).RedactSensitiveValues)
             throw new InvalidOperationException("Response redaction must default to off.");
         _ = window.Dispatcher.BeginInvoke(new Action(() =>
