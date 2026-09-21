@@ -264,7 +264,7 @@
       "e2etester.application": {
         "type": "Project",
         "dependencies": {
-          "E2ETester.Core": "[0.7.5, )"
+          "E2ETester.Core": "[0.7.6, )"
         }
       },
       "e2etester.core": {
@@ -274,7 +274,7 @@
         "type": "Project",
         "dependencies": {
           "Duende.IdentityModel.OidcClient": "[7.1.0, )",
-          "E2ETester.Application": "[0.7.5, )",
+          "E2ETester.Application": "[0.7.6, )",
           "Microsoft.Data.SqlClient": "[7.1.0, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
           "MySqlConnector": "[2.6.2, )",

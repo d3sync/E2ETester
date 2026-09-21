@@ -281,7 +281,7 @@
       "e2etester.application": {
         "type": "Project",
         "dependencies": {
-          "E2ETester.Core": "[0.7.5, )"
+          "E2ETester.Core": "[0.7.6, )"
         }
       },
       "e2etester.core": {
