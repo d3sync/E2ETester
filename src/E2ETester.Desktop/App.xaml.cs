@@ -202,6 +202,10 @@ public partial class App : System.Windows.Application
                         if (model.SelectedCase?.Fixture is null) throw new InvalidOperationException("Desktop fixture selection failed: " + model.Database.Message);
                         await model.Send.RunAsync();
                         if (model.SelectedAttempt?.Verdict != Core.Verdict.Inconclusive) throw new InvalidOperationException("Required DB check did not stay pending: " + model.Message);
+                        await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); window.UpdateLayout();
+                        var pendingImage = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); pendingImage.Render(window);
+                        var pendingEncoder = new PngBitmapEncoder(); pendingEncoder.Frames.Add(BitmapFrame.Create(pendingImage));
+                        using (var stream = File.Create(path + ".inconclusive.png")) pendingEncoder.Save(stream);
                         await model.VerifyDatabase.RunAsync();
                         if (model.SelectedAttempt?.Verdict != Core.Verdict.Pass) throw new InvalidOperationException("Desktop DB verification failed: " + model.Message);
                         await File.WriteAllTextAsync(path + ".report.json", model.ReportJson());

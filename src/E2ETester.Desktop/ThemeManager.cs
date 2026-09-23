@@ -24,7 +24,7 @@ public static class ThemeManager
             ["Surface"] = dark ? "#161b22" : "#ffffff", ["ControlBackground"] = dark ? "#0d1117" : "#ffffff",
             ["Selection"] = dark ? "#1f334a" : "#ddf4ff", ["Accent"] = dark ? "#238636" : "#1f883d",
             ["AccentInk"] = dark ? "#3fb950" : "#116329", ["PrimaryText"] = "#ffffff",
-            ["DangerInk"] = dark ? "#ff7b72" : "#cf222e",
+            ["DangerInk"] = dark ? "#ff7b72" : "#cf222e", ["PassBadge"] = dark ? "#238636" : "#1a7f37", ["FailBadge"] = dark ? "#da3633" : "#cf222e", ["WarnBadge"] = dark ? "#9e6a03" : "#bf8700",
             ["Link"] = dark ? "#58a6ff" : "#0969da", ["HeaderBackground"] = dark ? "#010409" : "#f6f8fa"
         };
         foreach (var (key, value) in colors) resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));

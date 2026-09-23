@@ -64,6 +64,8 @@ public partial class MainWindow : Window
         button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
         button.ContextMenu.IsOpen = true;
     }
+    // The case list stays visually enabled during a send; ignore keyboard selection until the run is editable again.
+    private void CaseListKeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (!viewModel.CanEdit) e.Handled = true; }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.SelectedCase))

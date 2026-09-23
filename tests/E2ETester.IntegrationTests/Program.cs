@@ -62,7 +62,7 @@ Check(server.Requests.Last().Authorization == "Bearer " + token, "bearer token i
 Check(!PackageJson.Write(authAttempt).Contains(token), "echoed token redacted");
 var api = authenticated with { IdentityRef = "service" };
 await coordinator.ExecuteAsync(run, test, api, [new()], new("service", AuthKind.ApiToken, token), default);
-Check(server.Requests.Last().Authorization == token, "raw authserver API-token format");
+Check(server.Requests.Last().Authorization == token, "raw identity-provider API-token format");
 await coordinator.ExecuteAsync(run, test, api, [new()], new("service", AuthKind.ApiToken, token, "X-API-Key"), default);
 Check(server.Requests.Last().ApiKey == token, "configurable API-token header");
 var beforeConflict = server.Requests.Count;

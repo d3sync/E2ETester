@@ -249,7 +249,19 @@ public sealed class CaseEditor : Observable
 
     public int TimeoutSeconds { get => timeoutSeconds; set => Set(ref timeoutSeconds, value); }
 
-    public string Status { get => status; set => Set(ref status, value); }
+    public string Status { get => status; set { if (Set(ref status, value)) Changed(nameof(Outcome)); } }
+
+    /// <summary>Badge state for the case list: a current manual assessment overrides the automated verdict.</summary>
+    public string Outcome
+    {
+        get
+        {
+            var parts = status.Split(" · ");
+            var manual = parts.FirstOrDefault(p => p.StartsWith("MANUAL: ", StringComparison.Ordinal));
+            var verdict = manual is not null && !parts.Contains("REVIEW AGAIN") ? manual["MANUAL: ".Length..] : parts[0];
+            return verdict switch { "PASS" => "Pass", "FAIL" => "Fail", "INCONCLUSIVE" => "Inconclusive", _ => "NotRun" };
+        }
+    }
 
     public bool IsVariation => Baseline.ParentId is not null;
 
