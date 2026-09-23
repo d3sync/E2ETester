@@ -10,15 +10,15 @@ Capture accepts only the origin explicitly opened in the address field. Redirect
 
 Imported tokens behave like manual bearer credentials: no automatic refresh or verified-identity claim. Import again when expired, or create another named identity to test different permissions. Imported tester tokens stay in memory unless you explicitly save an encrypted local environment profile. Swagger itself may persist its authorization data in the browser profile. Passwords, cookies and browser storage are not read by the token importer.
 
-## Diagnose checkremoteip
+## Diagnose a sign-in and access check
 
-Launch with `--auth-check` to load two read-only GET cases for `https://api.example.test/whoami`. Nothing is sent automatically. The first case checks the observed unauthenticated 401. Select the second case, import a Swagger token in Auth and send. Its 200 expectation is provisional until the endpoint contract is confirmed; a 404 remains a recorded failed expectation, not proof that the token is invalid.
+Choose **Cloud test**, or launch with `--auth-check`, to load the [sign-in and remote-IP sample](../samples/generic/cloud-checkremoteip.md): a Swagger sign-in step followed by `GET /whoami`. Nothing is sent automatically. Replace the placeholder base URL with your own API, import a Swagger token in Auth and send. The 200 expectation is an assumption about your endpoint contract; a 404 or 401 is recorded as a failed expectation, not proof that the token is invalid.
 
 Select **Request / cURL** in the evidence pane. It shows each prepared request: method, fully resolved URL, effective headers (including authentication, cookies and derived content headers), body encoding/bytes, and redirect hops. **Copy first request cURL** copies a Bash/sh command. Secrets are replaced with `[REDACTED]`; replace placeholders locally to replay. Redacted bodies and Content-Length may need updating before replay. Binary/multipart bodies use base64 with their generated boundary preserved when safe to retain.
 
-This is the request prepared for HttpClient, not a packet capture. HTTP negotiation, proxy framing and other network-layer changes can differ. The recorded transport settings accompany it; copied cURL uses your local TLS/proxy configuration and does not transfer Windows client-certificate settings. A failure before preparing the request, or an older attempt, explicitly shows that no transport snapshot is available. All new snapshots persist in the journal and JSON report 1.5; HTML reports include the redacted diagnostic text.
+This is the request prepared for HttpClient, not a packet capture. HTTP negotiation, proxy framing and other network-layer changes can differ. The recorded transport settings accompany it; copied cURL uses your local TLS/proxy configuration and does not transfer Windows client-certificate settings. A failure before preparing the request, or an older attempt, explicitly shows that no transport snapshot is available. All new snapshots persist in the journal and JSON report (schema 1.5 and later); HTML reports include the redacted diagnostic text.
 
-On September 20, 2026, a real unauthenticated tester GET returned 401 with an empty body. The user's authenticated 404 has not yet been reproduced. Compare the recorded URL, method, identity/header name and response headers with Swagger after signing in.
+When a request behaves differently from Swagger, compare the recorded URL, method, identity/header name and response headers with the request Swagger sends after signing in.
 
 ## Appearance
 
@@ -26,9 +26,9 @@ The header **Dark / Light** button switches GitHub-inspired colors immediately. 
 
 ## Verification
 
-Release build: zero warnings/errors. The local suite passes 239 checks, including body-byte fidelity, multipart boundaries, redirect snapshots, failed-send evidence, shell quoting, redaction and capture-origin restrictions. `--smoke=artifacts/swagger.png --swagger-exercise` tests a real WebView2 against a local page: ID-token exclusion, authorized access-token reading, Bearer network capture and explicit import, popup redirects/opener callback/closure, and cookie/local-storage retention after reopening. `--gateway-exercise` sends the unauthenticated live gateway GET and exports its report. The gateway report validates independently against schema 1.5. Authenticated live sign-in requires user interaction and remains pending.
+The integration suite covers body-byte fidelity, multipart boundaries, redirect snapshots, failed-send evidence, shell quoting, redaction and capture-origin restrictions. `--smoke=artifacts/swagger.png --swagger-exercise` tests a real WebView2 against a local page: ID-token exclusion, authorized access-token reading, Bearer network capture and explicit import, popup redirects/opener callback/closure, and cookie/local-storage retention after reopening. Signing in to a real provider requires user interaction and is not automated.
 
-## Remembering sign-in (0.5.2)
+## Remembering sign-in
 
 Stable browser profiles retain persistent cookies and site storage across full application/browser-process restarts and application upgrades. Reuse the same Swagger origin and named identity. WebView2 now offers its native Save/Update Password prompt on supported username/password forms; saving is the user's choice, and credentials stay in the browser profile rather than the test journal or exported package. General form/address autofill remains disabled.
 

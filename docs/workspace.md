@@ -18,7 +18,7 @@ To restore, close every app/MCP process using the destination workspace. Keep th
 
 Run `tools/Publish-Windows.ps1`. It produces a self-contained Windows x64 ZIP under `artifacts/releases`, with separate `desktop` and `mcp` executables, documentation, samples, schemas and a SHA-256 file manifest. Extract the entire directory; run `desktop/E2ETester.Desktop.exe`. An installed .NET runtime is not required. User evidence lives outside the application directory.
 
-The ZIP is unsigned. A signed installer, organization-specific deployment, clean-machine acceptance, and real Example/MFA validation require the target deployment environment. Hash manifests detect changed files; they do not establish publisher authenticity. Upgrade by extracting a new release into another directory and back up the workspace first. Older app versions cannot be assumed to understand new request fields or reports.
+The ZIP is unsigned. A signed installer, organization-specific deployment, clean-machine acceptance, and validation against a real identity provider and MFA require the target deployment environment. Hash manifests detect changed files; they do not establish publisher authenticity. Upgrade by extracting a new release into another directory and back up the workspace first. Older app versions cannot be assumed to understand new request fields or reports.
 
 ### Single-file publishing
 

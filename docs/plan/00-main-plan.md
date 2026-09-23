@@ -39,7 +39,7 @@ The product is local-first, Windows-only at the UI layer, and deliberately simpl
 All requested capabilities belong to the intended product. Delivery is staged, not a reduction of requirements.
 
 - First useful slice: import JSON, token profiles, request editor, sequential wizard, immutable attempt records, assertions and JSON report.
-- Next: browser JWT login and identity switching; MySQL fixture selection and database checks for a real Example scenario.
+- Next: browser JWT login and identity switching; MySQL fixture selection and database checks for a real target scenario.
 - Then: SQL Server, PostgreSQL and SQLite parity; in-app authoring; Query Studio; HTML report; MCP and packaging.
 - Full HTTP request support means standard and custom HTTP method tokens, query/path/header editing, JSON/text/XML/form/multipart/binary bodies and response inspection. WebSocket and gRPC sessions are separate protocols and outside the initial product scope.
 - Deferred: team server, cloud synchronization, load testing, arbitrary script plugins, automated test generation, and full database administration.
@@ -63,7 +63,7 @@ A tester can author/export/import a package, authenticate as two users and with 
 
 These do not block planning. They gate only the affected implementation work:
 
-1. Public Example API-token header names, token types and gateway behavior.
+1. The target API's token header names, token types and gateway behavior.
 2. Dedicated desktop OAuth client, allowed redirect URI and refresh policy.
 3. First real endpoint/scenario and a safe environment with suitable fixture identities.
 4. Agreed expected permissions for that scenario, independently of current implementation behavior.

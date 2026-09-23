@@ -4,13 +4,13 @@ Velopack 1.2.0 runs before WPF initialization. Applying downloaded updates autom
 
 ## Build
 
-Run `./tools/Publish-Installer.ps1 -Version 0.6.0`. It restores the pinned `vpk` tool, publishes a self-contained Windows x64 single-file desktop, and creates Setup.exe, a portable bundle, a full package and `releases.win.json` under `artifacts/velopack`. Keep the package ID `E2ETester` stable. Documentation and samples are included. Edge WebView2 Evergreen Runtime remains a machine prerequisite for Swagger.
+Run `./tools/Publish-Installer.ps1 -Version <version>`. It restores the pinned `vpk` tool, publishes a self-contained Windows x64 single-file desktop, and creates Setup.exe, a portable bundle, a full package and `releases.win.json` under `artifacts/velopack`. Keep the package ID `E2ETester` stable. Documentation and samples are included. Edge WebView2 Evergreen Runtime remains a machine prerequisite for Swagger.
 
 `Publish-Windows.ps1` still creates the raw desktop/MCP single-file distribution. A raw executable is not itself a Velopack installation; use Setup.exe for managed version changes. The MCP host remains separately distributed.
 
 ## Use a feed
 
-The default feed is `https://e2e.dev.xpk.gr/releases/`. It must serve `releases.win.json` and each referenced `.nupkg`. Open **Updates…** in the main toolbar or **Tools → Updates and settings…**. You can check manually, change the HTTPS/local feed, and toggle **Check for newer versions when the app starts**. Choose **Save update settings** to persist preferences in `%LOCALAPPDATA%/E2ETester/Updates/settings.json`. Existing `update-source.txt` settings are migrated when saved.
+The default feed is the maintainer's release feed, `https://e2e.dev.xpk.gr/releases/`. Forks and self-hosted builds should change it here or build with a different default in `UpdatePreferences.cs`. It must serve `releases.win.json` and each referenced `.nupkg`. Open **Updates…** in the main toolbar or **Tools → Updates and settings…**. You can check manually, change the HTTPS/local feed, and toggle **Check for newer versions when the app starts**. Choose **Save update settings** to persist preferences in `%LOCALAPPDATA%/E2ETester/Updates/settings.json`. Existing `update-source.txt` settings are migrated when saved.
 
 Startup checks are enabled by default. A newer version produces a notification and an Updates button showing the available version. Nothing downloads or installs automatically. Offline/unavailable feeds do not block startup; retry manually to see the failure status. If an API operation or modal dialog is active, the button announces the update without interrupting it.
 
@@ -26,6 +26,6 @@ Workspaces, encrypted environments and browser profiles live outside the install
 
 Signing and a production feed URL are maintainer deployment choices. Use a trusted feed: hash verification detects damaged packages but does not independently establish publisher identity. Never reuse a published version number for changed binaries.
 
-Packaging verifies the Velopack bootstrap instead of bypassing it. Update tests use isolated extracted bundles and local feeds. Clean-machine installation and company distribution policies remain deployment acceptance checks.
+Packaging verifies the Velopack bootstrap instead of bypassing it. Update tests use isolated extracted bundles and local feeds. Clean-machine installation and organization-specific distribution policies remain deployment acceptance checks.
 
 References: [WPF integration](https://docs.velopack.io/getting-started/wpf), [specific versions](https://docs.velopack.io/integrating/specific-version), [self-hosting](https://docs.velopack.io/distributing/self-hosting).

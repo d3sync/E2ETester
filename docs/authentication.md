@@ -2,7 +2,7 @@
 
 In the **Auth** tab, add an identity with **+**. Each profile holds a separate in-memory session. Configure the authority, registered client ID, scopes and callback, then choose **Sign in with browser**. The system browser handles passwords, MFA and external providers. The tester never collects passwords.
 
-After login, review the displayed issuer and subject before sending. The subject is pinned into **Expected subject** so a subsequent login cannot silently substitute another account. Use a separate profile to test another user. Settings edits apply to the next login; existing sessions remain bound to the configuration that created them. The tester requests `prompt=login`, but actual account selection and MFA behavior must still be verified against Example's login UI.
+After login, review the displayed issuer and subject before sending. The subject is pinned into **Expected subject** so a subsequent login cannot silently substitute another account. Use a separate profile to test another user. Settings edits apply to the next login; existing sessions remain bound to the configuration that created them. The tester requests `prompt=login`, but actual account selection and MFA behavior depend on your identity provider's login UI.
 
 **Refresh before sending** renews a session when the token expires within 30 seconds. Refresh is serialized per profile, rotated tokens replace the old values together, and a failed or interrupted refresh requires login again. Requests are never retried after authentication failure. Turn refresh off explicitly to test the server's behavior for an expired access token. **Forget login** removes the tester session, without logging other profiles or the browser out.
 
@@ -10,7 +10,7 @@ Expand **Manual JWT or API token** to paste an existing token. These tokens are 
 
 Browser sessions and refresh tokens remain in memory. Manual JWT/API tokens can be saved explicitly with a local environment using Windows user encryption; they are redacted from exports. Swagger import is described in [the walkthrough](swagger-diagnostics-themes.md). Attempts record the verified subject, issuer, display name, access-token expiry and provenance (`validated_oidc_id_token`), never the ID token itself. These facts come from the validated ID token, not from decoding arbitrary access-token claims. Tenant/role expectations and access-token audience inspection remain future work.
 
-## Example registration prerequisite
+## Registering a native client
 
 Register a dedicated public native client with your identity provider. This generic IdentityServer-style example must be adapted to your environment:
 
@@ -57,6 +57,6 @@ Existing in-memory tokens from older releases become remembered when imported or
 
 The implementation uses [Duende's Apache-2.0 OIDC client](https://docs.duendesoftware.com/identitymodel-oidcclient/) for authorization-code/PKCE, state handling, discovery and token exchange. A signature validator backed by Microsoft's JWT validation library enforces signature algorithms, signing keys, issuer, audience, lifetime, issued-at, nonce, authorized party and expected subject. Refresh cannot replace the original subject. Raw provider errors and token payloads are not displayed or logged.
 
-The integration suite runs a local RSA-signed identity provider and verifies successful login, PKCE, fresh-login requests, separate users, wrong-account rejection, state/nonce/issuer/audience/signature/expiry rejection, unsigned/missing ID tokens, refresh concurrency/rotation/revocation, report redaction and the real loopback listener's cleanup/cancellation. This is controlled protocol testing, not evidence of deployed Example compatibility.
+The integration suite runs a local RSA-signed identity provider and verifies successful login, PKCE, fresh-login requests, separate users, wrong-account rejection, state/nonce/issuer/audience/signature/expiry rejection, unsigned/missing ID tokens, refresh concurrency/rotation/revocation, report redaction and the real loopback listener's cleanup/cancellation. This is controlled protocol testing, not evidence of compatibility with any particular deployed identity provider.
 
 Run `dotnet run --project tests/E2ETester.IntegrationTests`. The desktop `--smoke=artifacts/authentication.png --authentication-exercise` checks configuration failure behavior and renders the Auth tab without contacting an identity provider.

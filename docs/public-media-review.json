@@ -62,17 +62,25 @@
       "sha256": "24a12868a7c3e216e4723c2a73b8e89324c45adad1e5e1f0016bbc98772ee9ff",
       "review": "Reviewed logo artwork or generated icon/wordmark derivative"
     },
+    "docs/images/database-verification.png": {
+      "sha256": "c7e1b4c47503c0f4178d82ccc9df72d0534f90d75ba634d64791fb64325953b3",
+      "review": "Database-backed demo case screenshot; synthetic SQLite fixture and localhost API only"
+    },
+    "docs/images/query-studio.png": {
+      "sha256": "da4d1b554e401b0317af4fc222f7b08e86024c412478aac5775f2ee1a753ff2b",
+      "review": "Query Studio screenshot; synthetic demo SQLite fixture only"
+    },
     "docs/images/report-modal.png": {
       "sha256": "d5dcf0fbefa8a33033e3a710340a709a73a8f2017228b7b1fc01eb91026c9d38",
       "review": "Generic isolated UI capture visually reviewed"
     },
     "docs/images/workspace-dark.png": {
-      "sha256": "c6d0d757c8ca0cbc95f4080ad91a7dd54835b97d705cfcbeff07c82b49eeb937",
-      "review": "Generic isolated UI capture visually reviewed"
+      "sha256": "90fb3a9c5eca8b3cd1fba8fb11f1c8f145eb4943a420374d902630ca49830e73",
+      "review": "Dark workspace screenshot of the synthetic local demo (localhost API, no real data)"
     },
     "docs/images/workspace-light.png": {
-      "sha256": "e5b86e3d9cc7e4f53bf7ee83deaa55bd70d50a32734137ec44bdf4a81538be51",
-      "review": "Generic isolated UI capture visually reviewed"
+      "sha256": "7fb8ff5f9ce7e89465e704dcf9be121a91583ba02f04192f4711d1c30699336d",
+      "review": "Light workspace screenshot of the synthetic local demo (localhost API, no real data)"
     },
     "src/E2ETester.Desktop/Assets/d3sync-logo.png": {
       "sha256": "90079f127a3e2b60039d0b8c7f3380313aee15dc1447e592375b6871e029d960",

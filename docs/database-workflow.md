@@ -2,7 +2,7 @@
 
 ## Optional fixtures
 
-Fixtures are optional by default, even when a saved query is assigned. Under **Advanced > Database**, enable **Require fixture before sending** only for cases that need a selected row. Package schema 1.3 stores `fixtureRequired` (default `false`); the setting survives recovery and applies to desktop and MCP.
+Fixtures are optional by default, even when a saved query is assigned. Under **Advanced > Database**, enable **Require fixture before sending** only for cases that need a selected row. Package schema 1.3 and later store `fixtureRequired` (default `false`); the setting survives recovery and applies to desktop and MCP.
 
 Without a fixture, use manual request values. Replace active `{{fixture.column}}` placeholders or disable those fields before sending. Selected fixtures still resolve values and are recorded. Post-request checks have their own Required setting: required checks remain INCONCLUSIVE until verified; optional checks do not block an otherwise passing API result.
 
@@ -10,7 +10,7 @@ Without a fixture, use manual request values. Replace active `{{fixture.column}}
 
 Query Studio runs saved or exploratory SQL, displays typed result rows, selects a row as a fixture, and attaches evidence to an API attempt. Cases can declare required or optional row-count/scalar checks. Queries travel in the package; connection strings stay in memory and are never exported.
 
-Providers: SQLite, Microsoft SQL Server, MySQL and PostgreSQL. The implementation uses Microsoft.Data.Sqlite, Microsoft.Data.SqlClient, MySqlConnector and Npgsql. SQLite has live integration coverage. The three server adapters compile, construct and pass configuration checks; live database connections were not tested because the local Docker engine was unavailable. No shared Example database was accessed.
+Providers: SQLite, Microsoft SQL Server, MySQL and PostgreSQL. The implementation uses Microsoft.Data.Sqlite, Microsoft.Data.SqlClient, MySqlConnector and Npgsql. SQLite runs in the standard integration suite. `Test-Databases.ps1` runs the same checks against disposable SQL Server, MySQL and PostgreSQL containers (see [database tests](../infra/database-tests/README.md)). No shared or production database is used by the tests.
 
 ## Connect
 

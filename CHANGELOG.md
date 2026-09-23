@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Test preparation: a case can apply an exact database-value or API change before it runs, capture the original, require a fresh login and restore afterwards. Preparation is scoped to its run, blocks unrelated cases until restored, and is audited in reports. Package schema 1.5 and report schema 1.8; MCP adds preparation tools behind explicit host approval.
+- Query Studio can edit and delete database connections, preserving passwords and advanced settings; the AI template and prompt default to package schema 1.5.
+- Response redaction setting and manual PASS/FAIL verdicts from the evidence pane.
+- Update and rollback restart in the resolved workspace, including file-association launches, and restore active preparations first.
+- Test-flow cases show a round status badge: green check for PASS, red cross for FAIL, amber for INCONCLUSIVE and an empty circle for NOT RUN. A current manual assessment overrides the automated verdict, and the status text is colored to match.
+- The case list no longer turns pale while a request is in flight; selection is still locked until the send finishes.
+- Themed drop-downs using a display member (for example saved package queries) show the item title instead of the raw record text.
+- About window shows the d3sync logo beside the creator credit.
+- Refreshed screenshots and documentation for public release: current schema versions, MCP tool set, status summary, generic wording and README workflow/MCP sections.
+
 ## 0.7.7
 
 - Visible Updates toolbar/menu access, manual checks and persistent startup-check preferences.

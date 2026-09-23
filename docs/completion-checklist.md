@@ -1,6 +1,6 @@
 # Remaining-feature completion tracker
 
-This checklist tracks the final implementation pass. A checked implementation does not imply deployed Example validation.
+This checklist tracks the implementation pass. A checked item is implemented and covered by local tests; it does not imply validation in a real deployment.
 
 - [x] Repository ignore rules for build output, local workspaces, secrets and development artifacts.
 - [x] MCP stdio host using the shared engine, bounded tools, target permissions, operation IDs and duplicate-execution protection.
@@ -12,6 +12,6 @@ This checklist tracks the final implementation pass. A checked implementation do
 - [x] Workspace retention/backup controls and diagnostics.
 - [x] Self-contained Windows x64 distribution and workstation release checks (clean-machine/signing acceptance remains external).
 - [x] Final local HTTP/OIDC/database/MCP and desktop regression checks.
-- [ ] Example native client registration, real MFA/account switching, public API-token contract and pilot tests (requires environment details).
+- [ ] Native client registration with a real identity provider, real MFA/account switching, API-token conventions and pilot tests in a real environment.
 
-Manual assessments, JSON/HTML reports, four database adapters, saved-run browsing, core authoring and redacted draft recovery are already implemented. See implementation-status.md for prior validation.
+Manual assessments, JSON/HTML reports, four database adapters, saved-run browsing, core authoring and redacted draft recovery are also implemented. See [implementation status](implementation-status.md).

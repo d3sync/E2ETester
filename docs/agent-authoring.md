@@ -1,6 +1,6 @@
 # AI test generation and MCP setup
 
-Choose Tools > AI test generator. Copy its prompt and template, then supply API requirements or a specification. Output is schema 1.4 JSON saved as `.jsee`, without credentials. The [prompt](test-generation-prompt.md) and [skill](../skills/e2e-tester-author/SKILL.md) are included in the distribution.
+Choose Tools > AI test generator. Copy its prompt and template, then supply API requirements or a specification. Output is package schema JSON (1.4, or 1.5 with preparation) saved as `.jsee`, without credentials. The [prompt](test-generation-prompt.md) and [skill](../skills/e2e-tester-author/SKILL.md) are included in the distribution.
 
 From the unpacked single-file distribution:
 
@@ -12,9 +12,10 @@ Setup installs the skill and a stable per-user MCP executable, then registers e2
 
 Authenticated MCP execution needs E2ETESTER_CLOUD_TOKEN supplied locally in the server process environment. Setup never stores or asks for the token. Desktop Swagger cookies are not automatically accessible to MCP. Without a token, the agent can author/validate and the user can execute in the desktop. Passwords, tokens and MFA codes must not enter chat.
 
-The skill validates packages without executing them unless requested. Execution uses operation IDs and canonical reports. HTTP permission is scoped to the supplied base URL; SQL execution remains disabled by default. [Official Codex MCP setup](https://developers.openai.com/codex/mcp).
-# Finding the AI tools in the desktop app
+The skill validates packages without executing them unless requested. Execution uses operation IDs and canonical reports. HTTP permission is scoped to the supplied base URL; SQL execution remains disabled by default. [Official Codex MCP setup](https://developers.openai.com/codex/mcp). Any MCP client that launches stdio servers can use the generic `mcp-client.json` instead.
 
-Click **AI assistant…** in the main toolbar. The dialog contains the copyable prompt, package template, complete skill instructions and setup guide. **Export AI setup kit…** writes the skill, schema, setup script and available MCP executable into a new folder. Follow START-HERE.txt to register it with your agent. Installing the desktop does not silently change agent configuration.
+## Finding the AI tools in the desktop app
+
+Choose **Tools → AI test generator**. The dialog contains the copyable prompt, package template, complete skill instructions and setup guide. **Export AI setup kit…** writes the skill, schema, setup script and available MCP executable into a new folder. Follow START-HERE.txt to register it with your agent. Installing the desktop does not silently change agent configuration.
 
 The Windows installer includes the MCP executable. A standalone desktop EXE embeds the prompt and skill, but needs the MCP executable from the full distribution for agent execution.

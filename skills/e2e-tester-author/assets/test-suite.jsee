@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.5",
-  "id": "Example-suite",
+  "id": "example-suite",
   "revision": 1,
   "title": "Example API suite",
   "description": "Sign in, validate access, then run the requested business cases.",

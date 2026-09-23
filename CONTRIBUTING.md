@@ -14,7 +14,7 @@ python tools/test_mcp.py
 ./Start-Tester.ps1 -Demo
 ```
 
-The tests use synthetic HTTP/OIDC services and SQLite; they do not require company credentials. `Test-Databases.ps1` runs the additional provider tests with isolated infrastructure. See [testing](docs/testing.md).
+The tests use synthetic HTTP/OIDC services and SQLite; they do not require real credentials. `Test-Databases.ps1` runs the additional provider tests with isolated infrastructure. See [testing](docs/testing.md).
 
 ## Make a change
 

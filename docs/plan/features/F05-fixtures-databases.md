@@ -4,7 +4,7 @@ Depends on: provider adapters, evidence contract, secret references and run coor
 
 ## Connections and providers
 
-Support Microsoft SQL Server, MySQL, PostgreSQL and SQLite. Each environment maps logical connection names to local settings and credentials. Test connectivity separately from test execution. A workspace may use several connections, including Example's separate logical databases.
+Support Microsoft SQL Server, MySQL, PostgreSQL and SQLite. Each environment maps logical connection names to local settings and credentials. Test connectivity separately from test execution. A workspace may use several connections, including separate logical databases in the same environment.
 
 Keep SQL dialects explicit. Provider-neutral orchestration does not make LIMIT/TOP, JSON functions, identifier quoting or parameter types portable. Saved query variants may share a logical query ID but have provider-specific SQL.
 

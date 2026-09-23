@@ -17,7 +17,6 @@ E2ETester/
     test-report.v1.schema.json
   samples/
     generic/                        # synthetic, no credentials or live targets
-    Example/                       # reviewed scenario templates
   src/
     E2ETester.Core/
       Packages/                     # immutable definitions and validation rules

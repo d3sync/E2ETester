@@ -10,15 +10,15 @@ Depends on: local secrets, profile contract, HTTP injection boundary. See [verif
 | OIDC user session | System-browser authorization code + PKCE; use access token as bearer |
 | Supplied bearer token | User pastes a JWT/access token; no refresh unless an actual refresh-capable session exists |
 | Generic API token | Configured header name and exact format, with secret reference |
-| Authserver API token | Exact raw `Authorization` value for `/Api/*` |
-| Example public API token | Preset added after public gateway contract verification |
-| Internal identity headers | Advanced direct-service mode, explicitly distinguished from gateway authentication |
+| Raw identity-provider API token | Exact raw `Authorization` value, for APIs that expect it unprefixed |
+| Gateway API token | Preset added only after the gateway's token contract is verified |
+| Direct-service identity headers | Advanced mode for calling a service behind its gateway, explicitly distinguished from gateway authentication |
 
-Generic query-token injection may be supported when an API requires it, with URL redaction. Do not guess that a Example API token is an `X-Api-Key` or bearer token.
+Generic query-token injection may be supported when an API requires it, with URL redaction. Do not guess that an API token is an `X-Api-Key` or bearer token.
 
 ## Browser flow
 
-Propose a dedicated native/public tester client: authorization code + PKCE S256, no embedded shared client secret, explicit loopback callback, `openid profile` plus `api`, and optional `offline_access` if configured. Confirm issuer/discovery metadata and redirect support with authserver. Validate callback state, nonce and issuer using a maintained OIDC library.
+Propose a dedicated native/public tester client: authorization code + PKCE S256, no embedded shared client secret, explicit loopback callback, `openid profile` plus `api`, and optional `offline_access` if configured. Confirm issuer/discovery metadata and redirect support with the identity provider. Validate callback state, nonce and issuer using a maintained OIDC library.
 
 Existing clients are not automatically suitable. Register an explicit public native client and callback with your provider.
 
@@ -39,7 +39,7 @@ Expose generated headers with a source label and masked values. Allow an explici
 ## Acceptance
 
 - Login as A and B, run successive cases under each, and verify recorded subjects/tenants.
-- Exercise public API tokens after the gateway contract is verified, plus raw authserver API tokens separately.
+- Exercise gateway API tokens after the gateway contract is verified, plus raw identity-provider API tokens separately.
 - Expired/revoked sessions block normally; deliberate invalid-token tests reach the server and evaluate expected rejection.
 - Browser cancel, wrong returned user, refresh rotation and concurrent refresh produce deterministic recoverable behavior.
 - No passwords, access/refresh tokens or client secrets appear in reports or MCP responses.
