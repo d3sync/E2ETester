@@ -62,7 +62,7 @@ public sealed partial class MainViewModel
         {
             var identity = Identities.SingleOrDefault(i => i.Alias == alias) ?? throw new InvalidOperationException("Configure the preparation API identity: " + alias);
             return await identity.ResolveAsync(token);
-        });
+        }, evidence => entry.HttpEvidence.Add(evidence));
     }
     private void InvalidatePreparedLogin(PreparationRecovery entry)
     {
@@ -89,12 +89,15 @@ public sealed partial class MainViewModel
         {
             var identity = SelectedIdentity is null ? "" : (await SelectedIdentity.ResolveAsync(default)).Secret;
             await RestorePreparationsAsync();
+            if (run is null) run = await coordinator.StartAsync(CurrentPackage(), BaseUrl);
             var fingerprint = plan.Kind == PreparationKind.DatabaseValue ? TokenHash(Database.Connections.SingleOrDefault(c => c.Alias == plan.ConnectionRef)?.ConnectionString ?? "") : "";
-            var entry = new PreparationRecovery { PackageId = package.Id, CaseId = selected.Baseline.Id, BaseUrl = BaseUrl, IdentityRef = selected.IdentityRef, PreviousTokenHash = TokenHash(identity), ConnectionFingerprint = fingerprint, Plan = plan };
+            var entry = new PreparationRecovery { RunId = run.Id, PackageId = package.Id, CaseId = selected.Baseline.Id, BaseUrl = BaseUrl, IdentityRef = selected.IdentityRef, PreviousTokenHash = TokenHash(identity), ConnectionFingerprint = fingerprint, Plan = plan };
             var target = Target(entry);
             entry = entry with { OriginalJson = await target.ReadAsync(plan, default) };
             preparations.Add(entry);
-            await Preparations.ApplyAsync(entry, target, PersistPreparations, default);
+            await AuditPreparation(entry);
+            try { await Preparations.ApplyAsync(entry, target, PersistPreparations, default); }
+            catch { await AuditPreparation(entry); throw; }
             InvalidatePreparedLogin(entry);
             await AuditPreparation(entry);
             Message = plan.RequireFreshLogin ? "Preparation applied. Sign in again using the same named identity, then send the request." : "Preparation applied and verified. Ready to send.";
@@ -106,12 +109,12 @@ public sealed partial class MainViewModel
         }
         finally { Busy = false; Changed(nameof(PreparationStatus)); RefreshCommands(); }
     }
-    private async Task AuditPreparation(PreparationRecovery entry)
+    private async Task AuditPreparation(PreparationRecovery entry, string? outcome = null)
     {
-        if (run is null) return;
-        run.PreparationLog ??= [];
-        run.PreparationLog.Add(new(DateTimeOffset.UtcNow, entry.CaseId, entry.Plan.Title, entry.Status));
-        await coordinator.SaveAsync(run);
+        var owner = run?.Id == entry.RunId ? run : entry.RunId.Length > 0 ? await coordinator.ResumeAsync(entry.RunId) : null;
+        if (owner is null) return;
+        (owner.PreparationLog ??= []).Add(Preparations.Audit(entry, Identities.Select(i => i.Secret)) with { Status = outcome ?? entry.Status });
+        await coordinator.SaveAsync(owner);
     }
     private async Task RestorePreparationsAsync()
     {
@@ -121,15 +124,23 @@ public sealed partial class MainViewModel
         {
             foreach (var entry in preparations.Where(p => p.Status != "restored").Reverse())
             {
-                await Preparations.RestoreAsync(entry, Target(entry), PersistPreparations, default);
+                try { await Preparations.RestoreAsync(entry, Target(entry), PersistPreparations, default); }
+                catch { await AuditPreparation(entry, "restoration_failed"); throw; }
                 InvalidatePreparedLogin(entry); await AuditPreparation(entry);
             }
             Message = "Prepared changes restored and verified. Sign in again to refresh any affected JWT.";
         }
         finally { Busy = wasBusy; Changed(nameof(PreparationStatus)); RefreshCommands(); }
     }
+    private void EnsurePreparationScope()
+    {
+        if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
+        if (preparations.Any(p => p.Status != "restored" && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || p.CaseId != SelectedCase?.Baseline.Id || p.BaseUrl != BaseUrl || SelectedCase.Baseline.Preparation is null)))
+            throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
+    }
     private void EnsurePreparationReady(IdentitySession identity)
     {
+        EnsurePreparationScope();
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
         if (preparations.Any(p => p.Status == "pending")) throw new InvalidOperationException("Resolve pending preparation changes with Restore changes before sending.");
         if (SelectedCase?.Baseline.Preparation is not { } plan) return;

@@ -21,7 +21,7 @@ public static partial class Reports
         if (run.PreparationLog is { Count: > 0 })
         {
             text.AppendLine().AppendLine("PREPARATION AND RESTORATION");
-            foreach (var entry in run.PreparationLog) text.AppendLine($"{entry.At:u} · {entry.CaseId} · {entry.Title} · {entry.Status}");
+            foreach (var entry in run.PreparationLog) text.AppendLine(PackageJson.Write(entry));
         }
         text.AppendLine().AppendLine("DETAILED RESULTS");
         foreach (var test in run.Package.Cases)

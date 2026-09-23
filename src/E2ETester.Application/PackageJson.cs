@@ -75,20 +75,7 @@ public static class PackageJson
                 if (check.Kind is DatabaseCheckKind.ScalarGreaterThan or DatabaseCheckKind.ScalarLessThan && (expected.RootElement.ValueKind != JsonValueKind.Number || !expected.RootElement.TryGetDecimal(out _))) throw new InvalidDataException("Ordered scalar comparisons require a decimal number.");
             }
             if (c.ParentId is not null && !package.Cases.Any(p => p.Id == c.ParentId && p.Id != c.Id)) throw new InvalidDataException($"{c.Title}: variation parent does not exist.");
-            if (c.Request.TimeoutSeconds is < 1 or > 600) throw new InvalidDataException($"{c.Title}: timeout must be 1–600 seconds.");
-            if (c.Request.HttpVersion is not ("1.1" or "2.0" or "3.0") || c.Request.MaxRedirects is < 0 or > 10) throw new InvalidDataException("Choose HTTP 1.1, 2.0 or 3.0 and a redirect limit of 0–10.");
-            if (c.Request.ProxyUrl.Length > 0 && (!Uri.TryCreate(c.Request.ProxyUrl, UriKind.Absolute, out var proxy) || proxy.Scheme is not ("http" or "https") || proxy.UserInfo.Length > 0 || proxy.Query.Length > 0 || proxy.Fragment.Length > 0)) throw new InvalidDataException("Proxy URL must be HTTP(S) without credentials, query or fragment.");
-            if (c.Request.Parts.Count > 1000 || c.Request.Parts.Any(p => string.IsNullOrWhiteSpace(p.Name) || p.Name.IndexOfAny(['\r', '\n']) >= 0 || p.FileName.IndexOfAny(['\r', '\n', '/', '\\']) >= 0)) throw new InvalidDataException("Body parts need simple names and filenames without paths or line breaks.");
-            if (c.Request.SendBody && c.Request.BodyKind == RequestBodyKind.Binary && c.Request.Body != Redaction.Mask) _ = Convert.FromBase64String(c.Request.Body);
-            if (c.Request.SendBody && c.Request.BodyKind == RequestBodyKind.Multipart)
-                foreach (var part in c.Request.Parts.Where(p => p.Enabled && p.Binary && p.Value != Redaction.Mask)) _ = Convert.FromBase64String(part.Value);
-            _ = new HttpMethod(c.Request.Method);
-            if (string.IsNullOrWhiteSpace(c.Request.Url)) throw new InvalidDataException($"{c.Title}: URL is required.");
-            foreach (var fields in new[] { c.Request.Query, c.Request.Headers })
-            {
-                if (fields.Select(f => f.Id).Distinct().Count() != fields.Count) throw new InvalidDataException($"{c.Title}: duplicate field IDs.");
-                if (fields.Any(f => string.IsNullOrWhiteSpace(f.Id) || string.IsNullOrWhiteSpace(f.Name))) throw new InvalidDataException($"{c.Title}: fields require IDs and names.");
-            }
+            ValidateRequest(c.Request, c.Title);
             foreach (var a in c.Assertions)
             {
                 if (a.Kind == CheckKind.Status && (!int.TryParse(a.Expected, out var status) || status is < 100 or > 599))
@@ -108,4 +95,29 @@ public static class PackageJson
             }
         }
     }
+    public static void ValidateRequest(RequestDefinition request, string title = "Request")
+    {
+            if (request.TimeoutSeconds is < 1 or > 600) throw new InvalidDataException($"{title}: timeout must be 1–600 seconds.");
+            if (request.HttpVersion is not ("1.1" or "2.0" or "3.0") || request.MaxRedirects is < 0 or > 10) throw new InvalidDataException("Choose HTTP 1.1, 2.0 or 3.0 and a redirect limit of 0–10.");
+            if (request.ProxyUrl.Length > 0 && (!Uri.TryCreate(request.ProxyUrl, UriKind.Absolute, out var proxy) || proxy.Scheme is not ("http" or "https") || proxy.UserInfo.Length > 0 || proxy.Query.Length > 0 || proxy.Fragment.Length > 0)) throw new InvalidDataException("Proxy URL must be HTTP(S) without credentials, query or fragment.");
+            if (request.Parts.Count > 1000 || request.Parts.Any(p => string.IsNullOrWhiteSpace(p.Name) || p.Name.IndexOfAny(['\r', '\n']) >= 0 || p.FileName.IndexOfAny(['\r', '\n', '/', '\\']) >= 0)) throw new InvalidDataException("Body parts need simple names and filenames without paths or line breaks.");
+            if (request.SendBody && request.BodyKind == RequestBodyKind.Binary && request.Body != Redaction.Mask) _ = Convert.FromBase64String(request.Body);
+            if (request.SendBody && request.BodyKind == RequestBodyKind.Multipart)
+                foreach (var part in request.Parts.Where(p => p.Enabled && p.Binary && p.Value != Redaction.Mask)) _ = Convert.FromBase64String(part.Value);
+            _ = new HttpMethod(request.Method);
+            if (string.IsNullOrWhiteSpace(request.Url)) throw new InvalidDataException($"{title}: URL is required.");
+            foreach (var fields in new[] { request.Query, request.Headers })
+            {
+                if (fields.Select(f => f.Id).Distinct().Count() != fields.Count) throw new InvalidDataException($"{title}: duplicate field IDs.");
+                if (fields.Any(f => string.IsNullOrWhiteSpace(f.Id) || string.IsNullOrWhiteSpace(f.Name))) throw new InvalidDataException($"{title}: fields require IDs and names.");
+            }
+
+        if (!Enum.IsDefined(request.BodyKind)) throw new InvalidDataException("Unknown request body format.");
+        if (request.Url.Any(char.IsControl) || !Uri.TryCreate(new Uri("https://validation.example/"), request.Url, out var address) || address.Scheme is not ("http" or "https") || address.UserInfo.Length > 0)
+            throw new InvalidDataException("Request URL must resolve to HTTP(S) without credentials.");
+        foreach (var header in request.Headers)
+            if (!System.Text.RegularExpressions.Regex.IsMatch(header.Name, @"^[!#$%&'*+.^_`|~0-9A-Za-z-]+$") || header.Value.IndexOfAny(['\r', '\n']) >= 0)
+                throw new InvalidDataException("Invalid HTTP header name or value.");
+    }
+
 }

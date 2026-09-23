@@ -102,6 +102,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         rememberedSessions = sessionDirectory is null ? null : new RememberedSessions(sessionDirectory);
         useLocalDefaultSuite = sessionDirectory is not null && Path.GetFullPath(sessionDirectory).Equals(Path.GetFullPath(RememberedSessions.DefaultDirectory), StringComparison.OrdinalIgnoreCase);
+        workspacePath = System.IO.Path.GetFullPath(workspace);
         store = new SqliteRunStore(workspace); coordinator = new(store, new HttpTransport());
         Import = Command(ImportAsync); ExportPackage = Command(ExportPackageAsync);
         Send = Command(SendAsync, () => SelectedCase is not null && (run?.FinishedAt is null || IsPlayground));
@@ -195,6 +196,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         if (SelectedCase is null || SelectedIdentity is null) return;
         if (IsPlayground && run is not null && (run.FinishedAt is not null || run.BaseUrl != BaseUrl)) run = null;
+        EnsurePreparationScope();
         var editor = SelectedCase; var identityEditor = SelectedIdentity;
         if (editor.Baseline.Preparation is not null && !preparations.Any(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == editor.Baseline.Id && p.BaseUrl == BaseUrl))
         { Message = "Select Prepare before signing in and sending this case."; return; }

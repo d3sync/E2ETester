@@ -9,6 +9,7 @@ namespace E2ETester.Desktop;
 public sealed class UpdatesViewModel : Observable
 {
     private readonly Func<Task> prepare;
+    private readonly string? workspace;
     private string source = "", status = "Set a release feed, save settings, then check for updates. Updates are downloaded and installed only when you choose.";
     private UpdateManager? manager;
     private VelopackAsset? selected;
@@ -31,9 +32,10 @@ public sealed class UpdatesViewModel : Observable
     public AsyncCommand Install { get; }
     public ActionCommand Cancel { get; }
     public ActionCommand SaveSettings {get;}
-    public UpdatesViewModel(Func<Task> prepare, string? settingsDirectory=null)
+    public UpdatesViewModel(Func<Task> prepare, string? settingsDirectory=null, string? workspace=null)
     {
         this.prepare = prepare;
+        this.workspace = workspace;
         this.settingsDirectory=settingsDirectory??UpdatePreferences.DirectoryPath;
         try {var saved=UpdatePreferences.Load(this.settingsDirectory);source=saved.Source;checkOnStartup=saved.CheckOnStartup;} catch {status="Update settings could not be read. Enter and save your feed again.";}
         SaveSettings=new(()=>
@@ -81,6 +83,7 @@ public sealed class UpdatesViewModel : Observable
         }
         finally { Busy = false; }
     }
+    internal static string[] RestartArguments(string workspace, bool dark) => dark ? ["--workspace=" + Path.GetFullPath(workspace), "--dark"] : ["--workspace=" + Path.GetFullPath(workspace)];
     private async Task InstallAsync()
     {
         var target = Selected; var updater = manager;
@@ -95,7 +98,7 @@ public sealed class UpdatesViewModel : Observable
             cancellation.Token.ThrowIfCancellationRequested();
             await prepare();
             // No --auth-check on restart: recover the saved workspace, do not replace it with a sample.
-            var restart = Environment.GetCommandLineArgs().Skip(1).Where(a => a.StartsWith("--workspace=") || a == "--dark").ToArray();
+            var restart = RestartArguments(workspace ?? throw new InvalidOperationException("Current workspace is unavailable."), ThemeManager.IsDark);
             updater.ApplyUpdatesAndRestart(target, restart);
         }
         catch (OperationCanceledException) { Status = "Download cancelled. No application version was changed."; }

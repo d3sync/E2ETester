@@ -70,3 +70,33 @@ After fixing the findings, run fresh installed-app tests on a clean Windows user
 Establish a repeatable required release gate for build, tests, publication audit and package checks. GitHub CI is currently absent because it was intentionally removed earlier; a documented local release gate is acceptable until CI is restored. Production distribution should include an explicit signing decision; the inspected binary is unsigned. Build a uniquely versioned release from a reviewed commit after fixes; the current work is uncommitted and still identifies as 0.7.7.
 
 No live API calls, permission changes, database writes outside disposable test infrastructure, deployment, commit or push were performed for this review.
+
+## Remediation — 24 September 2026
+
+The five findings above have code fixes in the working tree:
+
+- Desktop preparation is bound to its run as well as package, case and base URL. The guard executes before sign-in or sending and rejects unrelated cases, new runs and reopened packages until restoration. Existing recovery entries without run ownership require restoration.
+- Update and rollback restart with the model's resolved absolute workspace and current theme, including file-association launches.
+- Version-change preflight restores and verifies preparations before saving the draft and backing up the workspace. Conflicts, unreadable recovery and failed journal persistence abort the operation. A failed persistence write keeps the in-memory recovery pending for retry.
+- Append-only preparation audit snapshots include actual selected values, target plan, identity alias, run/operation correlation, and restoration outcomes. API evidence includes request method, resolved URL, status and outcome; the actual redacted mutation template is included in the execution snapshot. Original scalars and API response bodies are excluded from reports.
+- Ordinary and nested preparation requests share transport validation, including timeouts, method, URL, headers, proxy and body formats. The report validator now accepts schema 1.8.
+
+Validation: Release solution build passed with zero warnings/errors; 324 integration checks passed; MCP protocol tests passed with 23 tools; desktop feature smoke passed (exit 0), including unrelated-case/run/reopen guards, restart arguments, successful preflight restoration, conflict and unreadable-recovery rejection; schema 1.8 exported preparation report validated; publication audit passed for 340 Git-visible files. Evidence: artifacts/readiness-fixes-tests.log and artifacts/readiness-fixes-final.png with its empty binding log. Schema validation used an isolated ignored Python environment under artifacts.
+
+Release status remains conditional: no installed-app upgrade/rollback, real authentication, or four-provider database matrix was performed during this remediation. Database mutations were confined to disposable SQLite test databases. No release was installed, published, committed or pushed. The installed-app and real-authentication release checks listed above remain required.
+
+## Independent recheck — 24 September 2026
+
+Rechecked the current working-tree fixes against all five original findings. No remaining blocker was found in those reviewed paths. The original findings above are historical; their code fixes are verified by this recheck.
+
+- Release build passed with zero warnings/errors.
+- 324 standard integration checks passed.
+- Full database run passed 426 checks, including SQLite and disposable SQL Server, MySQL and PostgreSQL infrastructure. The unique Docker test project's containers/volumes/network were cleaned up.
+- Actual MCP protocol tests passed with 23 tools.
+- Desktop feature smoke passed with zero binding-log output, covering case/run isolation, reopened-package recovery, fresh-token checks, update workspace arguments, restoration preflight, conflict rejection and unreadable recovery.
+- Exported preparation report passed schema 1.8 validation.
+- Publication audit passed for 340 Git-visible files; diff whitespace checks passed.
+
+Evidence: artifacts/readiness-recheck-tests.log, artifacts/readiness-recheck-databases.log, artifacts/readiness-recheck.png and artifacts/readiness-recheck.png.bindings.log.
+
+Verdict: ready for release-candidate acceptance testing, not yet fully verified for production deployment. Remaining acceptance work is a real installed-app install/update/rollback cycle (including file-association launch) and real-provider authentication/re-login. Those were not performed in this recheck. Current fixes remain uncommitted and the source version remains 0.7.7; release packaging/versioning and the previously noted signing decision remain separate release tasks. No application source, live permissions, or live service data was changed during this recheck.

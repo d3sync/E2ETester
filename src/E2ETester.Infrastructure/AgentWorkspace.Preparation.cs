@@ -38,7 +38,7 @@ public sealed partial class AgentWorkspace
             if (request.FollowRedirects || request.ProxyUrl.Length > 0 || request.ClientCertificateThumbprint.Length > 0 || request.Headers.Any(h => h.Enabled && h.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("target_not_permitted");
         }
-        return new ApiPreparationTarget(entry.BaseUrl, new HttpTransport(), (alias, _) => Identity(alias));
+        return new ApiPreparationTarget(entry.BaseUrl, new HttpTransport(), (alias, _) => Identity(alias), evidence => entry.HttpEvidence.Add(evidence));
     }
     public async Task<object> ListPreparationsAsync()
     {
@@ -72,17 +72,18 @@ public sealed partial class AgentWorkspace
             if (plan.RequireFreshLogin && plan.Kind == PreparationKind.ApiValue && new[] { plan.CaptureRequest.IdentityRef, plan.UpdateRequest.IdentityRef }.Contains(test.Request.IdentityRef)) throw new InvalidOperationException("preparation_not_permitted");
             var identity = await Identity(test.Request.IdentityRef);
             var db = configuration.Databases.SingleOrDefault(d => d.Alias == plan.ConnectionRef);
-            var entry = new PreparationRecovery { Id = operationId, CaseId = caseId, PackageId = run.Package.Id, BaseUrl = run.BaseUrl,
+            var entry = new PreparationRecovery { Id = operationId, RunId = runId, CaseId = caseId, PackageId = run.Package.Id, BaseUrl = run.BaseUrl,
                 IdentityRef = identity.Alias, PreviousTokenHash = Hash(identity.Secret), Plan = PackageJson.Clone(plan),
                 ConnectionFingerprint = Hash(db is null ? "" : EnvironmentValue(db.ConnectionEnvironmentVariable) ?? "") };
             var target = EnvironmentTarget(entry);
             entry = entry with { OriginalJson = await target.ReadAsync(plan, token) };
             entries.Add(new(runId, entry));
-            (run.PreparationLog ??= []).Add(new(DateTimeOffset.UtcNow, caseId, plan.Title, "pending"));
+            (run.PreparationLog ??= []).Add(Preparations.Audit(entry));
             await coordinator.SaveAsync(run);
-            await Preparations.ApplyAsync(entry, target, () => SaveEnvironment(entries), token);
+            try { await Preparations.ApplyAsync(entry, target, () => SaveEnvironment(entries), token); }
+            catch { run.PreparationLog.Add(Preparations.Audit(entry) with { Status = "apply_failed" }); await coordinator.SaveAsync(run); throw; }
             if (plan.RequireFreshLogin) browserSessions.TryRemove(identity.Alias, out _);
-            run.PreparationLog.Add(new(DateTimeOffset.UtcNow, caseId, plan.Title, "applied"));
+            run.PreparationLog.Add(Preparations.Audit(entry));
             await coordinator.SaveAsync(run);
             return new { operationId, state = entry.Status, requiresFreshLogin = plan.RequireFreshLogin };
         }
@@ -100,9 +101,10 @@ public sealed partial class AgentWorkspace
         foreach (var item in entries.Where(e => e.RunId == run.Id && e.Recovery.Status != "restored").Reverse())
         {
             var entry = item.Recovery;
-            await Preparations.RestoreAsync(entry, EnvironmentTarget(entry), () => SaveEnvironment(entries), token);
+            try { await Preparations.RestoreAsync(entry, EnvironmentTarget(entry), () => SaveEnvironment(entries), token); }
+            catch { (run.PreparationLog ??= []).Add(Preparations.Audit(entry) with { Status = "restoration_failed" }); await coordinator.SaveAsync(run); throw; }
             if (entry.Plan.RequireFreshLogin) browserSessions.TryRemove(entry.IdentityRef, out _);
-            (run.PreparationLog ??= []).Add(new(DateTimeOffset.UtcNow, entry.CaseId, entry.Plan.Title, "restored"));
+            (run.PreparationLog ??= []).Add(Preparations.Audit(entry));
             await coordinator.SaveAsync(run);
         }
     }

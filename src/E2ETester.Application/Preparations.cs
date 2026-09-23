@@ -12,6 +12,23 @@ public interface IPreparationTarget
 
 public static class Preparations
 {
+    public static PreparationAudit Audit(PreparationRecovery entry, IEnumerable<string>? secrets = null)
+    {
+        var plan = PackageJson.Clone(entry.Plan);
+        var valueSecrets = Redaction.IsSensitive(plan.ValueColumn) || Redaction.IsSensitive(plan.ValuePointer) || plan.UpdateRequest.BodySensitive ? new[] { Scalar(plan.ValueJson).ToString() } : Array.Empty<string>();
+        var redactor = new Redaction((secrets ?? []).Concat(valueSecrets).Concat(Redaction.Secrets(plan.CaptureRequest)).Concat(Redaction.Secrets(plan.UpdateRequest)));
+        plan.UpdateRequest.Body = plan.UpdateRequest.Body.Replace("{{valueJson}}", plan.ValueJson);
+        plan.CaptureRequest = redactor.Request(plan.CaptureRequest);
+        plan.UpdateRequest = redactor.Request(plan.UpdateRequest);
+        plan.ValueJson = Redaction.IsSensitive(plan.ValueColumn) || Redaction.IsSensitive(plan.ValuePointer) || entry.Plan.UpdateRequest.BodySensitive ? JsonSerializer.Serialize(Redaction.Mask) : redactor.Text(plan.ValueJson);
+        plan.KeyJson = Redaction.IsSensitive(plan.KeyColumn) ? JsonSerializer.Serialize(Redaction.Mask) : redactor.Text(plan.KeyJson);
+        return new(DateTimeOffset.UtcNow, entry.CaseId, redactor.Text(plan.Title), entry.Status)
+        {
+            BaseUrl = redactor.Url(entry.BaseUrl), OperationId = entry.Id, RunId = entry.RunId, IdentityRef = entry.IdentityRef,
+            ExecutionJson = redactor.Text(PackageJson.Write(plan)),
+            HttpEvidenceJson = redactor.Text(PackageJson.Write(entry.HttpEvidence))
+        };
+    }
     public static void Validate(PreparationPlan plan)
     {
         if (string.IsNullOrWhiteSpace(plan.Title)) throw new InvalidDataException("Preparation needs a title.");
@@ -28,6 +45,8 @@ public static class Preparations
         }
         else
         {
+            PackageJson.ValidateRequest(plan.CaptureRequest, "Preparation capture");
+            PackageJson.ValidateRequest(plan.UpdateRequest, "Preparation update");
             if (plan.CaptureRequest.Method != "GET" || plan.CaptureRequest.FollowRedirects || plan.UpdateRequest.FollowRedirects)
                 throw new InvalidDataException("Capture must use GET and preparation requests must not follow redirects.");
             if (plan.UpdateRequest.Method is not ("PUT" or "PATCH" or "POST") || !plan.UpdateRequest.SendBody || plan.UpdateRequest.BodyKind != RequestBodyKind.Text || !plan.UpdateRequest.Body.Contains("{{valueJson}}"))
@@ -60,6 +79,9 @@ public static class Preparations
             if (!Equal(current, entry.Plan.ValueJson)) throw new InvalidOperationException("The target changed outside this preparation. Resolve the conflict before restoring; no value was overwritten.");
             await target.ReplaceAsync(entry.Plan, current, entry.OriginalJson, token);
         }
-        entry.Status = "restored"; await persist();
+        var previousStatus = entry.Status;
+        entry.Status = "restored";
+        try { await persist(); }
+        catch { entry.Status = previousStatus; throw; }
     }
 }

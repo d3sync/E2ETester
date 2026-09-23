@@ -25,6 +25,7 @@ public sealed record PreparationPlan
 public sealed record PreparationRecovery
 {
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
+    public string RunId { get; init; } = "";
     public string CaseId { get; init; } = "";
     public string PackageId { get; init; } = "";
     public string BaseUrl { get; init; } = "";
@@ -32,8 +33,19 @@ public sealed record PreparationRecovery
     public string PreviousTokenHash { get; init; } = "";
     public string ConnectionFingerprint { get; init; } = "";
     public PreparationPlan Plan { get; init; } = new();
+    public List<PreparationHttpAudit> HttpEvidence { get; init; } = [];
     public string OriginalJson { get; init; } = "null";
     public string Status { get; set; } = "pending";
     public DateTimeOffset StartedAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public sealed record PreparationAudit(DateTimeOffset At, string CaseId, string Title, string Status);
+public sealed record PreparationHttpAudit(DateTimeOffset At, string Method, string Url, int? StatusCode, string Outcome);
+public sealed record PreparationAudit(DateTimeOffset At, string CaseId, string Title, string Status)
+{
+    public string OperationId { get; init; } = "";
+    public string RunId { get; init; } = "";
+    public string IdentityRef { get; init; } = "";
+    // Serialized snapshots are immutable and never contain the original scalar.
+    public string BaseUrl { get; init; } = "";
+    public string ExecutionJson { get; init; } = "";
+    public string HttpEvidenceJson { get; init; } = "[]";
+}

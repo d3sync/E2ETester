@@ -5,6 +5,7 @@ using E2ETester.Core;
 namespace E2ETester.Desktop;
 public sealed partial class MainViewModel
 {
+    private readonly string workspacePath;
     private bool showAdvanced;
     public bool ShowAdvanced { get => showAdvanced; set => Set(ref showAdvanced, value); }
     public ParameterCommand<FieldEditor> RemoveField { get; private set; } = null!;
@@ -40,14 +41,7 @@ public sealed partial class MainViewModel
     public AsyncCommand OpenSwagger { get; private set; } = null!;
     private void InitializeDiagnostics()
     {
-        OpenUpdates = new(() => new UpdatesWindow(new UpdatesViewModel(async () =>
-        {
-            if (Busy || Database.Busy) throw new InvalidOperationException("Finish or cancel the current operation before changing version.");
-            await SaveDraftExplicitlyAsync();
-            var backups = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "E2ETester", "Backups");
-            System.IO.Directory.CreateDirectory(backups);
-            await store.BackupAsync(System.IO.Path.Combine(backups, "before-update-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8] + ".db"));
-        })) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog(), () => !Busy);
+        OpenUpdates = new(() => new UpdatesWindow(new UpdatesViewModel(PrepareForUpdateAsync, workspace: workspacePath)) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog(), () => !Busy);
         RemoveField = new(field => { SelectedCase?.Query.Remove(field); SelectedCase?.Headers.Remove(field); Message = "Field removed from the draft. Previous attempts are unchanged."; }, _ => !Busy && SelectedCase is not null);
         LoadCloudSample = Command(async () => { await SaveDraftAsync(); LoadGatewayAuthCheck(); await SaveDraftAsync(); });
         ToggleTheme = new(() => { ThemeManager.Apply(!ThemeManager.IsDark); Changed(nameof(ThemeLabel)); });
@@ -62,6 +56,21 @@ public sealed partial class MainViewModel
             if (await ImportSwaggerTokenAsync() && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication)
                 await SendAsync();
         });
+    }
+    internal async Task PrepareForUpdateAsync()
+    {
+        if (Busy || Database.Busy) throw new InvalidOperationException("Finish or cancel the current operation before changing version.");
+        Busy = true;
+        try
+        {
+            await RestorePreparationsAsync();
+            if (HasPendingPreparation) throw new InvalidOperationException("Restore all prepared changes before changing version.");
+            await SaveDraftExplicitlyAsync();
+            var backups = System.IO.Path.Combine(workspacePath, "Backups");
+            System.IO.Directory.CreateDirectory(backups);
+            await store.BackupAsync(System.IO.Path.Combine(backups, "before-update-" + Guid.NewGuid().ToString("N") + ".db"));
+        }
+        finally { Busy = false; }
     }
     private Task<bool> ImportSwaggerTokenAsync()
     {
