@@ -118,8 +118,8 @@ public sealed class DatabaseViewModel : Observable
         {
             var alias = Draft.ConnectionRef;
             if (Connections.Any(c => c.Alias == alias)) alias = "connection-" + (Connections.Count + 1);
-            var connection = new ConnectionEditor { Alias = alias, Provider = Draft.Provider };
-            Connections.Add(connection); SelectedConnection = connection;
+            var dialog = new ConnectionSetupWindow(alias, Draft.Provider) { Owner = System.Windows.Application.Current.Windows.OfType<DatabaseWindow>().FirstOrDefault(w => w.DataContext == this) };
+            if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. Use Test connection to verify access. Save your workspace environment to remember it securely."; }
         }, () => !Busy);
         BrowseSqlite = new(() =>
         {

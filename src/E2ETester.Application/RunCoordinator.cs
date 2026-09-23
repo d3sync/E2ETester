@@ -55,7 +55,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
-    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true)
+    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true, bool preparationConfirmed = false)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
         try
@@ -72,6 +72,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 if (validation is not null && baseline.Id != validation.Id && (run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.Verdict != Verdict.Pass || run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.StartedAt < run.Attempts.Last(a => a.CaseId == setup.Id).FinishedAt))
                     throw new InvalidOperationException("Complete remote-IP validation before running the suite.");
             }
+            if (baseline.Preparation is not null && !preparationConfirmed) throw new InvalidOperationException("This case requires explicit preparation in the desktop app before execution. Automated execution of preparation changes is not enabled.");
             if (baseline.Kind == TestStepKind.SwaggerAuthentication)
             {
                 if (identity.Alias != draft.IdentityRef)

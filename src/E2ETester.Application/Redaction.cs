@@ -60,6 +60,12 @@ public sealed class Redaction
         foreach (var c in copy.Cases)
         {
             c.Request = Request(c.Request);
+            if (c.Preparation is { } preparation)
+            {
+                preparation.CaptureRequest = Request(preparation.CaptureRequest);
+                preparation.UpdateRequest = Request(preparation.UpdateRequest);
+                preparation.KeyJson = Text(preparation.KeyJson); preparation.ValueJson = Text(preparation.ValueJson);
+            }
             c.Instructions = Text(c.Instructions);
             c.Assertions = c.Assertions.Select(a => a with { Expected = IsSensitive(a.Selector) ? (a.Kind == CheckKind.JsonEquals ? "\"" + Mask + "\"" : Mask) : Body(a.Expected) }).ToList();
             foreach (var check in c.DatabaseChecks)

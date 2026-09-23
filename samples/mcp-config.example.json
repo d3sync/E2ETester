@@ -1,11 +1,15 @@
 {
   "workspace": "C:/Users/YOUR_USER/AppData/Local/E2ETester/Workspaces/agent-demo",
-  "allowedBaseUrls": ["http://localhost:5188"],
+  "allowedBaseUrls": [
+    "http://localhost:5188"
+  ],
   "allowHttp": true,
   "allowAuthoring": true,
   "allowSavedQueries": false,
   "allowInteractiveLogin": false,
   "savedQueries": [],
   "identities": [],
-  "databases": []
+  "databases": [],
+  "allowPreparation": false,
+  "approvedPreparations": []
 }

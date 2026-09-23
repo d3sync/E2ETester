@@ -18,6 +18,11 @@ public static partial class Reports
         text.AppendLine("Latest automated result per test case. Manual assessments are shown separately below.");
         if (report.Summary.HadFailures) text.AppendLine("Historical failures are retained in the detailed results.");
         text.AppendLine().AppendLine(report.Redactions);
+        if (run.PreparationLog is { Count: > 0 })
+        {
+            text.AppendLine().AppendLine("PREPARATION AND RESTORATION");
+            foreach (var entry in run.PreparationLog) text.AppendLine($"{entry.At:u} · {entry.CaseId} · {entry.Title} · {entry.Status}");
+        }
         text.AppendLine().AppendLine("DETAILED RESULTS");
         foreach (var test in run.Package.Cases)
         {

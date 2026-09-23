@@ -49,7 +49,7 @@ with tempfile.TemporaryDirectory(prefix="e2etester-mcp-") as directory:
         send({"method": "notifications/initialized"})
         send({"id": 2, "method": "tools/list", "params": {}})
         names = {tool["name"] for tool in response(2)["tools"]}
-        assert {"prepare_case", "execute_prepared", "get_operation", "get_report", "run_saved_query"} <= names
+        assert {"prepare_case", "execute_prepared", "get_operation", "get_report", "run_saved_query", "prepare_environment", "restore_environment", "list_preparations"} <= names
         send({"id": 3, "method": "tools/call", "params": {"name": "capabilities", "arguments": {}}})
         result = json.loads(response(3)["content"][0]["text"])
         assert result["ok"] and result["result"]["allowHttp"] and not result["result"]["allowSavedQueries"]

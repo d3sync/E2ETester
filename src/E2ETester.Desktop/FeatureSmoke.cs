@@ -12,6 +12,7 @@ internal static class FeatureSmoke
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
         await UpdateSettingsSmoke.RunAsync(window,path);
+        await PreparationSmoke.RunAsync(window, path);
         await CheckNavigationAsync(window, path);
         var originalCase = model.SelectedCase;
         model.SelectedCase = model.Cases.First(c => c.Baseline.Kind == TestStepKind.Http);
@@ -176,7 +177,7 @@ internal static class FeatureSmoke
         }),DispatcherPriority.ApplicationIdle);
         model.AgentHelp.Execute(null);
         var kit=Path.Combine(Path.GetTempPath(),"agent-kit-smoke-"+Guid.NewGuid().ToString("N"));AgentResources.ExportKit(kit);
-        if(!File.Exists(Path.Combine(kit,"e2e-tester-author","SKILL.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.4.schema.json")))throw new InvalidOperationException("Exported skill incomplete.");
+        if(!File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.5.schema.json")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","assets","prepared-permissions.jsee")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","SKILL.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.4.schema.json")))throw new InvalidOperationException("Exported skill incomplete.");
         var toolsButton=Descendants(window).OfType<Button>().Single(b=>b.ContextMenu is not null);
         toolsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);

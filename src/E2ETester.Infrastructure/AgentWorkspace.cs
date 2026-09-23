@@ -7,7 +7,7 @@ using E2ETester.Core;
 namespace E2ETester.Infrastructure;
 
 public sealed record AgentIdentity(string Alias, AuthKind Kind, string SecretEnvironmentVariable, string HeaderName = "Authorization", string Prefix = "", BrowserLoginSettings? Browser = null);
-public sealed record AgentDatabase(string Alias, DatabaseProvider Provider, string ConnectionEnvironmentVariable);
+public sealed record AgentDatabase(string Alias, DatabaseProvider Provider, string ConnectionEnvironmentVariable, bool AllowPreparation = false);
 public sealed record AgentConfiguration
 {
     public string Workspace { get; init; } = "";
@@ -16,13 +16,15 @@ public sealed record AgentConfiguration
     public bool AllowAuthoring { get; init; }
     public bool AllowSavedQueries { get; init; }
     public bool AllowInteractiveLogin { get; init; }
+    public bool AllowPreparation { get; init; }
+    public List<PreparationPlan> ApprovedPreparations { get; init; } = [];
     public List<QueryDefinition> SavedQueries { get; init; } = [];
     public List<AgentIdentity> Identities { get; init; } = [];
     public List<AgentDatabase> Databases { get; init; } = [];
 }
 public sealed record PreparedExecution(string Id, string RunId, string CaseId, string Revision, TestCase Case, FixtureSelection? Fixture, string State = "prepared");
 
-public sealed class AgentWorkspace : IAsyncDisposable
+public sealed partial class AgentWorkspace : IAsyncDisposable
 {
     private readonly AgentConfiguration configuration;
     private readonly SqliteRunStore store;
@@ -38,7 +40,7 @@ public sealed class AgentWorkspace : IAsyncDisposable
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0) throw new InvalidDataException("Allowed targets must be HTTP(S) base URLs without credentials.");
         this.configuration = configuration; store = new(configuration.Workspace); coordinator = new(store, new HttpTransport());
     }
-    public object Capabilities() => new { configuration.AllowHttp, configuration.AllowAuthoring, configuration.AllowSavedQueries, configuration.AllowInteractiveLogin, configuration.AllowedBaseUrls, queries = new Redaction(Secrets()).Package(new TestPackage { Queries = configuration.SavedQueries }).Queries, identities = configuration.Identities.Select(i => new { i.Alias, i.Kind, browser = i.Browser is not null, available = i.Browser is not null ? browserSessions.TryGetValue(i.Alias, out var session) && !session.RequiresLogin : !string.IsNullOrEmpty(EnvironmentValue(i.SecretEnvironmentVariable)) }), authentication = "Interactive login uses the user's browser only when host configuration allows it. No tool accepts or reveals credentials." };
+    public object Capabilities() => new { configuration.AllowHttp, configuration.AllowAuthoring, configuration.AllowSavedQueries, configuration.AllowInteractiveLogin, preparation = configuration.AllowPreparation && OperatingSystem.IsWindows(), configuration.AllowedBaseUrls, queries = new Redaction(Secrets()).Package(new TestPackage { Queries = configuration.SavedQueries }).Queries, identities = configuration.Identities.Select(i => new { i.Alias, i.Kind, browser = i.Browser is not null, available = i.Browser is not null ? browserSessions.TryGetValue(i.Alias, out var session) && !session.RequiresLogin : !string.IsNullOrEmpty(EnvironmentValue(i.SecretEnvironmentVariable)) }), authentication = "Interactive login uses the user's browser only when host configuration allows it. No tool accepts or reveals credentials." };
     private void Idle() { if (active.Values.Any(v => !v.Task.IsCompleted)) throw new InvalidOperationException("operation_running: inspect or cancel the active operation first."); }
     private void Target(Uri uri)
     {
@@ -62,7 +64,7 @@ public sealed class AgentWorkspace : IAsyncDisposable
         return new(alias, profile.Kind, secret, profile.HeaderName, profile.Prefix);
     }
     private IEnumerable<string> Secrets() => configuration.Identities.Select(i => EnvironmentValue(i.SecretEnvironmentVariable) ?? "").Concat(configuration.Databases.Select(d => EnvironmentValue(d.ConnectionEnvironmentVariable) ?? ""));
-    private static string Revision(TestRun run) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(new { run.Package, attempts = run.Attempts.Select(a => new { a.Id, a.State, a.Verdict }) }))));
+    private static string Revision(TestRun run) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(new { run.Package, run.PreparationLog, attempts = run.Attempts.Select(a => new { a.Id, a.State, a.Verdict }) }))));
     public Task<IReadOnlyList<RunSummary>> ListRunsAsync(int offset = 0) => store.ListAsync(offset);
     public async Task<TestRun> GetRunAsync(string id) => await store.LoadAsync(id) ?? throw new InvalidDataException("run_not_found");
     private Task SavePreparation(PreparedExecution p) => store.SaveOperationAsync(p.Id, PackageJson.Write(p));
@@ -108,6 +110,7 @@ public sealed class AgentWorkspace : IAsyncDisposable
             if (p.Revision != Revision(run)) throw new InvalidOperationException("stale_preparation: prepare again after editing the package.");
             Target(RequestUrls.Resolve(run.BaseUrl, ValueBindings.Request(p.Case.Request, p.Fixture, run)));
             var identity = await Identity(p.Case.Request.IdentityRef);
+            await EnsureEnvironmentAsync(run, p.Case, identity);
             await SavePreparation(p with { State = "dispatched" });
             var cancel = new CancellationTokenSource();
             var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -116,7 +119,7 @@ public sealed class AgentWorkspace : IAsyncDisposable
                 await start.Task;
                 try
                 {
-                    await coordinator.ExecuteAsync(run, run.Package.Cases.Single(c => c.Id == p.CaseId), p.Case.Request, p.Case.Assertions, identity, cancel.Token, p.Fixture, p.Id);
+                    await coordinator.ExecuteAsync(run, run.Package.Cases.Single(c => c.Id == p.CaseId), p.Case.Request, p.Case.Assertions, identity, cancel.Token, p.Fixture, p.Id, preparationConfirmed: true);
                     await SavePreparation(p with { State = "finished" });
                 }
                 catch { try { await SavePreparation(p with { State = "failed_or_interrupted" }); } catch { /* Durable dispatch prevents retry even when storage fails. */ } }
@@ -209,7 +212,7 @@ public sealed class AgentWorkspace : IAsyncDisposable
     public async Task FinishAsync(string runId)
     {
         await commands.WaitAsync();
-        try { Idle(); var run = await GetRunAsync(runId); run.FinishedAt ??= DateTimeOffset.UtcNow; await coordinator.SaveAsync(run); }
+        try { Idle(); var run = await GetRunAsync(runId); await RestoreEnvironmentCoreAsync(run, default); run.FinishedAt ??= DateTimeOffset.UtcNow; await coordinator.SaveAsync(run); }
         finally { commands.Release(); }
     }
     public async Task AssessAsync(string runId, string attemptId, string reviewer, Verdict verdict, string reason)

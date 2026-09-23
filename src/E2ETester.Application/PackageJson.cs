@@ -28,7 +28,7 @@ public static class PackageJson
         RejectNulls(document.RootElement, "$");
         var package = Read<TestPackage>(json);
         Validate(package);
-        return package with { SchemaVersion = "1.4" };
+        return package with { SchemaVersion = package.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
     }
 
     private static void RejectNulls(JsonElement element, string path)
@@ -51,7 +51,7 @@ public static class PackageJson
     public static void Validate(TestPackage package)
     {
         if (Write(package).Length > 5_000_000) throw new InvalidDataException("Package exceeds the 5 MB limit. Use smaller fixtures or fewer embedded files.");
-        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3 and 1.4.");
+        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3, 1.4 and 1.5.");
         if (string.IsNullOrWhiteSpace(package.Title) || string.IsNullOrWhiteSpace(package.Id)) throw new InvalidDataException("Package ID and title are required.");
         if (package.Cases.Count == 0 || package.Cases.Count > 1000) throw new InvalidDataException("A package must contain 1–1,000 cases.");
         if (package.Cases.Select(c => c.Id).Distinct().Count() != package.Cases.Count) throw new InvalidDataException("Case IDs must be unique.");
@@ -59,6 +59,7 @@ public static class PackageJson
         foreach (var query in package.Queries) DatabaseQueries.Validate(query);
         foreach (var c in package.Cases)
         {
+            if (c.Preparation is { } preparation) Preparations.Validate(preparation);
             if (string.IsNullOrWhiteSpace(c.Id) || string.IsNullOrWhiteSpace(c.Title)) throw new InvalidDataException("Each case needs an ID and title.");
             foreach (var dependency in ValueBindings.Dependencies(c.Request))
                 if (!package.Cases.TakeWhile(p => p.Id != c.Id).Any(p => p.Id == dependency)) throw new InvalidDataException($"{c.Title}: source case '{dependency}' must exist earlier in the flow.");

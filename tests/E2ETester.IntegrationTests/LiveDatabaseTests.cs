@@ -39,6 +39,16 @@ internal static class LiveDatabaseTests
                 if (provider == DatabaseProvider.PostgreSql) await Execute(connection, "GRANT CONNECT ON DATABASE fixtures TO fixture_reader; GRANT USAGE ON SCHEMA public TO fixture_reader; GRANT SELECT ON fixture TO fixture_reader;");
             }
             var profile = Profile(provider, false, password);
+            var adminBuilder = new DbConnectionStringBuilder { ConnectionString = admin.ConnectionString };
+            adminBuilder[provider == DatabaseProvider.SqlServer ? "Initial Catalog" : "Database"] = "fixtures";
+            var writable = admin with { ConnectionString = adminBuilder.ConnectionString, ReadOnlyCredentialsConfirmed = false };
+            var preparation = new PreparationPlan { Provider = provider, ConnectionRef = "live-db", Table = "fixture", KeyColumn = "id", KeyJson = "1", ValueColumn = "note", ValueJson = "\"prepared\"" };
+            var target = new DatabasePreparationTarget(writable);
+            var recovery = new PreparationRecovery { Plan = preparation, OriginalJson = await target.ReadAsync(preparation, default) };
+            await Preparations.ApplyAsync(recovery, target, () => Task.CompletedTask, default);
+            check(await target.ReadAsync(preparation, default) == "\"prepared\"", $"{provider}: preparation writes a single target row");
+            await Preparations.RestoreAsync(recovery, target, () => Task.CompletedTask, default);
+            check(await target.ReadAsync(preparation, default) == "null", $"{provider}: preparation restores the original NULL");
             var queries = new DatabaseQueries(new DatabaseExecutor());
             var query = new QueryDefinition { Id = "live-fixtures", ConnectionRef = "live-db", Provider = provider, Sql = "SELECT id, name, note, password FROM fixture ORDER BY id" };
             void Verify(bool condition, string name) => check(condition, $"{provider}: {name}");

@@ -49,6 +49,7 @@ Tools > API workspace opens ad-hoc requests with OpenAPI JSON import. Tools > AI
 | [Swagger and diagnostics](docs/swagger-diagnostics-themes.md) | [MCP configuration](docs/mcp.md) |
 | [Authentication](docs/authentication.md) | [Testing](docs/testing.md) |
 | [Database workflow](docs/database-workflow.md) | [Updates and rollback](docs/updates.md) |
+| [Connection wizard and preparation](docs/preparation-and-connections.md) | [Preparation example](samples/generic/prepared-permissions.json) |
 | [Reports](docs/reports.md) | [Schemas](schemas) |
 | [Workspace and recovery](docs/workspace.md) | [Implementation status](docs/implementation-status.md) |
 | [Brand kit](assets/branding/README.md) | [Changelog](CHANGELOG.md) |

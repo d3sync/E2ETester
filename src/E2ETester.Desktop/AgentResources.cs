@@ -5,7 +5,7 @@ internal static class AgentResources
     private static string Read(string name) { using var reader=new StreamReader(System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Agent/"+name)).Stream); return reader.ReadToEnd(); }
     public static string Prompt => Read("generation-prompt.md");
     public static string Template => Read("test-suite.jsee");
-    private static readonly string[] SkillFiles = ["SKILL.md", "scripts/Setup-Agent.ps1", "references/test-package.v1.4.schema.json", "references/mcp-setup.md", "references/generation-prompt.md", "assets/test-suite.jsee", "agents/openai.yaml"];
+    private static readonly string[] SkillFiles = ["SKILL.md", "scripts/Setup-Agent.ps1", "references/test-package.v1.4.schema.json", "references/test-package.v1.5.schema.json", "references/preparation.md", "assets/prepared-permissions.jsee", "references/mcp-setup.md", "references/generation-prompt.md", "assets/test-suite.jsee", "agents/openai.yaml"];
     internal static string SkillText(string name)
     {
         using var reader=new StreamReader(System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/AgentSkill/"+name)).Stream);

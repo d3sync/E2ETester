@@ -70,7 +70,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
                     validation.IdentityRef = value.Alias;
                 SelectedCase.IdentityRef = value.Alias;
             }
-            Set(ref selectedIdentity, value); LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
+            Set(ref selectedIdentity, value); ReuseTestIdentity?.Refresh(); LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
         }
     }
     public AsyncCommand Import { get; }
@@ -133,6 +133,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         InitializeResponseSettings(workspace);
         InitializeDiagnostics();
         InitializeTools();
+        InitializePreparation(workspace);
         LoadDatabaseDemo = Command(() => LoadDatabaseDemoAsync(workspace));
         LoadPackage(Demo());
     }
@@ -140,6 +141,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private void RefreshCommands()
     {
         Changed(nameof(AllCasesCompleted));
+        Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh(); ReuseTestIdentity?.Refresh();
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();
         foreach (var command in new[] { Cancel, Next, Previous, NewCase, NewRun, AddQuery, AddHeader, AddCheck, NewIdentity }) command?.Refresh();
         OpenDatabase?.Refresh(); AddDatabaseCheck?.Refresh(); VerifyDatabase?.Refresh();
@@ -166,7 +168,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0)) ShowAdvanced = true;
         MarkWorkSaved(); NotifyRun();
     }
-    private TestPackage CurrentPackage() => package with { SchemaVersion = "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
+    private TestPackage CurrentPackage() => package with { SchemaVersion = Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
     private void NotifyRun() { Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
     private void LoadAttempts()
     {
@@ -194,6 +196,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (SelectedCase is null || SelectedIdentity is null) return;
         if (IsPlayground && run is not null && (run.FinishedAt is not null || run.BaseUrl != BaseUrl)) run = null;
         var editor = SelectedCase; var identityEditor = SelectedIdentity;
+        if (editor.Baseline.Preparation is not null && !preparations.Any(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == editor.Baseline.Id && p.BaseUrl == BaseUrl))
+        { Message = "Select Prepare before signing in and sending this case."; return; }
         if (editor.Baseline.Kind == TestStepKind.SwaggerAuthentication && identityEditor.BrowserSession is null && string.IsNullOrWhiteSpace(identityEditor.Secret))
         {
             SwaggerUrl = new Uri(new Uri(BaseUrl.TrimEnd('/') + "/"), editor.Url).AbsoluteUri;
@@ -211,6 +215,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         try
         {
             var identity = await identityEditor.ResolveAsync(cancellation.Token);
+            EnsurePreparationReady(identity);
             RememberIdentity(identityEditor);
             identityEditor.RefreshSession();
             if (run is null)
@@ -218,10 +223,11 @@ public sealed partial class MainViewModel : Observable, IDisposable
                 // Preserve imported baselines; drafts are recorded as explicit per-attempt changes.
                 var snapshot = CurrentPackage() with { Cases = Cases.Select(c => c.ExecutionBaseline()).ToList() };
                 run = await coordinator.StartAsync(snapshot, BaseUrl);
+                foreach (var prepared in preparations.Where(p => p.PackageId == package.Id && p.BaseUrl == BaseUrl)) await AuditPreparation(prepared);
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
-            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues);
+            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues, preparationConfirmed: true);
             editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
         }
@@ -338,6 +344,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         if (run is null) return;
         if (MessageBox.Show("Finish this run and export its report?\n\nAny untested cases remain explicitly incomplete. Choose No to add another test or continue testing.", "Finish test run", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        await RestorePreparationsAsync();
         run.FinishedAt = DateTimeOffset.UtcNow;
         try { await coordinator.SaveAsync(run); } catch { run.FinishedAt = null; throw; }
         NotifyRun(); await ExportReportAsync();

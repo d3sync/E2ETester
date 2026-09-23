@@ -32,6 +32,8 @@ if (!(Test-Path -LiteralPath $config)) {
         allowAuthoring = $true
         allowSavedQueries = $false
         allowInteractiveLogin = $false
+        allowPreparation = $false
+        approvedPreparations = @()
         savedQueries = @()
         identities = @(@{ alias='cloud-user'; kind='bearer'; secretEnvironmentVariable='E2ETESTER_CLOUD_TOKEN'; headerName='Authorization'; prefix='' })
         databases = @()

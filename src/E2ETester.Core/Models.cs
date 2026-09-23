@@ -64,6 +64,8 @@ public sealed record Assertion
 
 public sealed record TestCase
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public PreparationPlan? Preparation { get; set; }
     public TestStepKind Kind { get; set; }
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string? ParentId { get; set; }
@@ -153,6 +155,8 @@ public sealed record Attempt
 
 public sealed record TestRun
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<PreparationAudit>? PreparationLog { get; set; }
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
     public DateTimeOffset StartedAt { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? FinishedAt { get; set; }

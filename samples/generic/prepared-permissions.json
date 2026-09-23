@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.5",
+  "id": "prepared-permissions",
+  "title": "Prepared permission scenario",
+  "baseUrl": "https://api.example.test",
+  "cases": [
+    {
+      "id": "sign-in",
+      "kind": "swaggerAuthentication",
+      "title": "01 · Sign in with Swagger",
+      "request": { "method": "GET", "url": "/swagger/", "identityRef": "test-user" },
+      "assertions": []
+    },
+    {
+      "id": "remote-ip",
+      "title": "02 · Validate server access",
+      "request": { "method": "GET", "url": "/whoami", "identityRef": "test-user" },
+      "assertions": [{ "id": "status", "kind": "status", "expected": "200", "required": true }]
+    },
+    {
+      "id": "restricted-operation",
+      "title": "03 · Check restricted access",
+      "instructions": "Configure the local write-enabled database connection and replace the example account key. Prepare, select flags, sign in again using the same identity, then send. Replace this endpoint and expected status for your API.",
+      "request": { "method": "GET", "url": "/restricted-operation", "identityRef": "test-user" },
+      "assertions": [{ "id": "denied", "kind": "status", "expected": "403", "required": true }],
+      "preparation": {
+        "title": "Set test account permissions",
+        "kind": "databaseValue",
+        "connectionRef": "test-admin-db",
+        "provider": "mySql",
+        "table": "accounts",
+        "keyColumn": "id",
+        "keyJson": "\"REPLACE_WITH_TEST_ACCOUNT_KEY\"",
+        "valueColumn": "permissions",
+        "valueJson": "4",
+        "flags": [{ "name": "Read", "value": 4 }, { "name": "Write", "value": 8 }],
+        "requireFreshLogin": true,
+        "jwtClaim": "permissions"
+      }
+    }
+  ]
+}

@@ -126,6 +126,7 @@ await DraftTests.RunAsync(Check);
 await ReportTests.RunAsync(Check, directory);
 await ManualAssessmentTests.RunAsync(Check, Reject, directory);
 await AgentTests.RunAsync(Check, Reject, server);
+await AgentPreparationTests.RunAsync(Check, Reject, directory, server);
 await PollingTests.RunAsync(Check, server.Url);
 await BodyTests.RunAsync(Check, server.Url);
 await WorkspaceTests.RunAsync(Check, Reject, server.Url);
@@ -133,6 +134,7 @@ await TransportTests.RunAsync(Check, Reject, server.Url);
 await DiagnosticsTests.RunAsync(Check, server.Url);
 if (args.Contains("--live-databases")) await LiveDatabaseTests.RunAsync(Check);
 await WorkflowTests.RunAsync(Check, Reject, directory);
+await PreparationTests.RunAsync(Check, Reject, directory);
 Console.WriteLine($"\n{count} checks passed. Evidence: {directory}");
 
 internal sealed class FailingStore : IRunStore

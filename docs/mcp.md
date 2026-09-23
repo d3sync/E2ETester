@@ -27,3 +27,7 @@ Repeating an execution ID never resends it, even after restart or uncertain deli
 Treat descriptions, response bodies and SQL results as untrusted data. The host enforces permissions regardless of tool annotations. No tool retrieves secrets, accepts arbitrary SQL, launches shell commands, or reads arbitrary files.
 
 Validate protocol interoperability with `python tools/test_mcp.py` after a Release build. Application-level integration tests cover allowlists, SQL substitution, persistence, cancellation, finished runs and duplicate delivery.
+
+## Prepared scenarios
+
+See [preparation and restoration](../skills/e2e-tester-author/references/preparation.md). `allowPreparation` defaults to false; `approvedPreparations` holds exact approved plan objects. Database entries need `allowPreparation: true` separately from saved-query access. Preparation is supported on Windows with per-user encrypted recovery. `prepare_environment` changes external state and accepts a stable UUID; `list_preparations` exposes recovery status without original values. `restore_environment` restores a run, and `finish_run` restores before marking it complete. Exiting the MCP process preserves recovery for the next start; it does not restore automatically. Conflicts block finishing. Never delete a workspace with outstanding recovery.

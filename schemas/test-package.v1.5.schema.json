@@ -1,0 +1,503 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://e2etester.local/schemas/test-package.v1.5.schema.json",
+  "title": "E2ETester package 1.5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "cases"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.5"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "queries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/query"
+      }
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "sensitive": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "default": "GET",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "default": "/",
+          "minLength": 1
+        },
+        "query": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "body": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string",
+          "default": "application/json"
+        },
+        "sendBody": {
+          "type": "boolean"
+        },
+        "bodySensitive": {
+          "type": "boolean"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "default": 30
+        },
+        "identityRef": {
+          "type": "string",
+          "default": "none"
+        },
+        "bodyKind": {
+          "enum": [
+            "text",
+            "formUrlEncoded",
+            "multipart",
+            "binary"
+          ]
+        },
+        "parts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/bodyPart"
+          }
+        },
+        "useCookies": {
+          "type": "boolean"
+        },
+        "httpVersion": {
+          "enum": [
+            "1.1",
+            "2.0",
+            "3.0"
+          ]
+        },
+        "proxyUrl": {
+          "type": "string"
+        },
+        "clientCertificateThumbprint": {
+          "type": "string"
+        },
+        "followRedirects": {
+          "type": "boolean"
+        },
+        "maxRedirects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "status",
+            "bodyContains",
+            "bodyNotEmpty",
+            "jsonEquals",
+            "headerEquals",
+            "statusIn",
+            "headerExists",
+            "jsonExists",
+            "jsonGreaterThan",
+            "jsonLessThan",
+            "jsonArrayCount",
+            "durationLessThan"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "description": "JSON Pointer for jsonEquals; header name for headerEquals."
+        },
+        "expected": {
+          "type": "string",
+          "default": "200"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assertion"
+          }
+        },
+        "fixtureQueryId": {
+          "type": "string"
+        },
+        "databaseChecks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/databaseCheck"
+          }
+        },
+        "fixtureRequired": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require a selected fixture before sending. Otherwise manual values may be used."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "http",
+            "swaggerAuthentication"
+          ],
+          "default": "http"
+        },
+        "preparation": {
+          "$ref": "#/$defs/preparation"
+        }
+      }
+    },
+    "parameter": {
+      "properties": {
+        "type": {
+          "enum": [
+            "string",
+            "int64",
+            "decimal",
+            "boolean",
+            "guid",
+            "dateTimeOffset"
+          ]
+        },
+        "sensitive": {
+          "type": "boolean"
+        },
+        "isNull": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^@?[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "query": {
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeoutSeconds": {
+          "maximum": 600,
+          "type": "integer",
+          "minimum": 1
+        },
+        "sql": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensitiveColumns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rowLimit": {
+          "maximum": 10000,
+          "type": "integer",
+          "minimum": 1
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "connectionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "enum": [
+            "sqlite",
+            "sqlServer",
+            "mySql",
+            "postgreSql"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "databaseCheck": {
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "rowCount",
+            "scalarEquals",
+            "scalarNotEquals",
+            "scalarGreaterThan",
+            "scalarLessThan",
+            "rowExists",
+            "rowAbsent"
+          ]
+        },
+        "expectedJson": {
+          "type": "string"
+        },
+        "queryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "column": {
+          "type": "string"
+        },
+        "pollTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "pollIntervalMilliseconds": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "bodyPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "connectionRef": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "keyColumn": {
+          "type": "string"
+        },
+        "keyJson": {
+          "type": "string"
+        },
+        "valueColumn": {
+          "type": "string"
+        },
+        "valueJson": {
+          "type": "string"
+        },
+        "jwtClaim": {
+          "type": "string"
+        },
+        "valuePointer": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "databaseValue",
+            "apiValue"
+          ]
+        },
+        "provider": {
+          "enum": [
+            "sqlite",
+            "sqlServer",
+            "mySql",
+            "postgreSql"
+          ]
+        },
+        "requireFreshLogin": {
+          "type": "boolean"
+        },
+        "allowUnconditionalApiUpdate": {
+          "type": "boolean"
+        },
+        "captureRequest": {
+          "$ref": "#/$defs/request"
+        },
+        "updateRequest": {
+          "$ref": "#/$defs/request"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

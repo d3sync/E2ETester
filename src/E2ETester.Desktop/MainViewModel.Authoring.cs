@@ -17,6 +17,7 @@ public sealed partial class MainViewModel
     {
         if (Busy || Database.Busy) return false;
         if (choice == ExitChoice.Cancel) return false;
+        await RestorePreparationsAsync();
         if (choice == ExitChoice.Save) await SaveDraftExplicitlyAsync();
         return true;
     }
