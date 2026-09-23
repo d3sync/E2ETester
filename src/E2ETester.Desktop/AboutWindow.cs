@@ -15,7 +15,10 @@ public sealed class AboutWindow : Window
         var summary = new StackPanel();
         summary.Children.Add(new TextBlock { Text = AppInfo.Name + " " + AppInfo.VersionLabel, FontSize = 26, FontWeight = FontWeights.SemiBold });
         summary.Children.Add(new TextBlock { Text = "Guided API testing for Windows", Margin = new Thickness(0,6,0,8) });
-        summary.Children.Add(new TextBox { Text = "Created by " + AppInfo.Creator + "\n" + AppInfo.Copyright + " · MIT License", IsReadOnly = true, BorderThickness = new Thickness(0), TextWrapping = TextWrapping.Wrap, Padding = new Thickness(0), Background = Brushes.Transparent });
+        var credit = new DockPanel();
+        credit.Children.Add(new Image { Source = new BitmapImage(new Uri("pack://application:,,,/Assets/d3sync-logo.png")), Height = 44, Margin = new Thickness(0,0,12,0), VerticalAlignment = VerticalAlignment.Center, ToolTip = AppInfo.Creator });
+        credit.Children.Add(new TextBox { Text = "Created by " + AppInfo.Creator + "\n" + AppInfo.Copyright + " · MIT License", IsReadOnly = true, BorderThickness = new Thickness(0), TextWrapping = TextWrapping.Wrap, Padding = new Thickness(0), Background = Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center });
+        summary.Children.Add(credit);
         var website = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("d3sync.org")) { NavigateUri = new Uri(AppInfo.Website) };
         website.SetResourceReference(System.Windows.Documents.Hyperlink.ForegroundProperty, "Link");
         website.RequestNavigate += (_, e) =>

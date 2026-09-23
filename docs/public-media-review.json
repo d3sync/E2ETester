@@ -74,6 +74,10 @@
       "sha256": "e5b86e3d9cc7e4f53bf7ee83deaa55bd70d50a32734137ec44bdf4a81538be51",
       "review": "Generic isolated UI capture visually reviewed"
     },
+    "src/E2ETester.Desktop/Assets/d3sync-logo.png": {
+      "sha256": "90079f127a3e2b60039d0b8c7f3380313aee15dc1447e592375b6871e029d960",
+      "review": "Creator (d3sync) logo artwork shown in the About window"
+    },
     "src/E2ETester.Desktop/Assets/e2e-tester.ico": {
       "sha256": "24a12868a7c3e216e4723c2a73b8e89324c45adad1e5e1f0016bbc98772ee9ff",
       "review": "Reviewed logo artwork or generated icon/wordmark derivative"

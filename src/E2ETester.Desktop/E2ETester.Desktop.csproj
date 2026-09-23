@@ -25,6 +25,7 @@
     <Resource Include="Assets/e2e-tester.ico" />
     <Resource Include="../../samples/generic/cloud-checkremoteip.json" Link="Samples/cloud-checkremoteip.json" />
     <Resource Include="Assets/e2e-tester.png" />
+    <Resource Include="Assets/d3sync-logo.png" />
     <Resource Include="../../LICENSE" Link="About/LICENSE" />
     <Resource Include="../../THIRD_PARTY_NOTICES.md" Link="About/THIRD_PARTY_NOTICES.md" />
     <Resource Include="../../skills/e2e-tester-author/references/generation-prompt.md" Link="Agent/generation-prompt.md" />
