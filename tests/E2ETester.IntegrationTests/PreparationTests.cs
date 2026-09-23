@@ -49,6 +49,14 @@ internal static class PreparationTests
             var details = new DatabaseConnectionDetails { Provider = provider, File = path, Database = "example", Username = "tester" };
             var built = details.Build("p;word=\"x");
             check(built.Length > 0 && !PackageJson.Write(details).Contains("p;word"), $"{provider} connection builder handles password separately from templates");
+            var loaded = DatabaseConnectionDetails.Read(new(details.Alias, provider, built, true));
+            check(loaded.Details.Provider == provider && loaded.Details.ReadOnlyAccount && loaded.Details.Build(loaded.Password, built) == built, $"{provider} connection editing preserves existing settings and password");
+            if (provider != DatabaseProvider.Sqlite)
+            {
+                loaded.Details.Database = "changed";
+                var edited = DatabaseConnectionDetails.Read(new(details.Alias, provider, loaded.Details.Build(loaded.Password, built)));
+                check(edited.Details.Database == "changed" && edited.Password == "p;word=\"x", $"{provider} edit updates database without losing escaped password");
+            }
         }
         var http = new PreparationHttp();
         var apiPlan = new PreparationPlan { Kind = PreparationKind.ApiValue, ValueJson = "4", CaptureRequest = new() { Url = "/account" }, UpdateRequest = new() { Method = "PATCH", Url = "/account", SendBody = true, Body = "{\"permissions\":{{valueJson}}}" } };

@@ -40,6 +40,9 @@ internal static class PreparationSmoke
         await Prepare();
         if (!model.HasPendingPreparation || model.SelectedIdentity != identity || identity.BrowserProfileKey != profile || identity.Secret.Length != 0 || model.Identities.Count(i => i.IsConfigurable) != 1)
             throw new InvalidOperationException("Preparation must retain the same identity and browser profile while clearing the old JWT.");
+        var protectedConnection = model.Database.Connections.Single(c => c.Alias == "admin-db");
+        model.Database.SelectedConnection = protectedConnection;
+        if (model.Database.EditConnection.CanExecute(null) || model.Database.DeleteConnection.CanExecute(null)) throw new InvalidOperationException("Active preparation connection was editable.");
         var preparedCase = model.SelectedCase;
         model.SelectedCase = model.Cases[1];
         await model.Send.RunAsync();
@@ -84,8 +87,19 @@ internal static class PreparationSmoke
         await reopened.RestorePreparation.RunAsync();
         using (var connection = new SqliteConnection(connectionString))
         { connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT permissions FROM accounts WHERE id=1"; if ((long)command.ExecuteScalar()! != 15) throw new InvalidOperationException("Original permissions were not restored after restart."); }
-        var setup = new ConnectionSetupWindow("fixtures", DatabaseProvider.MySql) { Owner = owner }; setup.Show();
-        await owner.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); Capture(setup, path + ".connection-wizard.png"); setup.Close();
+        var profileToEdit = reopened.Database.Connections.Single(c => c.Alias == "admin-db");
+        reopened.Database.SelectedConnection = profileToEdit;
+        if (!reopened.Database.EditConnection.CanExecute(null) || !reopened.Database.DeleteConnection.CanExecute(null)) throw new InvalidOperationException("Restored profileToEdit cannot be managed.");
+        var edited = new ConnectionEditor { Alias = profileToEdit.Alias, Provider = profileToEdit.Provider, ConnectionString = profileToEdit.ConnectionString, ReadOnlyCredentialsConfirmed = true };
+        reopened.Database.ReplaceConnection(profileToEdit, edited);
+        if (reopened.Database.SelectedConnection != edited || !edited.ReadOnlyCredentialsConfirmed) throw new InvalidOperationException("Connection edit was not applied.");
+        reopened.Database.RemoveConnection(edited);
+        if (reopened.Database.SelectedConnection is not null || reopened.Database.Connections.Count != 0 || reopened.Database.EditConnection.CanExecute(null)) throw new InvalidOperationException("Connection deletion left a stale selection.");
+        var setup = new ConnectionSetupWindow(new ConnectionEditor { Alias = "fixtures", Provider = DatabaseProvider.MySql, ConnectionString = "Server=localhost;Database=example;User ID=tester;Password=local-test;SslMode=Required;AllowUserVariables=True" }) { Owner = owner }; setup.Show();
+        await owner.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); Capture(setup, path + ".connection-wizard.png");
+        if (Descendants(setup).OfType<PasswordBox>().Single().Password != "local-test") throw new InvalidOperationException("Edit connection lost its password.");
+        setup.Close();
+        if (setup.Connection is not null) throw new InvalidOperationException("Closing editor without saving applied changes.");
     }
     private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
     {

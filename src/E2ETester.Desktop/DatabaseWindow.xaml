@@ -3,12 +3,16 @@
   <Grid Margin="0,0,0,18"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="QUERY STUDIO" Style="{StaticResource Caption}"/><TextBlock Text="Fixtures &amp; database evidence" FontSize="24" FontWeight="SemiBold"/></StackPanel><Button Grid.Column="1" Content="Use selected fixture" Command="{Binding SelectFixture}" Style="{StaticResource Primary}" VerticalAlignment="Center"/></Grid>
   <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="275"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="7" Padding="16"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding CanEdit}">
-    <TextBlock Text="CONNECTION PROFILE" Style="{StaticResource Caption}"/><ComboBox ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}"/><Button Content="+ Connection" Command="{Binding AddConnection}" Margin="0,9,0,16"/>
-    <TextBlock Text="Alias (matches query connection)"/><TextBox Text="{Binding SelectedConnection.Alias, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"/>
+    <TextBlock Text="CONNECTION PROFILE" Style="{StaticResource Caption}"/><ComboBox ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}" DisplayMemberPath="Alias"/><Button Content="+ Connection" Command="{Binding AddConnection}" Margin="0,9,0,8"/>
+    <UniformGrid Columns="2" Margin="0,0,0,8"><Button Content="Edit…" Command="{Binding EditConnection}"/><Button Content="Delete" Command="{Binding DeleteConnection}"/></UniformGrid>
+    <TextBlock Text="{Binding ConnectionRestriction}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}"/>
+    <Expander Header="Advanced connection settings" Margin="0,8,0,12" IsEnabled="{Binding CanEditSelectedConnection}"><StackPanel>
+    <TextBlock Text="Alias (matches query connection)"/><TextBox IsReadOnly="True" Text="{Binding SelectedConnection.Alias, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12"/>
     <ComboBox ItemsSource="{x:Static local:DatabaseViewModel.Providers}" SelectedItem="{Binding SelectedConnection.Provider}"/><TextBlock Text="Connection string · memory only" Margin="0,14,0,6"/><PasswordBox x:Name="ConnectionBox" PasswordChanged="ConnectionChanged"/>
     <Button Content="Choose SQLite file…" Command="{Binding BrowseSqlite}" Margin="0,8,0,12"/>
     <CheckBox IsChecked="{Binding SelectedConnection.ReadOnlyCredentialsConfirmed}"><TextBlock Text="This server account has read-only database permissions." TextWrapping="Wrap"/></CheckBox>
     <TextBlock Text="SQLite is forced read-only. Server databases require a restricted account; transaction settings alone are not a permission boundary." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="11" Margin="0,10,0,14"/>
+    </StackPanel></Expander>
     <Button Content="Test connection" Command="{Binding TestConnection}"/>
     <Separator Margin="0,20"/><TextBlock Text="SAVED PACKAGE QUERIES" Style="{StaticResource Caption}"/><ComboBox ItemsSource="{Binding Queries}" DisplayMemberPath="Title" SelectedItem="{Binding SelectedQuery}"/><StackPanel Orientation="Horizontal" Margin="0,10"><Button Content="New" Command="{Binding NewQuery}"/><Button Content="Save query" Command="{Binding SaveQuery}"/></StackPanel>
     <TextBlock Text="Queries freeze when a run starts. You can still explore, but saving package changes requires a new run." TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}"/>

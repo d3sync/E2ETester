@@ -17,6 +17,9 @@ public sealed partial class MainViewModel
 
     private void InitializeDatabase()
     {
+        Database.ConnectionChangeRestriction = connection => Busy ? "Finish the current operation before changing connections."
+            : preparationRecoveryUnreadable || preparations.Any(p => p.Status != "restored" && p.Plan.Kind == PreparationKind.DatabaseValue && p.Plan.ConnectionRef == connection.Alias)
+            ? "Restore prepared changes before editing or deleting this connection." : null;
         OpenDatabase = new(() =>
         {
             Database.UseFixture = ApplyFixture;

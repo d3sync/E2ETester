@@ -141,6 +141,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private AsyncCommand Command(Func<Task> action, Func<bool>? allowed = null) => new(action, ex => Message = "Could not complete action: " + ex.Message, () => !Busy && (allowed?.Invoke() ?? true));
     private void RefreshCommands()
     {
+        Database.RefreshConnectionActions();
         Changed(nameof(AllCasesCompleted));
         Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh(); ReuseTestIdentity?.Refresh();
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();

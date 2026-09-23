@@ -1,6 +1,6 @@
 Create an E2E Tester .jsee test package for the API requirements I provide below.
 
-Return one valid JSON object only, with no Markdown fences or commentary, matching package schema 1.4, or 1.5 when a case includes preparation. A .jsee file is UTF-8 JSON. Use the attached canonical template and schema; do not invent fields, endpoints, credentials, permissions, SQL tables or expected business values.
+Return one valid JSON object only, with no Markdown fences or commentary, matching package schema 1.5. Preparation is optional; omit it for cases that need no setup. A .jsee file is UTF-8 JSON. Use the attached canonical template and schema; do not invent fields, endpoints, credentials, permissions, SQL tables or expected business values.
 
 Required shape: schemaVersion, id, revision, title, description, baseUrl, queries, cases. IDs must be unique. Every suite starts with (1) kind swaggerAuthentication, identityRef cloud-user, request URL /swagger/, no HTTP assertions; then (2) kind http, GET /whoami, same identity, status 200 and bodyNotEmpty assertions. These are once per suite, not before each case. Remaining cases use kind http. The sign-in check proves token availability only; remote IP validates API access.
 

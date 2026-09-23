@@ -1,6 +1,6 @@
 # Preparation and restoration
 
-Use schema 1.5 when a case includes `preparation`. Ordinary suites remain compatible with 1.4. The schema and `assets/prepared-permissions.jsee` describe the exact fields. Examples contain placeholders: obtain the real account key, endpoint and expected status before producing an executable suite.
+Use schema 1.5 for new packages; include `preparation` only when needed. Existing ordinary suites using 1.4 remain supported. The schema and `assets/prepared-permissions.jsee` describe the exact fields. Examples contain placeholders: obtain the real account key, endpoint and expected status before producing an executable suite.
 
 Keep the initial Swagger authentication and access-validation pair. Attach preparation to the later business case. Fixtures remain optional and are separate from preparation. Retain the same `identityRef` for permission changes to the same account: a new alias creates a separate browser profile, not new permissions.
 

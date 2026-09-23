@@ -12,6 +12,16 @@ namespace E2ETester.Desktop;
 public sealed class ConnectionSetupWindow : Window
 {
     private DatabaseConnectionDetails details;
+    private string savedPassword = "";
+    private readonly ConnectionEditor? original;
+    public Func<ConnectionEditor, string?>? ValidateConnection { get; set; }
+    public ConnectionSetupWindow(ConnectionEditor connection) : this(connection.Alias, connection.Provider)
+    {
+        original = connection;
+        (details, savedPassword) = DatabaseConnectionDetails.Read(connection.Profile);
+        Title = "Edit database connection";
+        Render();
+    }
     public ConnectionEditor? Connection { get; private set; }
     public ConnectionSetupWindow(string alias, DatabaseProvider provider)
     {
@@ -29,7 +39,8 @@ public sealed class ConnectionSetupWindow : Window
         panel.Children.Add(type);
         type.SelectionChanged += (_, _) => { if (type.SelectedItem is DatabaseProvider provider && provider != details.Provider) { details.Provider = provider; Render(); } };
         Add("Connection name (matches the package)", nameof(details.Alias));
-        var password = new PasswordBox();
+        var password = new PasswordBox { Password = savedPassword };
+        password.PasswordChanged += (_, _) => savedPassword = password.Password;
         if (details.Provider != DatabaseProvider.Sqlite)
         {
         Add("Server", nameof(details.Host)); Add("Port (0 = default)", nameof(details.Port));
@@ -48,10 +59,15 @@ public sealed class ConnectionSetupWindow : Window
         var message = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var buttons = new WrapPanel();
         Button Action(string title, Action action) { var b = new Button { Content = title, Margin = new Thickness(0, 6, 6, 0) }; b.Click += (_, _) => { try { action(); } catch (Exception ex) when (ex is IOException or ArgumentException or System.Text.Json.JsonException or InvalidOperationException) { message.Text = "Check the connection fields or template. " + (ex is InvalidDataException ? ex.Message : "The operation could not be completed."); } }; buttons.Children.Add(b); return b; }
-        Action("Import template…", () => { var file = new OpenFileDialog { Filter = "Connection template|*.json" }; if (file.ShowDialog() == true) { details = PackageJson.Read<DatabaseConnectionDetails>(File.ReadAllText(file.FileName)); Render(); } });
+        Action("Import template…", () => { var file = new OpenFileDialog { Filter = "Connection template|*.json" }; if (file.ShowDialog() == true) { details = PackageJson.Read<DatabaseConnectionDetails>(File.ReadAllText(file.FileName)); savedPassword = ""; Render(); } });
         Action("Export template…", () => { var file = new SaveFileDialog { Filter = "Connection template|*.json", FileName = "database-connection.json" }; if (file.ShowDialog() == true) File.WriteAllText(file.FileName, PackageJson.Write(details)); });
-        Action("Use connection", () => { Connection = new() { Alias = details.Alias, Provider = details.Provider, ConnectionString = details.Build(password.Password), ReadOnlyCredentialsConfirmed = details.ReadOnlyAccount }; DialogResult = true; }).Style = (Style)FindResource("Primary");
+        Action(original is null ? "Use connection" : "Save changes", () => {
+            var candidate = new ConnectionEditor { Alias = details.Alias.Trim(), Provider = details.Provider, ConnectionString = details.Build(savedPassword, original?.Provider == details.Provider ? original.ConnectionString : null), ReadOnlyCredentialsConfirmed = details.ReadOnlyAccount };
+            if (ValidateConnection?.Invoke(candidate) is { } error) { message.Text = error; return; }
+            Connection = candidate; DialogResult = true;
+        }).Style = (Style)FindResource("Primary");
+        var cancel = new Button { Content = "Cancel", IsCancel = true, Margin = new Thickness(0, 6, 6, 0) }; buttons.Children.Add(cancel);
         panel.Children.Add(buttons); panel.Children.Add(message); Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        void Add(string label, string property) { panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 10, 0, 4) }); var box = new TextBox(); box.SetBinding(TextBox.TextProperty, new Binding(property) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged }); panel.Children.Add(box); }
+        void Add(string label, string property) { panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 10, 0, 4) }); var box = new TextBox { IsReadOnly = original is not null && property == nameof(details.Alias) }; box.SetBinding(TextBox.TextProperty, new Binding(property) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged }); panel.Children.Add(box); }
     }
 }

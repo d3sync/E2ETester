@@ -81,6 +81,28 @@ public sealed class DatabaseViewModel : Observable
     public ActionCommand SaveQuery { get; }
     public ActionCommand AddParameter { get; }
     public ActionCommand AddConnection { get; }
+    public ActionCommand EditConnection { get; }
+    public ActionCommand DeleteConnection { get; }
+    public Func<ConnectionEditor, string?>? ConnectionChangeRestriction { get; set; }
+    public bool CanEditSelectedConnection => !Busy && SelectedConnection is not null && ConnectionChangeRestriction?.Invoke(SelectedConnection) is null;
+    public string ConnectionRestriction => SelectedConnection is null ? "" : ConnectionChangeRestriction?.Invoke(SelectedConnection) ?? "";
+    public void RefreshConnectionActions() { Changed(nameof(CanEditSelectedConnection)); Changed(nameof(ConnectionRestriction)); EditConnection?.Refresh(); DeleteConnection?.Refresh(); BrowseSqlite?.Refresh(); }
+    private System.Windows.Window? ConnectionOwner() => System.Windows.Application.Current.Windows.OfType<DatabaseWindow>().FirstOrDefault(w => w.DataContext == this);
+    private string? ValidateConnection(ConnectionEditor candidate, ConnectionEditor? original = null) =>
+        Connections.Any(c => c != original && c.Alias.Equals(candidate.Alias, StringComparison.OrdinalIgnoreCase)) ? "A connection with this name already exists. Choose another name." : null;
+    internal void ReplaceConnection(ConnectionEditor original, ConnectionEditor replacement)
+    {
+        if (Busy || ConnectionChangeRestriction?.Invoke(original) is { }) throw new InvalidOperationException("Restore active changes and finish running operations before editing this connection.");
+        if (ValidateConnection(replacement, original) is { } error) throw new InvalidOperationException(error);
+        Connections[Connections.IndexOf(original)] = replacement;
+        SelectedConnection = replacement;
+    }
+    internal void RemoveConnection(ConnectionEditor connection)
+    {
+        if (Busy || ConnectionChangeRestriction?.Invoke(connection) is { }) throw new InvalidOperationException("Restore active changes and finish running operations before deleting this connection.");
+        Connections.Remove(connection);
+        SelectedConnection = Connections.FirstOrDefault();
+    }
     public ActionCommand BrowseSqlite { get; }
     public string SensitiveColumnNames { get => string.Join(", ", Draft.SensitiveColumns); set { Draft.SensitiveColumns = value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList(); Changed(); } }
 
@@ -117,10 +139,30 @@ public sealed class DatabaseViewModel : Observable
         AddConnection = new(() =>
         {
             var alias = Draft.ConnectionRef;
-            if (Connections.Any(c => c.Alias == alias)) alias = "connection-" + (Connections.Count + 1);
-            var dialog = new ConnectionSetupWindow(alias, Draft.Provider) { Owner = System.Windows.Application.Current.Windows.OfType<DatabaseWindow>().FirstOrDefault(w => w.DataContext == this) };
+            var suffix = 1; while (Connections.Any(c => c.Alias.Equals(alias, StringComparison.OrdinalIgnoreCase))) alias = "connection-" + suffix++;
+            var dialog = new ConnectionSetupWindow(alias, Draft.Provider) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c) };
             if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. Use Test connection to verify access. Save your workspace environment to remember it securely."; }
         }, () => !Busy);
+        EditConnection = new(() =>
+        {
+            if (!CanEditSelectedConnection || SelectedConnection is not { } current) return;
+            try
+            {
+                var dialog = new ConnectionSetupWindow(current) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c, current) };
+                if (dialog.ShowDialog() != true || dialog.Connection is not { } replacement) return;
+                ReplaceConnection(current, replacement);
+                Message = "Connection updated. Test it, then save your workspace environment to remember the changes.";
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
+            { Message = "Could not edit the connection. Check its advanced connection string and try again."; }
+        }, () => CanEditSelectedConnection);
+        DeleteConnection = new(() =>
+        {
+            if (!CanEditSelectedConnection || SelectedConnection is not { } current) return;
+            if (System.Windows.MessageBox.Show(ConnectionOwner(), $"Delete connection '{current.Alias}'?\n\nThis removes the local profile, not the database. Saved queries keep their connection references. Save your workspace environment afterward to remember the deletion.", "Delete database connection", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
+            RemoveConnection(current);
+            Message = "Connection deleted. Save your workspace environment to remember the deletion. Queries using it need a replacement connection.";
+        }, () => CanEditSelectedConnection);
         BrowseSqlite = new(() =>
         {
             var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "SQLite database|*.db;*.sqlite;*.sqlite3|All files|*.*" };
@@ -129,10 +171,11 @@ public sealed class DatabaseViewModel : Observable
                 SelectedConnection.ConnectionString = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = dialog.FileName, Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadOnly }.ToString();
                 Changed(nameof(SelectedConnection)); Message = "SQLite file selected. It will be opened read-only.";
             }
-        }, () => !Busy && SelectedConnection?.Provider == DatabaseProvider.Sqlite);
+        }, () => CanEditSelectedConnection && SelectedConnection?.Provider == DatabaseProvider.Sqlite);
     }
     private void Refresh()
     {
+        RefreshConnectionActions();
         foreach (var c in new[] { RunQuery, TestConnection, Attach }) c?.Refresh();
         foreach (var c in new[] { Cancel, SelectFixture, NewQuery, SaveQuery, AddParameter, AddConnection, BrowseSqlite }) c?.Refresh();
     }
