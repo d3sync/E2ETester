@@ -27,16 +27,13 @@ public sealed partial class MainViewModel
     internal async Task<string> ExecuteGuidedRequestAsync(TestCase action, RequestDefinition request, TestRun? source)
     {
         if (Busy || Database.Busy) throw new InvalidOperationException("Wait for the current operation.");
-        if (preparationRecoveryUnreadable || preparations.Any(p => p.Status == "pending")) throw new InvalidOperationException("Restore pending preparation before running another action.");
         if (source is not null && (source.Package.Id != package.Id || source.BaseUrl != BaseUrl)) throw new InvalidOperationException("The source run must belong to this package and API environment.");
-        if (preparations.Any(p => p.Status != "restored" && (p.PackageId != package.Id || p.BaseUrl != BaseUrl))) throw new InvalidOperationException("Restore changes from the other package or environment first.");
         var identityEditor = Identities.SingleOrDefault(i => i.Alias == request.IdentityRef) ?? throw new InvalidOperationException("Configure the selected identity first.");
         Busy = true; cancellation = new();
         try
         {
             var identity = await identityEditor.ResolveAsync(cancellation.Token);
-            foreach (var entry in preparations.Where(p => p.Status == "applied")) CheckPreparedIdentity(entry, identity);
-            var resolved = ValueBindings.Request(request, null, source);
+            var resolved = GuidedActionBindings.Resolve(request, source);
             // The source run is immutable evidence; actions get their own durable run and never alter suite coverage.
             var single = PackageJson.Clone(action); single.Preparation = null; single.Request = resolved;
             var actionRun = await coordinator.StartAsync(new TestPackage { Title = "Guided Action · " + action.Title,

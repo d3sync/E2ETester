@@ -22,6 +22,23 @@ public sealed class GuidedActionsWindow : Window
         void SourceLabel() => sourceLabel.Text = "Response values from: " + (source is null ? "none — enter verified values manually" : source.Package.Title + " · " + source.Id);
         SourceLabel(); header.Children.Add(sourceLabel);
         var chooseSource = new Button { Content = "Choose saved source run…", HorizontalAlignment = HorizontalAlignment.Left }; header.Children.Add(chooseSource);
+        var attemptsPanel = new StackPanel(); header.Children.Add(attemptsPanel);
+        Action? resetRequest = null;
+        var chosenAttempts = new Dictionary<string, string>();
+        void LoadAttempts(TestCase? action)
+        {
+            attemptsPanel.Children.Clear(); chosenAttempts.Clear();
+            if (action is null || action.Preparation is not null) return;
+            foreach (var pair in GuidedActionBindings.Defaults(action.Request, source)) chosenAttempts[pair.Key] = pair.Value;
+            foreach (var caseId in ValueBindings.Dependencies(action.Request).Distinct())
+            {
+                attemptsPanel.Children.Add(new TextBlock { Text = "Resource response from " + caseId + " (test verdict does not block cleanup)", TextWrapping = TextWrapping.Wrap });
+                var options = GuidedActionBindings.Candidates(source, caseId).Select(a => new { a.Id, Label = $"{a.StartedAt:yyyy-MM-dd HH:mm:ss} · HTTP {a.Response!.StatusCode} · {a.Verdict} · {a.Id}" }).ToList();
+                var picker = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", SelectedValuePath = "Id", SelectedValue = chosenAttempts.GetValueOrDefault(caseId) };
+                picker.SelectionChanged += (_, _) => { if (picker.SelectedValue is string id) chosenAttempts[caseId] = id; resetRequest?.Invoke(); };
+                attemptsPanel.Children.Add(picker);
+            }
+        }
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
         var status = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 150, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; footer.Children.Add(status);
         var buttons = new WrapPanel(); footer.Children.Add(buttons);
@@ -30,20 +47,22 @@ public sealed class GuidedActionsWindow : Window
         var restore = new Button { Content = "Restore original permissions / prepared changes" }; buttons.Children.Add(restore);
         var cancel = new Button { Content = "Cancel waiting", Command = model.Cancel }; buttons.Children.Add(cancel);
         var editor = new TextBox { AcceptsReturn = true, AcceptsTab = true, TextWrapping = TextWrapping.Wrap, FontFamily = new System.Windows.Media.FontFamily("Consolas"), VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 10, 0, 12) }; root.Children.Add(editor);
+        resetRequest = () => { if (selection.SelectedItem is TestCase action && action.Preparation is null) editor.Text = PackageJson.Write(action.Request); };
         bool active = false;
         void SetActive(bool value) { active = value; header.IsEnabled = editor.IsEnabled = preview.IsEnabled = execute.IsEnabled = restore.IsEnabled = !value; }
         Closing += (_, e) => { if (active) e.Cancel = true; };
         void Select()
         {
             if (selection.SelectedItem is not TestCase action) { instructions.Text = "No Guided Actions are defined in this package. Restore remains available for pending preparation."; execute.IsEnabled = preview.IsEnabled = false; return; }
+            LoadAttempts(action);
             instructions.Text = action.Instructions;
             identity.SelectedItem = model.Identities.FirstOrDefault(i => i.Alias == action.Request.IdentityRef) ?? model.SelectedIdentity;
             editor.Text = action.Preparation is null ? PackageJson.Write(action.Request) : PackageJson.Write(action.Preparation);
             preview.IsEnabled = action.Preparation is null;
         }
         selection.SelectionChanged += (_, _) => Select(); Select();
-        chooseSource.Click += async (_, _) => { try { source = await model.ChooseActionSourceAsync(this) ?? source; SourceLabel(); } catch (Exception ex) { status.Text = ex.Message; } };
-        preview.Click += (_, _) => { try { editor.Text = PackageJson.Write(ValueBindings.Request(PackageJson.Read<RequestDefinition>(editor.Text), null, source)); } catch (Exception ex) { status.Text = ex.Message + " Enter a verified target manually if the creation response is unavailable."; } };
+        chooseSource.Click += async (_, _) => { try { source = await model.ChooseActionSourceAsync(this) ?? source; SourceLabel(); LoadAttempts(selection.SelectedItem as TestCase); if (selection.SelectedItem is TestCase selected && selected.Preparation is null) editor.Text = PackageJson.Write(selected.Request); } catch (Exception ex) { status.Text = ex.Message; } };
+        preview.Click += (_, _) => { try { editor.Text = PackageJson.Write(GuidedActionBindings.Resolve(PackageJson.Read<RequestDefinition>(editor.Text), source, chosenAttempts)); } catch (Exception ex) { status.Text = ex.Message + " Enter a verified target manually if the creation response is unavailable."; } };
         execute.Click += async (_, _) =>
         {
             if (selection.SelectedItem is not TestCase action || identity.SelectedItem is not IdentityEditor selectedIdentity) return;
@@ -58,7 +77,7 @@ public sealed class GuidedActionsWindow : Window
                 }
                 else
                 {
-                    var request = ValueBindings.Request(PackageJson.Read<RequestDefinition>(editor.Text), null, source); request.IdentityRef = selectedIdentity.Alias;
+                    var request = GuidedActionBindings.Resolve(PackageJson.Read<RequestDefinition>(editor.Text), source, chosenAttempts); request.IdentityRef = selectedIdentity.Alias;
                     PackageJson.ValidateRequest(request);
                     editor.Text = PackageJson.Write(request);
                     if (MessageBox.Show(this, $"Run {action.Title}?\n\n{request.Method} {RequestUrls.Resolve(model.BaseUrl, request)}\nIdentity: {selectedIdentity.Alias}\n\nThis can change server data. The request is sent once and recorded separately.", "Run Guided Action", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) != MessageBoxResult.OK) return;

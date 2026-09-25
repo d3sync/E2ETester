@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.17
+
+- Guided Action cleanup resolves the original successful HTTP create response after a later duplicate failure. An attempt picker supports explicit response selection regardless of test verdict.
+- HTTP repair actions no longer inherit test preparation/fresh-login guards; API authorization still applies. Manual targets work without a source response, and existing recovery records remain intact.
+- Normal sequential test bindings continue to require a passing latest source.
+
 ## 0.7.16
 
 - Package schema 1.6 adds optional Guided Actions outside the test sequence: reviewed cleanup requests from saved-run response values and manual permission preparation with flag selection.

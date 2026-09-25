@@ -9,7 +9,7 @@ public static class ValueBindings
 {
     private static readonly Regex Marker = new(@"\{\{([^{}]+)\}\}", RegexOptions.CultureInvariant);
     public static string Text(JsonElement value) => value.ValueKind == JsonValueKind.String ? value.GetString()! : value.GetRawText();
-    public static JsonElement Resolve(string expression, FixtureSelection? fixture, string? responseBody = null, TestRun? run = null, Dictionary<string, string>? sources = null)
+    public static JsonElement Resolve(string expression, FixtureSelection? fixture, string? responseBody = null, TestRun? run = null, Dictionary<string, string>? sources = null, IReadOnlyDictionary<string, string>? selectedAttempts = null)
     {
         var match = Marker.Match(expression);
         if (!match.Success || match.Length != expression.Length) throw new InvalidDataException("A typed binding must be a complete {{fixture.column}} or {{response./json/pointer}} expression.");
@@ -19,8 +19,9 @@ public static class ValueBindings
             var separator = source.IndexOf('.', 5);
             if (separator < 0) throw new InvalidDataException("Use {{case.case-id./json/pointer}}.");
             var id = source[5..separator];
-            var attempt = run?.Attempts.LastOrDefault(a => a.CaseId == id);
-            if (attempt is not { State: AttemptState.Completed, Verdict: Verdict.Pass, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } }) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
+            var explicitlySelected = selectedAttempts is not null && selectedAttempts.TryGetValue(id, out _);
+            var attempt = explicitlySelected ? run?.Attempts.SingleOrDefault(a => a.CaseId == id && a.Id == selectedAttempts![id]) : run?.Attempts.LastOrDefault(a => a.CaseId == id);
+            if (attempt is not { State: AttemptState.Completed, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } } || (!explicitlySelected && attempt.Verdict != Verdict.Pass)) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
             if (sources is not null) sources[id] = attempt.Id;
             return Resolve("{{response." + source[(separator + 1)..] + "}}", null, attempt.Response.Body);
         }
@@ -50,12 +51,12 @@ public static class ValueBindings
         return cell;
     }
 
-    public static RequestDefinition Request(RequestDefinition template, FixtureSelection? fixture, TestRun? run = null)
+    public static RequestDefinition Request(RequestDefinition template, FixtureSelection? fixture, TestRun? run = null, IReadOnlyDictionary<string, string>? selectedAttempts = null)
     {
         var request = PackageJson.Clone(template);
         string Replace(string text, bool url = false) => Marker.Replace(text, m =>
         {
-            var value = Text(Resolve(m.Value, fixture, run: run, sources: request.CaptureSources));
+            var value = Text(Resolve(m.Value, fixture, run: run, sources: request.CaptureSources, selectedAttempts: selectedAttempts));
             return url ? Uri.EscapeDataString(value) : value;
         });
         request.Url = Replace(request.Url, true);
@@ -74,7 +75,7 @@ public static class ValueBindings
 
         JsonNode? Visit(JsonNode? node)
         {
-            if (node is JsonValue val && val.TryGetValue<string>(out var text) && text.Contains("{{", StringComparison.Ordinal)) return JsonNode.Parse(Resolve(text, fixture, run: run, sources: request.CaptureSources).GetRawText());
+            if (node is JsonValue val && val.TryGetValue<string>(out var text) && text.Contains("{{", StringComparison.Ordinal)) return JsonNode.Parse(Resolve(text, fixture, run: run, sources: request.CaptureSources, selectedAttempts: selectedAttempts).GetRawText());
             if (node is JsonObject obj) foreach (var p in obj.ToArray()) obj[p.Key] = Visit(p.Value?.DeepClone());
             if (node is JsonArray arr) for (var i = 0; i < arr.Count; i++) arr[i] = Visit(arr[i]?.DeepClone());
             return node;

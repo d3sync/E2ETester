@@ -148,6 +148,15 @@ await Reject(() => Task.Run(() => PackageJson.Validate(actionPackage with { Sche
 await Reject(() => Task.Run(() => PackageJson.Validate(actionPackage with { GuidedActions = [new() { Id = "create" }] })), "Guided Action and case IDs cannot collide");
 await Reject(() => Task.Run(() => PackageJson.Validate(actionPackage with { GuidedActions = [new() { Id = "cleanup", Request = new() { Url = "/items/{{case.missing./id}}" } }] })), "Guided Action bindings require a real source case");
 await Reject(() => Task.Run(() => PackageJson.Validate(actionPackage with { GuidedActions = [new() { Id = "cleanup", Assertions = [new() { Kind = CheckKind.JsonEquals, Expected = "unquoted" }] }] })), "Guided Action assertions receive runtime validation");
+var recoverySource = new TestRun { Attempts = [new() { Id = "created", CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Pass, Response = new() { StatusCode = 201, Body = "{\"id\":123}" } }, new() { Id = "duplicate", CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Fail, Response = new() { StatusCode = 409, Body = "{\"error\":\"duplicate\"}" } }] };
+var cleanupRequest = new RequestDefinition { Method = "DELETE", Url = "/items/{{case.create./id}}" };
+var recoveredRequest = GuidedActionBindings.Resolve(cleanupRequest, recoverySource);
+Check(recoveredRequest.Url == "/items/123" && recoveredRequest.CaptureSources["create"] == "created", "cleanup uses original creation response after duplicate failure and records provenance");
+await Reject(() => Task.Run(() => ValueBindings.Request(cleanupRequest, null, recoverySource)), "normal test bindings still reject a latest failed source");
+recoverySource.Attempts[0].Verdict = Verdict.Fail;
+Check(GuidedActionBindings.Resolve(cleanupRequest, recoverySource).Url == "/items/123", "cleanup accepts a created resource even when other assertions failed");
+Check(GuidedActionBindings.Resolve(new RequestDefinition { Url = "/items/456" }, null).Url == "/items/456", "manual cleanup target requires no passing source case");
+await Reject(() => Task.Run(() => GuidedActionBindings.Resolve(cleanupRequest, recoverySource, new Dictionary<string, string> { ["create"] = "missing" })), "explicit cleanup source cannot silently fall back to another attempt");
 if (args.Contains("--live-databases")) await LiveDatabaseTests.RunAsync(Check);
 await WorkflowTests.RunAsync(Check, Reject, directory);
 await PreparationTests.RunAsync(Check, Reject, directory);

@@ -28,6 +28,7 @@ internal static class GuidedActionsSmoke
         {
             model.OpenPackageFile(file); model.Database.Connections.Add(new() { Alias = "admin", Provider = DatabaseProvider.Sqlite, ConnectionString = cs });
             var source = new TestRun { Package = package, BaseUrl = url, Attempts = [new() { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Pass, Response = new() { StatusCode = 201, Body = "{\"id\":123}" } }] };
+            source.Attempts.Add(new Attempt { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Fail, Response = new() { StatusCode = 409, Body = "{\"error\":\"duplicate\"}" } });
             var receive = listener.GetContextAsync();
             var send = model.ExecuteGuidedRequestAsync(cleanup, cleanup.Request, source);
             var context = await receive.WaitAsync(TimeSpan.FromSeconds(10));
