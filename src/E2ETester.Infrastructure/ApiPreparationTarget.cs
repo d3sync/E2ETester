@@ -10,11 +10,10 @@ public sealed class ApiPreparationTarget(string baseUrl, IHttpTransport transpor
     {
         var session = await identity(request.IdentityRef, token);
         var uri = RequestUrls.Resolve(baseUrl, request);
-        var safe = new Redaction(Redaction.Secrets(request).Append(session.Secret));
         ResponseSnapshot response;
         try { response = await transport.SendAsync(request, uri, session, token); }
-        catch { audit?.Invoke(new(DateTimeOffset.UtcNow, request.Method, safe.Url(uri.AbsoluteUri), null, "delivery_unknown")); throw; }
-        audit?.Invoke(new(DateTimeOffset.UtcNow, request.Method, safe.Url(uri.AbsoluteUri), response.StatusCode,
+        catch { audit?.Invoke(new(DateTimeOffset.UtcNow, request.Method, uri.AbsoluteUri, null, "delivery_unknown")); throw; }
+        audit?.Invoke(new(DateTimeOffset.UtcNow, request.Method, uri.AbsoluteUri, response.StatusCode,
             response.Error is null && !response.Truncated && response.StatusCode is >= 200 and < 300 ? "succeeded" : "failed"));
         if (response.Error is not null || response.Truncated || response.StatusCode is not (>= 200 and < 300)) throw new InvalidOperationException("Preparation API request did not succeed. Check the administrator identity and endpoint; the request was not retried.");
         return response;

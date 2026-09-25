@@ -75,7 +75,7 @@ internal static class LiveDatabaseTests
             var evidence = await queries.ExecuteAsync(query, profile, default);
             Verify(evidence.Result.ErrorCode is null && evidence.Result.Rows.Count == 2, "restricted account reads fixtures");
             Verify(evidence.Result.Rows[0]["note"].ValueKind == JsonValueKind.Null && evidence.Result.Rows[1]["note"].GetString() == "", "null and empty stay distinct");
-            Verify(!PackageJson.Write(evidence).Contains("live-db-canary") && !PackageJson.Write(evidence).Contains(password), "evidence excludes credentials and secret columns");
+            Verify(PackageJson.Write(evidence).Contains("live-db-canary") && !PackageJson.Write(evidence).Contains(password), "evidence retains fixture values without adding connection credentials");
             var selected = DatabaseQueries.SelectFixture(evidence, 0);
             Verify(ValueBindings.Request(new RequestDefinition { Url = "/items/{{fixture.id}}" }, selected).Url == "/items/1", "fixture binds into API request");
             var bound = query with { Sql = "SELECT name FROM fixture WHERE id = @id", Parameters = [new() { Name = "id", Type = ParameterType.Int64, Value = "{{response./id}}" }] };

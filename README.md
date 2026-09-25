@@ -14,7 +14,7 @@ Created by [d3sync](https://d3sync.org). Click the status-bar version, or Tools 
 
 1. **Open a package.** A `.jsee` file is plain JSON describing an ordered list of cases: request, identity, checks and optional database verification. Opening one never sends anything.
 2. **Sign in.** Import a token through the embedded Swagger browser, paste a JWT/API token, or use a registered OIDC client. Each case names the identity it runs as.
-3. **Run one case at a time.** Edit values before sending; changes are recorded against the original. Every send becomes an attempt with the prepared request, redacted cURL, response and check results.
+3. **Run one case at a time.** Edit values before sending; changes are recorded against the original. Every send becomes an attempt with the prepared request, cURL with captured values, response and check results.
 4. **Verify.** Optionally pick a fixture row in Query Studio and confirm the API's effect with a read-only query. A case stays INCONCLUSIVE until required checks finish.
 5. **Finish and report.** Export JSON, HTML or a ZIP evidence bundle. Manual assessments sit beside automated verdicts.
 
@@ -36,7 +36,7 @@ For a generic cloud template, click **Cloud test** or double-click [cloud-checkr
 ## Features
 
 - Reusable `.jsee` test packages (UTF-8 JSON, opened by double-click) with instructions, defaults, assertions and editable cases. Plain `.json` import/export remains available.
-- HTTP methods and multiple body formats; parameter/header toggles and deletion; prepared request evidence and redacted cURL.
+- HTTP methods and multiple body formats; parameter/header toggles and deletion; prepared request evidence and cURL with captured values.
 - Swagger sign-in, remembered browser state, JWT/API tokens, registered OIDC/PKCE and named identities.
 - PASS, FAIL and INCONCLUSIVE results, attempt history, variations and manual assessments.
 - Optional SQL Server, MySQL, PostgreSQL and SQLite fixtures/verification.
@@ -45,7 +45,7 @@ For a generic cloud template, click **Cloud test** or double-click [cloud-checkr
 - Light/dark themes, compact Auth and optional Advanced database/transport controls.
 - Single-file publishing and Velopack installation, version selection and rollback.
 
-See [features and limits](docs/features.md). Loading a package never sends requests automatically. Reports can contain business data even after credential redaction.
+See [features and limits](docs/features.md). Loading a package never sends requests automatically. Reports retain captured values, including request headers, tokens and business data.
 
 Tools > API workspace opens ad-hoc requests with OpenAPI JSON import. See the [workspace guide](docs/packages-and-playground.md).
 

@@ -32,7 +32,7 @@ internal static class WorkspaceTests
         var draft = new WorkspaceDraft { QueryDraft = new() { Sql = "SELECT @password", Parameters = [new() { Name = "password", Value = "draft-query-canary" }] } };
         await store.SaveDraftAsync(draft, []);
         var recovered = await store.LoadDraftAsync();
-        check(recovered?.QueryDraft?.Sql == "SELECT @password" && recovered.QueryDraft.Parameters[0].Value == Redaction.Mask, "unsaved Query Studio draft recovers with credential redaction");
+        check(recovered?.QueryDraft?.Sql == "SELECT @password" && recovered.QueryDraft.Parameters[0].Value == "draft-query-canary", "unsaved Query Studio draft recovers with exact values");
         var backup = Path.Combine(directory, "backup.db"); await store.BackupAsync(backup);
         using (var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = backup, Mode = SqliteOpenMode.ReadOnly }.ToString()))
         { db.Open(); using var command = db.CreateCommand(); command.CommandText = "SELECT count(*) FROM runs"; check((long)command.ExecuteScalar()! == 1, "SQLite online backup includes WAL-backed runs"); }

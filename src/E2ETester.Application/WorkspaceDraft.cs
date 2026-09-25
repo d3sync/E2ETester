@@ -11,13 +11,8 @@ public sealed record WorkspaceDraft
     public TestPackage Edited { get; init; } = new();
     public QueryDefinition? QueryDraft { get; init; }
 
-    public WorkspaceDraft Redacted(IEnumerable<string> sessionSecrets)
+    public WorkspaceDraft Snapshot()
     {
-        var packages = new[] { Baseline, Edited };
-        var secrets = packages.SelectMany(p => p.Cases).SelectMany(c => Redaction.Secrets(c.Request))
-            .Concat(packages.SelectMany(p => p.Queries).SelectMany(q => q.Parameters).Where(p => p.Sensitive || Redaction.IsSensitive(p.Name)).Select(p => p.Value))
-            .Concat(QueryDraft?.Parameters.Where(p => p.Sensitive || Redaction.IsSensitive(p.Name)).Select(p => p.Value) ?? []).Concat(sessionSecrets);
-        var redactor = new Redaction(secrets);
-        return this with { Baseline = redactor.Package(Baseline), Edited = redactor.Package(Edited), QueryDraft = QueryDraft is null ? null : redactor.Package(new TestPackage { Queries = [QueryDraft] }).Queries[0] };
+        return this with { Baseline = PackageJson.Clone(Baseline), Edited = PackageJson.Clone(Edited), QueryDraft = QueryDraft is null ? null : PackageJson.Clone(new TestPackage { Queries = [QueryDraft] }).Queries[0] };
     }
 }

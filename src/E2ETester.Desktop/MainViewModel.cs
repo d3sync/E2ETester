@@ -109,7 +109,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Import = Command(ImportAsync); ExportPackage = Command(ExportPackageAsync);
         Send = Command(SendAsync, () => SelectedCase is not null && (run?.FinishedAt is null || IsPlayground));
         ExportReport = Command(ExportReportAsync, () => run is not null);
-        SaveResponse = Command(SaveResponseAsync, () => SelectedAttempt?.Response is { Truncated: false, ErrorCode: null } response && !response.Body.Contains(Redaction.Mask));
+        SaveResponse = Command(SaveResponseAsync, () => SelectedAttempt?.Response is { Truncated: false, ErrorCode: null } response && !response.Body.Contains(LegacyEvidence.Placeholder));
         Finish = Command(FinishAsync, () => run is not null && run.FinishedAt is null);
         Resume = Command(ResumeAsync); AddVariation = Command(AddVariationAsync, () => SelectedCase is not null && run?.FinishedAt is null);
         BrowseRuns = Command(BrowseRunsAsync);
@@ -138,7 +138,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         InitializeDatabase();
         InitializeAuthoring();
         InitializeWorkspace(workspace);
-        InitializeResponseSettings(workspace);
+
         InitializeDiagnostics();
         InitializeTools();
         InitializeGuidedActions();
@@ -199,9 +199,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private async Task ExportPackageAsync()
     {
         var value = SuiteDefaults.Ensure(CurrentPackage()); PackageJson.Validate(value);
-        var redactor = new Redaction(value.Cases.SelectMany(c => Redaction.Secrets(c.Request)).Concat(Identities.Select(i => i.Secret)));
         var dialog = new SaveFileDialog { Filter = "E2E Tester package (*.jsee)|*.jsee|JSON package (*.json)|*.json", FileName = "test-package.jsee", DefaultExt = ".jsee", AddExtension = true };
-        if (dialog.ShowDialog() == true) { await Reports.WriteAtomicAsync(dialog.FileName, PackageJson.Write(redactor.Package(value))); await SaveDraftExplicitlyAsync(); Message = "Package exported. Sensitive values are redacted; recipients supply their own credentials."; }
+        if (dialog.ShowDialog() == true) { await Reports.WriteAtomicAsync(dialog.FileName, PackageJson.Write(PackageJson.Clone(value))); await SaveDraftExplicitlyAsync(); Message = "Package exported with all entered values."; }
     }
     private async Task SendAsync()
     {
@@ -242,7 +241,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
-            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites);
+            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites);
             editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
         }
@@ -273,8 +272,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         var index = Cases.IndexOf(SelectedCase) + 1;
         if (run is not null)
         {
-            var redactor = new Redaction(Redaction.Secrets(definition.Request).Concat(Identities.Select(i => i.Secret)));
-            var safe = redactor.Package(new TestPackage { Cases = [definition] }).Cases[0];
+            var safe = PackageJson.Clone(new TestPackage { Cases = [definition] }).Cases[0];
             run.Package.Cases.Insert(index, safe);
             try { await coordinator.SaveAsync(run); } catch { run.Package.Cases.RemoveAt(index); throw; }
         }
@@ -296,7 +294,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (saved is null) { Message = "No saved run is available yet."; return; }
         LoadPackage(saved.Package); run = saved; BaseUrl = saved.BaseUrl;
         foreach (var c in Cases) c.Status = CaseStatus(run.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id));
-        LoadAttempts(); NotifyRun(); Message = saved.FinishedAt is null ? "Run restored. Re-enter redacted values and tokens before sending. Requests were not replayed." : "Finished run opened for review and report export. Start a new run to send more requests.";
+        LoadAttempts(); NotifyRun(); Message = saved.FinishedAt is null ? "Run restored with saved values. Requests were not replayed." : "Finished run opened for review and report export. Start a new run to send more requests.";
         }
         finally { Busy = false; }
     }
@@ -347,7 +345,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     }
     private async Task SaveResponseAsync()
     {
-        if (SelectedAttempt?.Response is not { Truncated: false, ErrorCode: null } response || response.Body.Contains(Redaction.Mask)) return;
+        if (SelectedAttempt?.Response is not { Truncated: false, ErrorCode: null } response || response.Body.Contains(LegacyEvidence.Placeholder)) return;
         var dialog = new SaveFileDialog { Filter = "Response content|*.*", FileName = response.BodyEncoding == "base64" ? "response.bin" : "response.txt" };
         if (dialog.ShowDialog() != true) return;
         var bytes = response.BodyEncoding == "base64" ? Convert.FromBase64String(response.Body) : System.Text.Encoding.UTF8.GetBytes(response.Body);

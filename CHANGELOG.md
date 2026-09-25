@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.20
+
+- Removed value redaction from requests, responses, headers/cookies, cURL, database fixtures, checks, preparations, drafts, exports, reports and MCP evidence. Captured tokens remain usable by subsequent tests and Guided Actions after restart.
+- Removed the redaction setting and sensitive-field controls. Legacy sensitive metadata remains accepted but does not change values. Pretty JSON and wrapping remain available.
+- Older already-redacted records cannot recover their original values; capture the response again or enter a verified resource ID.
+
 ## 0.7.19
 
 - Guided Action response selection checks that a response contains the actual required value, skipping plain-text duplicate errors and unrelated JSON objects.

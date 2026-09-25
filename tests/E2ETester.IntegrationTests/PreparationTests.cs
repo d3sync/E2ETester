@@ -93,7 +93,7 @@ internal static class PreparationTests
         check(PackageJson.Read<PreparationPlan>(audit.ExecutionJson).ValueJson == "8" && audit.OperationId == entry.Id, "audit freezes the execution-time flag value and correlation ID");
         check(Reports.Json(run).Contains("executionJson") && Reports.Text(run).Contains("executionJson"), "exported reports retain actual preparation evidence");
         var sensitive = Preparations.Audit(entry with { Plan = plan with { ValueColumn = "password", ValueJson = "\"private-value\"" } });
-        check(!sensitive.ExecutionJson.Contains("private-value") && !PackageJson.Write(audit).Contains("originalJson"), "preparation audit masks sensitive values and excludes original recovery data");
+        check(sensitive.ExecutionJson.Contains("private-value") && !PackageJson.Write(audit).Contains("originalJson"), "preparation audit retains exact values and excludes original recovery data");
         check(Reports.Create(run).SchemaVersion == "1.8" && Reports.Text(run).Contains("PREPARATION AND RESTORATION"), "report includes preparation and restoration audit");
         await File.WriteAllTextAsync(Path.Combine(directory, "preparation-package.json"), PackageJson.Write(package));
         await File.WriteAllTextAsync(Path.Combine(directory, "preparation-report.json"), Reports.Json(run));

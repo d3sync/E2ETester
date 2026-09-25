@@ -47,7 +47,7 @@ public partial class SwaggerLoginWindow : Window
         var token = SwaggerTokenCapture.FromAuthorization(permitted, url, header);
         if (token is null) return;
         candidate = token; UseToken.IsEnabled = true;
-        Status.Text = "Bearer token available for " + permitted.GetLeftPart(UriPartial.Authority) + ". Token is masked. Choose Use token to import it; API permissions are checked when you send.";
+        Status.Text = "Bearer token available for " + permitted.GetLeftPart(UriPartial.Authority) + ". Choose Use token to import it; API permissions are checked when you send.";
     }
     public async Task ReadAuthorizedAsync()
     {

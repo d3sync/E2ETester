@@ -25,7 +25,7 @@ public static partial class Reports
             new(Outcomes.ForRun(run), run.Package.Cases.Count, run.Package.Cases.Count(c => run.Attempts.Any(a => a.CaseId == c.Id)), run.Attempts.Count,
                 run.Attempts.Any(a => a.Verdict == Verdict.Fail || a.DatabaseEvidence.Any(e => e.Assessment?.Verdict == Verdict.Fail) || a.ManualAssessments.Any(m => m.Verdict == Verdict.Fail)), "latest attempt per case; all historical attempts retained"),
             run.Package.Cases.Select(c => { var latest = run.Attempts.LastOrDefault(a => a.CaseId == c.Id); var assessment = latest?.ManualAssessments.LastOrDefault(); return new CaseCoverage(c.Id, c.Title, c.ParentId, latest?.Id, latest?.Verdict, latest?.State.ToString() ?? "NotRun", assessment?.Verdict, assessment?.Id, assessment is null ? null : ManualAssessments.IsCurrent(latest!, assessment)); }).ToList(),
-            checks, "Request credentials and sensitive check evidence are masked. Response bodies follow the capture setting used for each request and may contain unredacted values. This is not a replay bundle.", run);
+            checks, "Values are recorded without redaction. This is not a replay bundle.", run);
     }
     private static System.Text.Json.JsonElement? Value(string value, bool structured)
     {

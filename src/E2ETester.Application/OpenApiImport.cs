@@ -48,7 +48,7 @@ public static class OpenApiImport
                     var schema=p.TryGetProperty("schema",out var sc)?Resolve(sc):p;
                     var value=Example(p,schema);
                     if(location=="path") { request.Url=request.Url.Replace("{"+name+"}",Uri.EscapeDataString(value.Length>0?value:"REPLACE_"+name)); notes.Add("Path parameter "+name+" must be reviewed."); }
-                    else if(location is "query" or "header") (location=="query"?request.Query:request.Headers).Add(new Field { Name=name, Value=value, Required=required, Enabled=required || value.Length>0, Sensitive=Redaction.IsSensitive(name) });
+                    else if(location is "query" or "header") (location=="query"?request.Query:request.Headers).Add(new Field { Name=name, Value=value, Required=required, Enabled=required || value.Length>0, Sensitive=false });
                     else if(location=="body") { request.SendBody=true; request.Body=JsonExample(p,schema); }
                     else notes.Add("Configure "+location+" parameter "+name+" manually.");
                 }

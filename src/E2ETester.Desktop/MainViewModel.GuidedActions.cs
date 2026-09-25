@@ -54,7 +54,7 @@ public sealed partial class MainViewModel
             var single = PackageJson.Clone(action); single.Preparation = null; single.Request = resolved;
             var actionRun = await coordinator.StartAsync(new TestPackage { Title = "Guided Action · " + action.Title,
                 Description = "Package: " + package.Id + "; source run: " + (source?.Id ?? "manual values"), BaseUrl = BaseUrl, Cases = [single] }, BaseUrl);
-            var attempt = await coordinator.ExecuteAsync(actionRun, single, resolved, single.Assertions, identity, cancellation.Token, redactResponseBody: responsePreferences.RedactSensitiveValues);
+            var attempt = await coordinator.ExecuteAsync(actionRun, single, resolved, single.Assertions, identity, cancellation.Token);
             actionRun.FinishedAt = DateTimeOffset.UtcNow; await coordinator.SaveAsync(actionRun);
             return $"{attempt.Verdict} · saved action run {actionRun.Id}\nHTTP {attempt.Response?.StatusCode}\n{attempt.Response?.Error}\n{attempt.Response?.Body}";
         }

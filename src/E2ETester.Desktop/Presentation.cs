@@ -132,7 +132,7 @@ public sealed class FieldEditor : Observable
 
     public bool IsChanged => Value != original.Value || Name != original.Name || Enabled != original.Enabled;
 
-    public string OriginalLabel => $"Original: {(original.Sensitive || Redaction.IsSensitive(original.Name) ? "••••••" : original.Value)}{(!original.Enabled ? " (disabled)" : "")}";
+    public string OriginalLabel => $"Original: {original.Value}{(!original.Enabled ? " (disabled)" : "")}";
 
     public ActionCommand Restore { get; }
 
@@ -267,7 +267,7 @@ public sealed class CaseEditor : Observable
 
     public bool BodyChanged => Body != (resolvedOriginal ?? Baseline.Request).Body;
 
-    public string OriginalBody => Baseline.Request.BodySensitive ? Redaction.Mask : (resolvedOriginal ?? Baseline.Request).Body;
+    public string OriginalBody => (resolvedOriginal ?? Baseline.Request).Body;
 
     public void ApplyFixture(FixtureSelection selection)
 

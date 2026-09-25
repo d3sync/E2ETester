@@ -26,8 +26,7 @@ public sealed partial class RunCoordinator
             if (!Enum.IsDefined(verdict)) throw new InvalidDataException("Choose PASS, FAIL or INCONCLUSIVE.");
             reviewer = reviewer.Trim(); reason = reason.Trim();
             if (reviewer.Length is < 1 or > 120 || reason.Length is < 1 or > 4000) throw new InvalidDataException("Enter a reviewer (1–120 characters) and a reason (1–4,000 characters).");
-            var redactor = new Redaction(Redaction.Secrets(attempt.Request).Concat(sessionSecrets ?? []));
-            var assessment = new ManualAssessment(Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow, redactor.Text(reviewer), verdict, redactor.Body(reason), attempt.Verdict, ManualAssessments.EvidenceHash(attempt));
+            var assessment = new ManualAssessment(Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow, reviewer, verdict, reason, attempt.Verdict, ManualAssessments.EvidenceHash(attempt));
             attempt.ManualAssessments.Add(assessment);
             try { await store.SaveAsync(run); }
             catch { attempt.ManualAssessments.Remove(assessment); throw; }

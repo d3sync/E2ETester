@@ -62,7 +62,7 @@ internal static class AuthenticationTests
         var attempt = await coordinator.ExecuteAsync(run, test, test.Request, test.Assertions, identities[0], default);
         var report = Reports.Json(run);
         check(attempt.VerifiedIdentity?.Subject == "user-a" && report.Contains("validated_oidc_id_token"), "attempt reports safe verified identity facts");
-        check(!report.Contains(identities[0].Secret) && !report.Contains("refresh-canary"), "authentication credentials excluded from report and echoed response");
+        check(report.Contains(identities[0].Secret) && !report.Contains("refresh-canary"), "captured bearer retained without exporting untransmitted refresh credentials");
         check((await store.LoadAsync(run.Id))!.Attempts[0].VerifiedIdentity?.Subject == "user-a", "verified identity facts survive journal reload");
 
         var callback = $"http://127.0.0.1:{FreePort()}/callback/";

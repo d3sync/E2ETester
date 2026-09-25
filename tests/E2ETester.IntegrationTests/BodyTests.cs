@@ -31,16 +31,16 @@ internal static class BodyTests
         await transport.SendAsync(cookie, new Uri(baseUrl + "/set-cookie"), identity, default);
         result = await transport.SendAsync(cookie, new Uri(baseUrl + "/cookie"), identity, default);
         check(result.Body.Contains("cookie-canary-123"), "cookie session persists across requests");
-        check(!PackageJson.Write(new Redaction(result.SessionSecrets).Response(result)).Contains("cookie-canary-123"), "cookie echo redacted even without a Set-Cookie response");
+        check(PackageJson.Write(PackageJson.Clone(result)).Contains("cookie-canary-123"), "cookie echo preserved even without a Set-Cookie response");
         result = await transport.SendAsync(cookie with { SessionScope = "second" }, new Uri(baseUrl + "/cookie"), identity, default);
         check(result.Body == "none", "cookies isolated between runs");
         result = await transport.SendAsync(cookie, new Uri(baseUrl + "/cookie"), identity with { Alias = "another" }, default);
         check(result.Body == "none", "cookies isolated between identities");
         var secret = Convert.ToBase64String(Encoding.UTF8.GetBytes("binary-secret-canary"));
-        check(new Redaction(["binary-secret-canary"]).Response(new() { Body = secret, BodyEncoding = "base64" }).Body == Redaction.Mask, "known secrets in binary responses are withheld");
+        check(PackageJson.Clone(new ResponseSnapshot { Body = secret, BodyEncoding = "base64" }).Body == secret, "known secrets in binary responses are retained");
         using var store = new SqliteRunStore(Path.Combine(Path.GetTempPath(), "E2ETester-omitted-body", Guid.NewGuid().ToString("N")));
         var coordinator = new RunCoordinator(store, transport);
-        var omitted = new TestCase { Request = new() { Url = "/health", SendBody = false, Body = Redaction.Mask, Parts = [new() { Value = "{{case.unavailable./id}}" }] }, Assertions = [new()] };
+        var omitted = new TestCase { Request = new() { Url = "/health", SendBody = false, Body = LegacyEvidence.Placeholder, Parts = [new() { Value = "{{case.unavailable./id}}" }] }, Assertions = [new()] };
         var run = await coordinator.StartAsync(new() { Cases = [omitted] }, baseUrl);
         check((await coordinator.ExecuteAsync(run, omitted, omitted.Request, omitted.Assertions, identity, default)).Verdict == Verdict.Pass, "omitted body does not require inactive secrets or capture bindings");
     }

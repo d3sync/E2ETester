@@ -7,7 +7,7 @@
 | Authentication | Swagger/WebView2 token import, manual JWT/API tokens, registered native OIDC/PKCE, multiple identities |
 | Assertions | Status, headers, non-empty/substring text, JSON values/presence/comparisons/array counts, duration |
 | Database | SQL Server, MySQL, PostgreSQL, SQLite; read-only queries, typed parameters, fixtures and post-request verification |
-| Evidence | Durable attempts, response redaction settings, prepared request/cURL, response/history, manual assessments, JSON/HTML/ZIP reports |
+| Evidence | Durable attempts, complete captured values, prepared request/cURL, response/history, manual assessments, JSON/HTML/ZIP reports |
 | Workspace | Recovery drafts, save-on-exit choices, library, encrypted environments, backups and retention controls |
 | Preparation | Optional, host-approved setup (database value or API change) before a case, with captured originals and verified restoration |
 | API workspace | Ad-hoc requests, Swagger 2.0 / OpenAPI 3.x JSON import, cURL evidence |

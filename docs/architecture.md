@@ -20,7 +20,7 @@ flowchart TD
 | Project/directory | Responsibility |
 | --- | --- |
 | `src/E2ETester.Core` | Package, request, assertion, identity, attempt, database and report models |
-| `src/E2ETester.Application` | Validation, request resolution, run coordination, assertions, redaction, reports, evidence policy |
+| `src/E2ETester.Application` | Validation, request resolution, run coordination, assertions, reports, evidence policy |
 | `src/E2ETester.Infrastructure` | HttpClient transport, SQL providers, SQLite journal, Windows secret protection and OIDC adapter |
 | `src/E2ETester.Desktop` | WPF editors, guided navigation, WebView2 Swagger import, themes, recovery/exit UX and updates |
 | `src/E2ETester.Mcp` | MCP tool registration, configuration and permission boundary, execution idempotency |
@@ -30,7 +30,7 @@ flowchart TD
 
 ## Request lifecycle
 
-An editor keeps the imported baseline alongside current values. The coordinator resolves fixtures and earlier-response bindings, validates the request, and journals an attempt before network I/O. The transport records the prepared method, URL, headers and body, including redirect hops. Assertions evaluate the captured response. Redacted evidence and the outcome are persisted; later edits do not rewrite earlier attempts.
+An editor keeps the imported baseline alongside current values. The coordinator resolves fixtures and earlier-response bindings, validates the request, and journals an attempt before network I/O. The transport records the prepared method, URL, headers and body, including redirect hops. Assertions evaluate the captured response. Captured evidence and the outcome are persisted; later edits do not rewrite earlier attempts.
 
 Each attempt is PASS, FAIL or INCONCLUSIVE. Required database verification can leave a successful HTTP exchange inconclusive until the data check finishes. The latest attempt per case determines automated coverage; historical failures remain visible. Manual assessments accompany automated results and are tied to an evidence hash.
 
@@ -38,7 +38,7 @@ Fixtures are optional data inputs, not a GET requirement. A package's explicit `
 
 ## Data and identity
 
-Workspace journals and drafts live under `%LOCALAPPDATA%/E2ETester/Workspaces` by default. A process lock prevents concurrent writers to one workspace. Interrupted requests are recovered as uncertain evidence rather than replayed. Recovery drafts are redacted; explicit save state is separate from automatic recovery writes.
+Workspace journals and drafts live under `%LOCALAPPDATA%/E2ETester/Workspaces` by default. A process lock prevents concurrent writers to one workspace. Interrupted requests are recovered as uncertain evidence rather than replayed. Recovery drafts retain all entered values; explicit save state is separate from automatic recovery writes.
 
 Manual JWT/API tokens can be saved explicitly in Windows-protected environment files. Native OIDC uses PKCE and validated identity tokens; refresh sessions stay in memory. Swagger token import uses a persistent WebView2 profile keyed by origin and identity alias. OAuth popups share that profile/environment and retain their opener. Web authentication and API bearer lifetime are separate.
 

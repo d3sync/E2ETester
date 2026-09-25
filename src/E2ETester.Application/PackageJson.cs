@@ -129,9 +129,9 @@ public static class PackageJson
             if (request.HttpVersion is not ("1.1" or "2.0" or "3.0") || request.MaxRedirects is < 0 or > 10) throw new InvalidDataException("Choose HTTP 1.1, 2.0 or 3.0 and a redirect limit of 0–10.");
             if (request.ProxyUrl.Length > 0 && (!Uri.TryCreate(request.ProxyUrl, UriKind.Absolute, out var proxy) || proxy.Scheme is not ("http" or "https") || proxy.UserInfo.Length > 0 || proxy.Query.Length > 0 || proxy.Fragment.Length > 0)) throw new InvalidDataException("Proxy URL must be HTTP(S) without credentials, query or fragment.");
             if (request.Parts.Count > 1000 || request.Parts.Any(p => string.IsNullOrWhiteSpace(p.Name) || p.Name.IndexOfAny(['\r', '\n']) >= 0 || p.FileName.IndexOfAny(['\r', '\n', '/', '\\']) >= 0)) throw new InvalidDataException("Body parts need simple names and filenames without paths or line breaks.");
-            if (request.SendBody && request.BodyKind == RequestBodyKind.Binary && request.Body != Redaction.Mask) _ = Convert.FromBase64String(request.Body);
+            if (request.SendBody && request.BodyKind == RequestBodyKind.Binary && request.Body != LegacyEvidence.Placeholder) _ = Convert.FromBase64String(request.Body);
             if (request.SendBody && request.BodyKind == RequestBodyKind.Multipart)
-                foreach (var part in request.Parts.Where(p => p.Enabled && p.Binary && p.Value != Redaction.Mask)) _ = Convert.FromBase64String(part.Value);
+                foreach (var part in request.Parts.Where(p => p.Enabled && p.Binary && p.Value != LegacyEvidence.Placeholder)) _ = Convert.FromBase64String(part.Value);
             _ = new HttpMethod(request.Method);
             if (string.IsNullOrWhiteSpace(request.Url)) throw new InvalidDataException($"{title}: URL is required.");
             foreach (var fields in new[] { request.Query, request.Headers })

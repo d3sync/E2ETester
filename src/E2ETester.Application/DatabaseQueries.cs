@@ -35,7 +35,7 @@ public sealed class DatabaseQueries(IDatabaseExecutor executor)
                 p.IsNull = cell.ValueKind == JsonValueKind.Null;
                 p.Value = ValueBindings.Text(cell);
             }
-            if (p.Value.Contains(Redaction.Mask, StringComparison.Ordinal)) throw new InvalidOperationException("Re-enter redacted query parameters.");
+            if (p.Value.Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) throw new InvalidOperationException("Re-enter redacted query parameters.");
         }
         var result = await executor.ExecuteAsync(query, profile, token);
         return SafeEvidence(query, result, profile.ConnectionString);
@@ -43,21 +43,8 @@ public sealed class DatabaseQueries(IDatabaseExecutor executor)
 
     public static QueryEvidence SafeEvidence(QueryDefinition query, QueryResult result, string connectionString = "")
     {
-        var secrets = query.Parameters.Where(p => p.Sensitive || Redaction.IsSensitive(p.Name)).Select(p => p.Value)
-            .Concat(result.Rows.SelectMany(r => r.Where(c => SensitiveColumn(query, c.Key)).Select(c => ValueBindings.Text(c.Value)))).Append(connectionString);
-        var scrub = new Redaction(secrets);
-        var safeQuery = PackageJson.Clone(query);
-        safeQuery.Sql = scrub.Text(safeQuery.Sql);
-        foreach (var p in safeQuery.Parameters) p.Value = p.Sensitive || Redaction.IsSensitive(p.Name) ? Redaction.Mask : scrub.Text(p.Value);
-        var safeResult = result with
-        {
-            Rows = result.Rows.Select(r => r.ToDictionary(c => c.Key, c => SensitiveColumn(query, c.Key)
-                ? JsonSerializer.SerializeToElement(Redaction.Mask)
-                : JsonSerializer.Deserialize<JsonElement>(scrub.Body(c.Value.GetRawText())))).ToList()
-        };
-        return new QueryEvidence { Query = safeQuery, Result = safeResult };
+        return new QueryEvidence { Query = PackageJson.Clone(query), Result = PackageJson.Clone(result) };
     }
-    public static bool SensitiveColumn(QueryDefinition q, string name) => Redaction.IsSensitive(name) || q.SensitiveColumns.Contains(name, StringComparer.OrdinalIgnoreCase);
 
     public static CheckResult Assess(DatabaseCheck check, QueryEvidence evidence)
     {
@@ -75,9 +62,9 @@ public sealed class DatabaseQueries(IDatabaseExecutor executor)
         {
             if (result.Rows.Count != 1) return VerdictResult(Verdict.Fail, result.Rows.Count.ToString(CultureInfo.InvariantCulture), "Scalar check requires exactly one row.");
             if (!result.Rows[0].TryGetValue(check.Column, out actual)) return VerdictResult(Verdict.Inconclusive, "Missing column", $"Query did not return '{check.Column}'.");
-            if (SensitiveColumn(evidence.Query, check.Column) || actual.ToString().Contains(Redaction.Mask, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, Redaction.Mask, "Sensitive values are not available for persisted comparisons.");
+            if (actual.ToString().Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, LegacyEvidence.Placeholder, "This older evidence contains a redacted placeholder. Capture it again to compare the value.");
         }
-        if (check.ExpectedJson.Contains(Redaction.Mask, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, "Redacted expectation", "Re-enter the expectation in a new case/run.");
+        if (check.ExpectedJson.Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, "Redacted expectation", "Re-enter the expectation in a new case/run.");
         using var expected = JsonDocument.Parse(check.ExpectedJson);
         var matches = JsonNode.DeepEquals(JsonNode.Parse(actual.GetRawText()), JsonNode.Parse(check.ExpectedJson));
         if (check.Kind == DatabaseCheckKind.ScalarNotEquals) matches = !matches;

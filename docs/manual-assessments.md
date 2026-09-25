@@ -20,4 +20,4 @@ Each attempt exposes `manualAssessments`. Coverage includes the latest attempt's
 
 The 1.2 report schema remains available for older exports. Existing journal entries load with an empty assessment list; no data migration or HTTP replay occurs.
 
-The integration suite covers append-only history, reviewer/reason validation, distinct automated/manual verdicts, evidence changes, persistence failure, reload, finished-run restrictions, redaction and HTML escaping. With the demo API running, `--smoke=artifacts/assessments.png --assessment-exercise` also exercises the WPF record action and renders the assessment window.
+The integration suite covers append-only history, reviewer/reason validation, distinct automated/manual verdicts, evidence changes, persistence failure, reload, finished-run restrictions, value retention and HTML escaping. With the demo API running, `--smoke=artifacts/assessments.png --assessment-exercise` also exercises the WPF record action and renders the assessment window.

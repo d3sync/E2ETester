@@ -15,7 +15,7 @@ public static partial class Reports
             ["report.html"] = Encoding.UTF8.GetBytes(Html(report)),
             ["package.json"] = Encoding.UTF8.GetBytes(PackageJson.Write(report.Run.Package))
         };
-        var manifest = new { schemaVersion = "1.0", runId = run.Id, exportedAt = report.ExportedAt, hashAlgorithm = "SHA-256", files = files.Select(f => new { path = f.Key, bytes = f.Value.Length, sha256 = Convert.ToHexString(SHA256.HashData(f.Value)) }).ToArray(), note = "Integrity hashes detect changes; they are not a digital signature. Evidence is redacted but may contain business data." };
+        var manifest = new { schemaVersion = "1.0", runId = run.Id, exportedAt = report.ExportedAt, hashAlgorithm = "SHA-256", files = files.Select(f => new { path = f.Key, bytes = f.Value.Length, sha256 = Convert.ToHexString(SHA256.HashData(f.Value)) }).ToArray(), note = "Integrity hashes detect changes; they are not a digital signature. Evidence contains the captured values without redaction." };
         files["manifest.json"] = Encoding.UTF8.GetBytes(PackageJson.Write(manifest));
         var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

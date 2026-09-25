@@ -8,7 +8,7 @@ Open **Workspace** in the header for the package library, environments and maint
 
 Workspace drafts include unfinished Query Studio SQL and parameters, body parts and transport settings. Drafts and the library redact configured secrets before persistence; credential values must be restored separately. A redacted binary upload cannot be sent until the file is reselected. Body files are embedded as base64; the file picker caps individual files at 1 MB and package import is capped at 5 MB.
 
-**Maintenance** displays journal size, run count and integrity status. Export diagnostics contains these categories and runtime version, without paths, requests or credentials. Backups use SQLite's online backup API so committed WAL data is included. Choose a new `.db` file. Backups can contain business data even though credentials are redacted.
+**Maintenance** displays journal size, run count and integrity status. Export diagnostics contains these categories and runtime version, without paths, requests or credentials. Backups use SQLite's online backup API so committed WAL data is included. Choose a new `.db` file. Backups include captured values and headers without redaction.
 
 To restore, close every app/MCP process using the destination workspace. Keep the original workspace intact. Create a new empty workspace directory and copy the backup there as `runs.db`. Use that directory in MCP configuration, or supply `--workspace=<absolute directory>` to the desktop. Existing local profiles can remain in their original workspace; a copied DPAPI file only works for the same Windows user. Never copy an open journal's files as a substitute for the backup command.
 
@@ -26,6 +26,6 @@ The ZIP is unsigned. A signed installer, organization-specific deployment, clean
 
 ### Closing with edits (0.5.4)
 
-Before closing, the app compares current package/query drafts with the last loaded or explicitly saved state. Unsaved edits offer **Save and exit**, **Cancel**, or **Exit without saving**. Save writes a local redacted draft, not a portable package export. Cancel leaves the window and edits intact. Exit without saving skips the final write; previously created automatic recovery copies may remain. Already journaled attempts are never deleted by this choice. Active API/database operations must finish or be cancelled before closing, and a save failure keeps the app open.
+Before closing, the app compares current package/query drafts with the last loaded or explicitly saved state. Unsaved edits offer **Save and exit**, **Cancel**, or **Exit without saving**. Save writes a local draft with all entered values, not a portable package export. Cancel leaves the window and edits intact. Exit without saving skips the final write; previously created automatic recovery copies may remain. Already journaled attempts are never deleted by this choice. Active API/database operations must finish or be cancelled before closing, and a save failure keeps the app open.
 
 Automatic recovery saves do not acknowledge an explicit save. Save draft, package export and library save do. Passwords/API tokens are not persisted by saving a draft; use an encrypted environment profile for those settings. Reports can be exported later from Saved runs.

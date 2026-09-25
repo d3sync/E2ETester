@@ -12,7 +12,7 @@ Include the affected version, a synthetic reproduction, expected/actual behavior
 
 - Packages describe requests, fixtures and assertions. Review the target and method before sending; packages can describe real mutations.
 - HTTP attempts are journaled before sending. Transport failures may mean delivery is unknown; requests are not automatically replayed.
-- Known credentials and sensitive fields are redacted, but business data may remain in reports and database evidence. Inspect exports before sharing.
+- Request/response values, headers, tokens and database evidence are retained without redaction in workspace journals and exports. Remembered credential profiles remain protected separately with Windows user protection.
 - Swagger runs in a persistent WebView2 profile. Cookies and saved passwords stay in that browser profile. Token capture is restricted to the chosen API origin; login forms are not scraped.
 - Windows-protected environment profiles are separate from exported packages. They are tied to the Windows account, not a portable secret vault.
 - SQL access relies on read-only database credentials as well as query validation. Do not point the query studio at a privileged account.

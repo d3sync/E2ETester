@@ -17,7 +17,7 @@ internal static class DraftTests
         {
             check(await store.LoadDraftAsync() is null, "empty workspace has no draft");
             await store.SaveDraftAsync(draft, ["session-secret-canary"]);
-            check(original.Cases[0].Request.Headers[0].Value == "draft-secret-canary", "saving a redacted draft does not mutate in-memory input");
+            check(original.Cases[0].Request.Headers[0].Value == "draft-secret-canary", "saving a preserved draft does not mutate in-memory input");
         }
         using var reopened = new SqliteRunStore(directory);
         var restored = (await reopened.LoadDraftAsync())!;
@@ -25,7 +25,7 @@ internal static class DraftTests
         check(restored.Edited.Cases[0].Request.Body == "{ unfinished JSON", "draft accepts unfinished content without executing or validating it");
         check(restored.RunId == "linked-run" && restored.SelectedCaseId == "draft-case", "draft retains run linkage and selected case");
         var json = PackageJson.Write(restored);
-        check(!json.Contains("draft-secret-canary") && !json.Contains("session-secret-canary") && !json.Contains("user:password"), "draft redacts credentials, known session values and URL userinfo");
+        check(json.Contains("draft-secret-canary") && json.Contains("session-secret-canary") && json.Contains("user:password"), "draft preserves credentials, known session values and URL userinfo");
         await reopened.SaveDraftAsync(restored with { RunId = null, Edited = edited with { Title = "Second save" } }, ["session-secret-canary"]);
         check((await reopened.LoadDraftAsync())!.Edited.Title == "Second save", "draft save atomically replaces the previous workspace draft");
         check((await reopened.ListAsync()).Count == 0, "draft persistence never creates execution history");

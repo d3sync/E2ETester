@@ -45,17 +45,17 @@ If `id` is numeric in the database, it becomes a JSON number, not a quoted strin
 
 Send the API request, then click **Verify database** on the selected attempt. Required checks keep the attempt INCONCLUSIVE until verified. A definite failed HTTP check stays FAIL even when the database cannot be checked.
 
-Saved query parameters may reference `{{fixture.column}}` or `{{response./path/to/value}}`. Response paths use JSON Pointer; array indices and `~0`/`~1` escapes are supported. Bindings never replace SQL text: resolved values are assigned to driver parameters. Missing, incomplete or redacted evidence cannot silently supply a parameter.
+Saved query parameters may reference `{{fixture.column}}` or `{{response./path/to/value}}`. Response paths use JSON Pointer; array indices and `~0`/`~1` escapes are supported. Bindings never replace SQL text: resolved values are assigned to driver parameters. Missing, incomplete or complete evidence cannot silently supply a parameter.
 
 Each verification is recorded before execution. Rechecks retain previous results; the latest result for each check determines the current verdict, and the report's `hadFailures` flag includes historical database failures. An interrupted verification is recovered as INCONCLUSIVE without replay. Finishing a run prevents further evidence changes.
 
 **Attach result to selected API attempt** stores exploratory evidence. It does not satisfy any required check or turn the attempt into PASS.
 
-## Limits and redaction
+## Capture limits
 
 Defaults: 30-second query timeout, 1,000 rows. Row limits can be 1–10,000 and timeouts 1–600 seconds. Captured cells are limited to 16 Ki characters/bytes and captured result content to roughly 2 million characters. Additional result sets are marked incomplete rather than silently ignored. A truncated result cannot pass database checks or be selected as a fixture.
 
-Mark sensitive parameters and list sensitive column names (comma-separated) in Query Studio. Common credential-shaped names are also redacted. Redacted fields cannot be used for fixture bindings or scalar comparisons. Use parameters instead of embedding credentials in SQL text. Driver error text is withheld because it can contain connection details or data; a stable error category is recorded instead.
+Query parameters and result cells retain their actual values, including columns named token or password. Legacy sensitive metadata is accepted but no longer masks values or blocks fixture bindings and scalar comparisons. Driver error text is withheld because it can contain connection details or data; a stable error category is recorded instead.
 
 SQLite uses a native interrupt to bound long-running queries despite the provider's synchronous implementation of async methods. Cancellation and timeout stop waiting/execution where supported and never trigger an API replay.
 

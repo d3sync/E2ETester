@@ -38,7 +38,7 @@ public sealed partial class MainViewModel
 
     private void InitializeAuthoring()
     {
-        SaveDraft = Command(async () => { await SaveDraftExplicitlyAsync(); Message = "Draft saved locally. Credentials are redacted; original values are preserved."; });
+        SaveDraft = Command(async () => { await SaveDraftExplicitlyAsync(); Message = "Draft saved locally with all entered values."; });
         RestoreDraft = Command(RestoreDraftAsync);
         DuplicateCase = new(() =>
         {
@@ -80,7 +80,7 @@ public sealed partial class MainViewModel
         try
         {
             if (draftRecoveryBlocked) throw new InvalidOperationException("The saved draft could not be restored. Open a package or start a new run before replacing it.");
-            var safe = CaptureDraft().Redacted(Identities.Select(i => i.Secret));
+            var safe = CaptureDraft().Snapshot();
             var json = PackageJson.Write(safe);
             if (json == lastDraft) return;
             await store.SaveDraftAsync(safe, []); lastDraft = json;
@@ -115,7 +115,7 @@ public sealed partial class MainViewModel
             // Reassign after restoring identity references so selection resolves the saved alias.
             SelectedCase = null; SelectedCase = Cases.FirstOrDefault(c => c.Baseline.Id == draft.SelectedCaseId) ?? Cases.FirstOrDefault();
             UpdateSwaggerUrlFromPackage();
-            lastDraft = PackageJson.Write(CaptureDraft().Redacted(Identities.Select(i => i.Secret)));
+            lastDraft = PackageJson.Write(CaptureDraft().Snapshot());
             MarkWorkSaved(); NotifyRun(); LoadAttempts();
             Message = Cases.Any(c => c.FixtureRequired) ? "Draft restored. Re-enter credentials and select required database fixtures before sending. Optional fixtures can be skipped when using manual values. No requests were replayed." : "Draft restored. Sign in or load saved credentials before sending authenticated requests. No requests were replayed.";
         }

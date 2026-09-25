@@ -40,7 +40,7 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0) throw new InvalidDataException("Allowed targets must be HTTP(S) base URLs without credentials.");
         this.configuration = configuration; store = new(configuration.Workspace); coordinator = new(store, new HttpTransport());
     }
-    public object Capabilities() => new { configuration.AllowHttp, configuration.AllowAuthoring, configuration.AllowSavedQueries, configuration.AllowInteractiveLogin, preparation = configuration.AllowPreparation && OperatingSystem.IsWindows(), configuration.AllowedBaseUrls, queries = new Redaction(Secrets()).Package(new TestPackage { Queries = configuration.SavedQueries }).Queries, identities = configuration.Identities.Select(i => new { i.Alias, i.Kind, browser = i.Browser is not null, available = i.Browser is not null ? browserSessions.TryGetValue(i.Alias, out var session) && !session.RequiresLogin : !string.IsNullOrEmpty(EnvironmentValue(i.SecretEnvironmentVariable)) }), authentication = "Interactive login uses the user's browser only when host configuration allows it. No tool accepts or reveals credentials." };
+    public object Capabilities() => new { configuration.AllowHttp, configuration.AllowAuthoring, configuration.AllowSavedQueries, configuration.AllowInteractiveLogin, preparation = configuration.AllowPreparation && OperatingSystem.IsWindows(), configuration.AllowedBaseUrls, queries = PackageJson.Clone(new TestPackage { Queries = configuration.SavedQueries }).Queries, identities = configuration.Identities.Select(i => new { i.Alias, i.Kind, browser = i.Browser is not null, available = i.Browser is not null ? browserSessions.TryGetValue(i.Alias, out var session) && !session.RequiresLogin : !string.IsNullOrEmpty(EnvironmentValue(i.SecretEnvironmentVariable)) }), authentication = "Interactive login uses the user's browser only when host configuration allows it. Identity configuration stays local; request evidence includes captured headers and values." };
     private void Idle() { if (active.Values.Any(v => !v.Task.IsCompleted)) throw new InvalidOperationException("operation_running: inspect or cancel the active operation first."); }
     private void Target(Uri uri)
     {
@@ -72,7 +72,7 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
     public async Task<TestRun> StartAsync(string packageJson, string baseUrl)
     {
         await commands.WaitAsync();
-        try { Idle(); if (!configuration.AllowHttp) throw new InvalidOperationException("http_not_permitted"); Target(new Uri(baseUrl)); var package = PackageJson.Import(packageJson); return await coordinator.StartAsync(new Redaction(Secrets()).Package(package), baseUrl); }
+        try { Idle(); if (!configuration.AllowHttp) throw new InvalidOperationException("http_not_permitted"); Target(new Uri(baseUrl)); var package = PackageJson.Import(packageJson); return await coordinator.StartAsync(PackageJson.Clone(package), baseUrl); }
         finally { commands.Release(); }
     }
     public async Task<object> PrepareAsync(string runId, string caseId, string? draftJson = null, string? fixtureEvidenceId = null, int rowIndex = 0)
@@ -90,10 +90,10 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
             var request = ValueBindings.Request(test.Request, fixture, run); Target(RequestUrls.Resolve(run.BaseUrl, request));
             if (request.FollowRedirects || request.ProxyUrl.Length > 0 || request.ClientCertificateThumbprint.Length > 0 || request.Headers.Any(h => h.Enabled && h.Name.Equals("Host", StringComparison.OrdinalIgnoreCase))) throw new InvalidOperationException("target_not_permitted: MCP requires explicit cases, default proxy and configured token identities.");
             _ = await Identity(request.IdentityRef);
-            var safe = new Redaction(Secrets().Concat(Redaction.Secrets(request))).Package(new TestPackage { Cases = [test], Queries = run.Package.Queries }).Cases[0];
+            var safe = PackageJson.Clone(new TestPackage { Cases = [test], Queries = run.Package.Queries }).Cases[0];
             var p = new PreparedExecution(Guid.NewGuid().ToString("N"), runId, caseId, Revision(run), safe, fixture);
             await SavePreparation(p);
-            return new { executionId = p.Id, revision = p.Revision, preview = safe with { Request = new Redaction(Secrets().Concat(Redaction.Secrets(request))).Request(request) }, fixture = fixture?.Evidence.Id, note = "Call execute_prepared with this ID. Repeating the ID never sends another request." };
+            return new { executionId = p.Id, revision = p.Revision, preview = safe with { Request = PackageJson.Clone(request) }, fixture = fixture?.Evidence.Id, note = "Call execute_prepared with this ID. Repeating the ID never sends another request." };
         }
         finally { commands.Release(); }
     }
@@ -185,7 +185,7 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
             var run = await GetRunAsync(runId); if (run.FinishedAt is not null) throw new InvalidOperationException("run_finished");
             var parent = run.Package.Cases.Single(c => c.Id == caseId);
             var variation = parent with { Id = Guid.NewGuid().ToString("N"), ParentId = parent.Id, Title = title, Request = PackageJson.Read<RequestDefinition>(requestJson) };
-            variation = new Redaction(Secrets().Concat(Redaction.Secrets(variation.Request))).Package(new TestPackage { Cases = [variation], Queries = run.Package.Queries }).Cases[0];
+            variation = PackageJson.Clone(new TestPackage { Cases = [variation], Queries = run.Package.Queries }).Cases[0];
             run.Package.Cases.Insert(run.Package.Cases.IndexOf(parent) + 1, variation); PackageJson.Validate(run.Package); await coordinator.SaveAsync(run); return variation;
         }
         finally { commands.Release(); }

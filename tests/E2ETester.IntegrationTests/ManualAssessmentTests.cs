@@ -24,7 +24,7 @@ internal static class ManualAssessmentTests
         check(attempt.ManualAssessments.Count == 2 && attempt.ManualAssessments[0].Id == fail.Id && attempt.ManualAssessments[1].Id == pass.Id, "reassessment appends without overwriting earlier review");
         var report = Reports.Create(run);
         check(report.Summary.HadFailures && report.Coverage[0].ManualVerdict == Verdict.Pass && report.Coverage[0].ManualAssessmentIsCurrent == true && report.Coverage[0].Verdict == Verdict.Pass, "report distinguishes latest manual review and historical manual failures");
-        check(!Reports.Json(run).Contains("token-canary") && !Reports.Html(run).Contains("<script>"), "manual notes are redacted and HTML-encoded");
+        check(Reports.Json(run).Contains("token-canary") && !Reports.Html(run).Contains("<script>"), "manual notes are preserved and HTML-encoded");
         await coordinator.AttachDatabaseEvidenceAsync(run, attempt, new QueryEvidence());
         check(!ManualAssessments.IsCurrent(attempt, pass) && Reports.Create(run).Coverage[0].ManualAssessmentIsCurrent == false, "new database evidence makes prior manual assessment stale");
         check(Reports.Html(run).Contains("Evidence changed — review again"), "HTML explains stale manual assessments");

@@ -20,3 +20,7 @@ JSON equality expectations contain serialized JSON values inside the expected st
 Before delivery or troubleshooting, read [validation and database compatibility](references/validation-and-compatibility.md) for nested JSON encoding, final-file MCP validation, TLS/account distinctions and Percona-safe preparation recovery.
 
 For manual cleanup and permission controls outside test coverage, use package schema 1.6 and top-level guidedActions. Read [Guided Actions](references/guided-actions.md). These are desktop actions, not extra mandatory cases; retain exact resource bindings and persisted restoration.
+
+## Captured values (0.7.20 and later)
+
+The application no longer redacts request/response values, headers, cookies, fixture cells, assertions, preparations, drafts, packages or reports, including MCP results. `sensitive`, `bodySensitive` and `sensitiveColumns` remain accepted for older packages but have no masking effect. Use actual captured `token`/`groupToken` values for bindings and comparisons. There is no redaction setting. Older saved `[REDACTED]` values cannot be recovered: obtain a fresh response or a verified manual resource ID. Continue authoring reusable templates with identity/connection aliases rather than embedding credentials.

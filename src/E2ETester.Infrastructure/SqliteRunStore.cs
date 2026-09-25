@@ -82,7 +82,7 @@ public sealed partial class SqliteRunStore : IRunStore, IRunHistoryStore, IDispo
     });
     public Task SaveDraftAsync(WorkspaceDraft draft, IEnumerable<string> secrets)
     {
-        var json = PackageJson.Write(draft.Redacted(secrets));
+        var json = PackageJson.Write(draft.Snapshot());
         return Task.Run(() =>
         {
             using var connection = Open(); using var command = connection.CreateCommand();

@@ -1,5 +1,7 @@
 # Architecture and proposed file structure
 
+Current implementation note (0.7.20): value redaction was removed at the tester's request. Captured evidence and exports preserve actual values; historical masking requirements in these planning documents are superseded.
+
 ## Project boundaries
 
 Use five production projects initially. Keep provider implementations as folders inside Infrastructure until there is a concrete need to distribute them independently.

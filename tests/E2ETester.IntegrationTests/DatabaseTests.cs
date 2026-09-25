@@ -36,14 +36,14 @@ internal static class DatabaseTests
         var evidence = await queries.ExecuteAsync(query, profile, default);
         check(evidence.Result.ErrorCode is null && evidence.Result.Rows.Count == 2, "SQLite query returns fixture rows");
         check(evidence.Result.Rows[0]["id"].ValueKind == JsonValueKind.Number && evidence.Result.Rows[0]["note"].ValueKind == JsonValueKind.Null && evidence.Result.Rows[1]["note"].GetString() == "", "database types preserve number, null and empty string");
-        check(!PackageJson.Write(evidence).Contains("db-canary-credential"), "sensitive SQL columns redacted");
+        check(PackageJson.Write(evidence).Contains("db-canary-credential"), "sensitive SQL columns preserved");
         await reject(() => Task.Run(() => DatabaseQueries.SelectFixture(evidence, -1)), "fixture needs explicit valid selection");
         var fixture = DatabaseQueries.SelectFixture(evidence, 0);
         var template = new RequestDefinition { Url = "/echo", Method = "POST", SendBody = true, Body = "{\"id\":\"{{fixture.id}}\",\"name\":\"{{fixture.name}}\",\"note\":\"{{fixture.note}}\"}" };
         var resolved = ValueBindings.Request(template, fixture);
         using (var body = JsonDocument.Parse(resolved.Body)) check(body.RootElement.GetProperty("id").ValueKind == JsonValueKind.Number && body.RootElement.GetProperty("note").ValueKind == JsonValueKind.Null, "JSON fixture bindings preserve types");
         await reject(() => Task.Run(() => ValueBindings.Request(template, null)), "missing fixture blocks preparation");
-        await reject(() => Task.Run(() => ValueBindings.Resolve("{{fixture.password}}", fixture)), "redacted fixture cannot be used as data");
+        check(ValueBindings.Resolve("{{fixture.password}}", fixture).GetString() == "db-canary-credential", "sensitive fixture values remain usable as data");
         var parameterized = query with { Sql = "SELECT id FROM fixture WHERE name = @name", Parameters = [new() { Name = "name", Value = "' OR 1=1 --" }] };
         var injection = await queries.ExecuteAsync(parameterized, profile, default);
         check(injection.Result.ErrorCode is null && injection.Result.Rows.Count == 0, "SQL parameters are bound instead of interpolated");
@@ -97,7 +97,7 @@ internal static class DatabaseTests
         var loaded = await coordinator.ResumeAsync();
         check(loaded?.Attempts[0].DatabaseEvidence.Count == 4 && loaded.Attempts[0].Fixture?.RowIndex == 0, "fixtures and DB evidence survive restart");
         var report = Reports.Json(run);
-        check(report.Contains("databaseEvidence") && !report.Contains("db-canary-credential") && !report.Contains(connectionString), "reports include DB evidence but exclude credentials");
+        check(report.Contains("databaseEvidence") && report.Contains("db-canary-credential") && !report.Contains(connectionString), "reports retain fixture values without adding connection strings");
         check(report.Contains("\"hadFailures\": true"), "historical database failure remains in report summary");
         attempt.DatabaseEvidence.Add(new QueryEvidence { Query = scalarQuery, CheckId = dbCheck.Id, Purpose = "verification", Result = new QueryResult { ErrorCode = "running" } });
         await store.SaveAsync(run);

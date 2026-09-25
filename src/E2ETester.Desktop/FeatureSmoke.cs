@@ -39,25 +39,6 @@ internal static class FeatureSmoke
             if (model.ResponseText != text) throw new InvalidOperationException("Non-JSON responses must remain readable verbatim.");
         }
         model.SelectedCase = originalCase; model.SelectedAttempt = null;
-        if (ResponsePreferences.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "responses.json")).RedactSensitiveValues)
-            throw new InvalidOperationException("Response redaction must default to off.");
-        _ = window.Dispatcher.BeginInvoke(new Action(() =>
-        {
-            var settings = System.Windows.Application.Current.Windows.OfType<Window>().Single(w => w.Title == "Response settings");
-            Save(settings, path + ".response-settings.png");
-            var toggle = Descendants(settings).OfType<CheckBox>().Single(); toggle.IsChecked = false;
-            Descendants(settings).OfType<Button>().Single(b => Equals(b.Content, "Save")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        }), DispatcherPriority.ApplicationIdle);
-        model.OpenResponseSettings.Execute(null);
-        _ = window.Dispatcher.BeginInvoke(new Action(() =>
-        {
-            var settings = System.Windows.Application.Current.Windows.OfType<Window>().Single(w => w.Title == "Response settings");
-            var toggle = Descendants(settings).OfType<CheckBox>().Single();
-            if (toggle.IsChecked != false) throw new InvalidOperationException("Response setting was not saved.");
-            toggle.IsChecked = true;
-            Descendants(settings).OfType<Button>().Single(b => Equals(b.Content, "Save")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        }), DispatcherPriority.ApplicationIdle);
-        model.OpenResponseSettings.Execute(null);
         var defaultsRoot = Path.Combine(Path.GetTempPath(), "E2E-defaults-smoke", Guid.NewGuid().ToString("N"));
         var defaultsStore = new E2ETester.Infrastructure.ConnectionDefaultsStore(Path.Combine(defaultsRoot, "Connections"));
         defaultsStore.Save("https://seed.example.test", new E2ETester.Infrastructure.DatabaseConnectionDetails { Alias = "seed-db", Provider = E2ETester.Core.DatabaseProvider.MySql, Host = "db.example.test", Database = "testing" });

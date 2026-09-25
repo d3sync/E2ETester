@@ -27,7 +27,7 @@ Lifecycle and verdict are separate: attempt states serialize in camel case (`com
 
 The HTML file is self-contained and works offline. It includes coverage, chronological attempts, checks, identity provenance, failures and expandable request/response/database evidence. All data is HTML-encoded, with no remote assets or JavaScript. A restrictive content-security policy blocks active content. Expand the evidence sections you want before printing; collapsed sections carry a print reminder.
 
-HTML uses the same redacted journal data as JSON. Review sensitive custom fields before execution and mark them appropriately; no exporter can discover every business-sensitive value from its content alone. Large response/query bodies remain subject to the execution capture limits. External artifact bundles and signed/hash manifests are not implemented in this version.
+HTML, text and JSON use the same complete journal values. The legacy `redactions` report field states that values are captured without redaction; its name remains unchanged for schema compatibility. Large response/query bodies remain subject to the execution capture limits. External artifact bundles and signed/hash manifests are not implemented in this version.
 
 ## Validation
 

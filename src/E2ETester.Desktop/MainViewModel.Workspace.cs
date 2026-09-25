@@ -61,7 +61,7 @@ public sealed partial class MainViewModel
             saved.RemoveAll(e => e.Name == EnvironmentName); await profiles.SaveAsync(saved); await RefreshWorkspaceAsync();
             Message = "Saved environment removed. In-memory tokens remain until forgotten or the app closes.";
         });
-        SaveLibrary = Command(async () => { await store.SavePackageAsync(SuiteDefaults.Ensure(CurrentPackage()), Identities.Select(i => i.Secret)); await SaveDraftExplicitlyAsync(); await RefreshWorkspaceAsync(); Message = "A redacted package snapshot was added to your library."; });
+        SaveLibrary = Command(async () => { await store.SavePackageAsync(SuiteDefaults.Ensure(CurrentPackage()), Identities.Select(i => i.Secret)); await SaveDraftExplicitlyAsync(); await RefreshWorkspaceAsync(); Message = "A package snapshot with all entered values was added to your library."; });
         LoadLibrary = Command(async () => { if (SelectedLibrary is null) return; await SaveDraftAsync(); var p = await store.LoadPackageAsync(SelectedLibrary.Id); if (p is not null) LoadPackage(IsPlayground ? p : SuiteDefaults.Ensure(p)); Message = "Library package opened as a new session. Nothing has run."; });
         BackupWorkspace = Command(async () =>
         {

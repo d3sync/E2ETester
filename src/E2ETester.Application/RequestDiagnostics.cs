@@ -7,14 +7,14 @@ public static class RequestDiagnostics
     private static string Quote(string value) => "'" + value.Replace("'", "'\"'\"'") + "'";
     public static string Curl(SentRequest request, int timeoutSeconds)
     {
-        var output = new StringBuilder("# Bash / sh syntax. Secrets are redacted; replace placeholders locally.\n");
+        var output = new StringBuilder("# Bash / sh syntax. Captured request values are preserved.\n");
         output.Append("# ").AppendLine(request.Note);
-        if (request.HasBody && request.BodyEncoding == "base64" && request.Body != Redaction.Mask)
+        if (request.HasBody && request.BodyEncoding == "base64" && request.Body != LegacyEvidence.Placeholder)
             output.Append("printf '%s' ").Append(Quote(request.Body)).Append(" | base64 --decode | ");
         output.Append("curl --globoff --path-as-is --max-time ").Append(timeoutSeconds).Append(" --request ").Append(Quote(request.Method)).Append(" \\\n  --url ").Append(Quote(request.Url));
         foreach (var header in request.Headers)
             foreach (var value in header.Value) output.Append(" \\\n  --header ").Append(Quote(header.Key + ": " + value));
-        if (request.HasBody) output.Append(" \\\n  --data-binary ").Append(request.BodyEncoding == "base64" && request.Body != Redaction.Mask ? "@-" : Quote(request.Body));
+        if (request.HasBody) output.Append(" \\\n  --data-binary ").Append(request.BodyEncoding == "base64" && request.Body != LegacyEvidence.Placeholder ? "@-" : Quote(request.Body));
         return output.ToString();
     }
     public static string Describe(Attempt attempt)

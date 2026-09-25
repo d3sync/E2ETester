@@ -8,7 +8,7 @@ The application saves a single workspace draft every two seconds while idle, and
 
 The draft includes package metadata, saved query definitions, case order, request/check edits, original case values, selected case and the linked run ID. Original values stay separate, so the italic **Original** labels and **Restore** buttons work after restarting. Drafts may contain incomplete definitions; execution/import/export validation still applies when those actions occur.
 
-Credentials and known sensitive fields are redacted. Mark sensitive custom fields and bodies before entering secrets. Browser sessions, manual tokens, connection strings and database fixture selections are not restored. Re-enter credentials and reselect fresh fixtures before sending. Unfinished Query Studio SQL and parameters are recovered separately; save the query definition to include it in an exported package.
+Drafts retain entered values without redaction. Legacy sensitive metadata no longer changes the saved data. Browser sessions, manual tokens, connection strings and database fixture selections are not restored. Re-enter credentials and reselect fresh fixtures before sending. Unfinished Query Studio SQL and parameters are recovered separately; save the query definition to include it in an exported package.
 
 A run-linked draft restores recorded attempts without sending requests. Finished runs remain closed to execution. If the linked run has changed incompatibly or the draft cannot be read, automatic saving is blocked to preserve the saved data; open the recorded session from **Saved runs**, open a package, or start a new run to proceed.
 

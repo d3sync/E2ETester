@@ -13,11 +13,10 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         PackageJson.Validate(package);
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var root) || root.Scheme is not ("http" or "https") || root.UserInfo.Length > 0 || root.Query.Length > 0 || root.Fragment.Length > 0)
             throw new InvalidDataException("Base URL must be HTTP(S) without credentials, query parameters or fragments.");
-        var safe = new Redaction(package.Cases.SelectMany(c => Redaction.Secrets(c.Request)));
         var run = new TestRun
         {
-            Package = safe.Package(package), BaseUrl = safe.Url(baseUrl),
-            PackageHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(safe.Package(package)))))
+            Package = PackageJson.Clone(package), BaseUrl = baseUrl,
+            PackageHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(PackageJson.Clone(package)))))
         };
         await store.SaveAsync(run);
         return run;
@@ -55,7 +54,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
-    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true, bool preparationConfirmed = false, bool bypassPrerequisites = false)
+    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool preparationConfirmed = false, bool bypassPrerequisites = false)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
         try
@@ -83,7 +82,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                     throw new InvalidOperationException($"No bearer token is available for identity '{identity.Alias}'. In Swagger, read the authorized token and choose Use token for selected identity.");
                 var auth = new Attempt { ExecutionId = executionId, CaseId = baseline.Id, CaseTitle = baseline.Title,
                     IdentityAlias = identity.Alias, AuthKind = identity.Kind,
-                    Request = new Redaction(Redaction.Secrets(baseline.Request).Append(identity.Secret)).Request(new RequestDefinition { Url = baseline.Request.Url, IdentityRef = identity.Alias }),
+                    Request = PackageJson.Clone(new RequestDefinition { Url = baseline.Request.Url, IdentityRef = identity.Alias }),
                     Checks = [new("authentication-token", true, Verdict.Pass, "Bearer token available", "Token supplied", "No API request sent. Token availability only; the next remote-IP request validates server access.")] };
                 if (bypassPrerequisites) auth.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; authentication availability still verified."));
                 run.Attempts.Add(auth);
@@ -105,7 +104,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             var resolvedBaseline = bypassPrerequisites || fixture is null && ValueBindings.RequiresFixture(baseline.Request)
                 ? PackageJson.Clone(baseline.Request) : ValueBindings.Request(baseline.Request, fixture, run);
             var frozenAssertions = PackageJson.Clone(assertions);
-            if (frozenAssertions.Any(a => a.Expected.Contains(Redaction.Mask))) throw new InvalidOperationException("Re-enter redacted assertion values before running checks.");
+            if (frozenAssertions.Any(a => a.Expected.Contains(LegacyEvidence.Placeholder))) throw new InvalidOperationException("Re-enter redacted assertion values before running checks.");
             PackageJson.Validate(new TestPackage { Queries = run.Package.Queries, Cases = [new TestCase { Request = frozen, Assertions = frozenAssertions, FixtureQueryId = baseline.FixtureQueryId, FixtureRequired = baseline.FixtureRequired, DatabaseChecks = baseline.DatabaseChecks }] });
             if (identity.Alias != frozen.IdentityRef) throw new InvalidOperationException("Select the identity required by this request.");
             if (identity.Kind != AuthKind.None && string.IsNullOrWhiteSpace(identity.Secret)) throw new InvalidOperationException($"Identity '{identity.Alias}' has no token. Choose the identity you signed in with in Auth, or sign in for this identity.");
@@ -113,18 +112,14 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 throw new InvalidOperationException("The identity and request both set the authentication header. Disable the manual header or select no authentication.");
             var rawBody = frozen.SendBody && frozen.BodyKind is RequestBodyKind.Text or RequestBodyKind.Binary;
             var partBody = frozen.SendBody && frozen.BodyKind is RequestBodyKind.FormUrlEncoded or RequestBodyKind.Multipart;
-            if (frozen.Headers.Concat(frozen.Query).Any(f => f.Enabled && f.Value.Contains(Redaction.Mask)) || partBody && frozen.Parts.Any(p => p.Enabled && p.Value.Contains(Redaction.Mask)) || rawBody && frozen.Body.Contains(Redaction.Mask) || frozen.Url.Contains(Redaction.Mask))
+            if (frozen.Headers.Concat(frozen.Query).Any(f => f.Enabled && f.Value.Contains(LegacyEvidence.Placeholder)) || partBody && frozen.Parts.Any(p => p.Enabled && p.Value.Contains(LegacyEvidence.Placeholder)) || rawBody && frozen.Body.Contains(LegacyEvidence.Placeholder) || frozen.Url.Contains(LegacyEvidence.Placeholder))
                 throw new InvalidOperationException("Re-enter redacted values before sending this request.");
             var url = RequestUrls.Resolve(run.BaseUrl, frozen);
-            var assertionSecrets = frozenAssertions.Where(a => Redaction.IsSensitive(a.Selector))
-                .Select(a => a.Expected.Trim('"')).ToArray();
-            var redactor = new Redaction(Redaction.Secrets(frozen).Concat(Redaction.Secrets(baseline.Request)).Concat(assertionSecrets).Append(identity.Secret));
-            var safeRequest = redactor.Request(frozen);
+            var safeRequest = PackageJson.Clone(frozen);
             var plans = baseline.DatabaseChecks.Select(check =>
             {
                 var query = PackageJson.Clone(run.Package.Queries.Single(q => q.Id == check.QueryId));
                 var safeCheck = PackageJson.Clone(check);
-                if (DatabaseQueries.SensitiveColumn(query, check.Column)) safeCheck.ExpectedJson = "\"" + Redaction.Mask + "\"";
                 return new DatabaseCheckPlan(safeCheck, query);
             }).ToList();
             var attempt = new Attempt
@@ -132,9 +127,9 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 ExecutionId = executionId,
                 CaptureSources = frozen.CaptureSources,
                 CaseId = baseline.Id, CaseTitle = baseline.Title,
-                IdentityAlias = identity.Alias, AuthKind = identity.Kind, VerifiedIdentity = identity.Verified, EffectiveUrl = redactor.Url(url.AbsoluteUri), Request = safeRequest,
-                Changes = Differences(redactor.Request(resolvedBaseline), safeRequest),
-                Assertions = frozenAssertions.Select(a => a with { Expected = redactor.Body(a.Expected) }).ToList(),
+                IdentityAlias = identity.Alias, AuthKind = identity.Kind, VerifiedIdentity = identity.Verified, EffectiveUrl = url.AbsoluteUri, Request = safeRequest,
+                Changes = Differences(PackageJson.Clone(resolvedBaseline), safeRequest),
+                Assertions = frozenAssertions,
                 Fixture = fixture, DatabasePlans = plans
             };
             if (bypassPrerequisites) attempt.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; prior-case prerequisites bypassed. Available response source IDs are recorded in captureSources."));
@@ -143,13 +138,8 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             catch { run.Attempts.Remove(attempt); throw; }
             frozen.SessionScope = run.Id;
             var response = await transport.SendAsync(frozen, url, identity, cancellationToken);
-            redactor = new Redaction(Redaction.Secrets(frozen).Concat(Redaction.Secrets(baseline.Request))
-                .Concat(assertionSecrets).Concat(response.SessionSecrets).Concat(Redaction.BodySecrets(response.Body)).Concat(response.Headers.Where(h => Redaction.IsSensitive(h.Key)).SelectMany(h => h.Value)).Append(identity.Secret));
-            for (var i = 0; i < attempt.Assertions.Count; i++) attempt.Assertions[i] = attempt.Assertions[i] with { Expected = redactor.Body(attempt.Assertions[i].Expected) };
-            attempt.Response = redactor.Response(response);
-            if (!redactResponseBody) attempt.Response = attempt.Response with { Body = response.Body };
-            attempt.Checks = Assertions.Evaluate(frozenAssertions, response).Select(c => c with
-            { Expected = redactor.Body(c.Expected), Actual = redactor.Body(c.Actual), Message = redactor.Text(c.Message) }).ToList();
+            attempt.Response = PackageJson.Clone(response);
+            attempt.Checks = Assertions.Evaluate(frozenAssertions, response);
             attempt.State = response.ErrorCode == "cancelled" ? AttemptState.Cancelled : AttemptState.Completed;
             Recalculate(attempt);
             attempt.FinishedAt = DateTimeOffset.UtcNow;

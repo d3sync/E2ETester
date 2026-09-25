@@ -24,7 +24,7 @@ public sealed partial class MainViewModel
         }
     }
     public string ThemeLabel => ThemeManager.IsDark ? "☀ Light" : "☾ Dark";
-    public string RequestDetails => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication-only step: no HTTP request or cURL was generated." : SelectedAttempt is null ? "Send a request to inspect its resolved URL, headers, body and redacted cURL here." : RequestDiagnostics.Describe(SelectedAttempt);
+    public string RequestDetails => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication-only step: no HTTP request or cURL was generated." : SelectedAttempt is null ? "Send a request to inspect its resolved URL, headers, body and cURL here." : RequestDiagnostics.Describe(SelectedAttempt);
     private string swaggerUrl = "https://api.example.test/swagger/";
     public string SwaggerUrl { get => swaggerUrl; set => Set(ref swaggerUrl, value); }
     private void UpdateSwaggerUrlFromPackage()
@@ -49,7 +49,7 @@ public sealed partial class MainViewModel
         {
             if (SelectedAttempt?.Response?.Requests.FirstOrDefault() is not { } request) return;
             Clipboard.SetText(RequestDiagnostics.Curl(request, SelectedAttempt.Request.TimeoutSeconds));
-            Message = "Redacted cURL copied (Bash syntax). Replace secret placeholders locally before replaying.";
+            Message = "cURL copied with captured values (Bash syntax).";
         }, () => SelectedAttempt?.Response?.Requests.Count > 0);
         OpenSwagger = Command(async () =>
         {

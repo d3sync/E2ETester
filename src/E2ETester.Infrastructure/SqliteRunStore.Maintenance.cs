@@ -9,7 +9,7 @@ public sealed partial class SqliteRunStore
     public Task SavePackageAsync(TestPackage package, IEnumerable<string> secrets)
     {
         PackageJson.Validate(package);
-        var safe = new Redaction(secrets.Concat(package.Cases.SelectMany(c => Redaction.Secrets(c.Request)))).Package(package);
+        var safe = PackageJson.Clone(package);
         return Task.Run(() =>
         {
             using var connection = Open(); using var command = connection.CreateCommand();

@@ -10,7 +10,7 @@ python tools/test_mcp.py
 python tools/test_browser_restart.py src/E2ETester.Desktop/bin/Release/net10.0-windows/E2ETester.Desktop.exe
 ```
 
-The console suite exercises real loopback HTTP, signed synthetic OIDC, SQLite, redaction and Windows profile protection. `Test-Databases.ps1` adds Docker-based provider checks. No real credentials or external services are needed.
+The console suite exercises real loopback HTTP, signed synthetic OIDC, SQLite, value retention and Windows profile protection. `Test-Databases.ps1` adds Docker-based provider checks. No real credentials or external services are needed.
 
 The desktop accepts `--smoke=<png>` and runs in a temporary workspace. `--exercise` and `--database-exercise` need the local demo API on port 5188 (`tests/E2ETester.IntegrationTests --serve`, or `Start-Tester.ps1 -Demo`). It writes screenshots, `.bindings.log`, and `.error.txt` on failure. Useful modes:
 
