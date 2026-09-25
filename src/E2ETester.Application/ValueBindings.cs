@@ -21,6 +21,8 @@ public static class ValueBindings
             var id = source[5..separator];
             var explicitlySelected = selectedAttempts is not null && selectedAttempts.TryGetValue(id, out _);
             var attempt = explicitlySelected ? run?.Attempts.SingleOrDefault(a => a.CaseId == id && a.Id == selectedAttempts![id]) : run?.Attempts.LastOrDefault(a => a.CaseId == id);
+            if (selectedAttempts is not null && !explicitlySelected)
+                throw new InvalidOperationException($"No saved response can supply '{expression}'. Enter the verified value manually to run without this source case.");
             if (attempt is not { State: AttemptState.Completed, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } } || (!explicitlySelected && attempt.Verdict != Verdict.Pass)) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
             if (sources is not null) sources[id] = attempt.Id;
             try { return Resolve("{{response." + source[(separator + 1)..] + "}}", null, attempt.Response.Body); }
@@ -52,12 +54,14 @@ public static class ValueBindings
         return cell;
     }
 
-    public static RequestDefinition Request(RequestDefinition template, FixtureSelection? fixture, TestRun? run = null, IReadOnlyDictionary<string, string>? selectedAttempts = null)
+    public static RequestDefinition Request(RequestDefinition template, FixtureSelection? fixture, TestRun? run = null, IReadOnlyDictionary<string, string>? selectedAttempts = null, IReadOnlyDictionary<string, JsonElement>? manualValues = null)
     {
         var request = PackageJson.Clone(template);
+        JsonElement ResolveValue(string expression) => manualValues is not null && manualValues.TryGetValue(expression, out var manual)
+            ? manual : Resolve(expression, fixture, run: run, sources: request.CaptureSources, selectedAttempts: selectedAttempts);
         string Replace(string text, bool url = false) => Marker.Replace(text, m =>
         {
-            var value = Text(Resolve(m.Value, fixture, run: run, sources: request.CaptureSources, selectedAttempts: selectedAttempts));
+            var value = Text(ResolveValue(m.Value));
             return url ? Uri.EscapeDataString(value) : value;
         });
         request.Url = Replace(request.Url, true);
@@ -76,7 +80,7 @@ public static class ValueBindings
 
         JsonNode? Visit(JsonNode? node)
         {
-            if (node is JsonValue val && val.TryGetValue<string>(out var text) && text.Contains("{{", StringComparison.Ordinal)) return JsonNode.Parse(Resolve(text, fixture, run: run, sources: request.CaptureSources, selectedAttempts: selectedAttempts).GetRawText());
+            if (node is JsonValue val && val.TryGetValue<string>(out var text) && text.Contains("{{", StringComparison.Ordinal)) return JsonNode.Parse(ResolveValue(text).GetRawText());
             if (node is JsonObject obj) foreach (var p in obj.ToArray()) obj[p.Key] = Visit(p.Value?.DeepClone());
             if (node is JsonArray arr) for (var i = 0; i < arr.Count; i++) arr[i] = Visit(arr[i]?.DeepClone());
             return node;

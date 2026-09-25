@@ -16,7 +16,7 @@ public sealed partial class MainViewModel
     public ActionCommand AgentHelp { get; private set; } = null!;
     private void InitializeTools()
     {
-        ManageIdentities = new(() => new IdentityManagerWindow(this) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog(), () => !Busy && !Database.Busy);
+        ManageIdentities = new(() => { PruneExpiredIdentities(); new IdentityManagerWindow(this) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog(); }, () => !Busy && !Database.Busy);
         ShowAbout = new(() => new AboutWindow { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog());
         OpenPlayground = new(() =>
         {

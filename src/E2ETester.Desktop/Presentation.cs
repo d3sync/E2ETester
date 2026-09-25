@@ -371,6 +371,9 @@ public sealed class IdentityEditor : Observable
     private string? browserProfileKey;
     internal string BrowserProfileKey { get => browserProfileKey ?? Alias; set => browserProfileKey = value; }
     internal string? RememberedOrigin { get; set; }
+    internal bool IsSnapshot { get; set; }
+    internal DateTimeOffset? ExpiresAt { get; set; }
+    internal DateTimeOffset CapturedAt { get; set; } = DateTimeOffset.UtcNow;
     public string Alias { get => alias; init => alias = value; }
     internal void Rename(string value) { browserProfileKey ??= Alias; Set(ref alias, value, nameof(Alias)); Changed(nameof(IsConfigurable)); }
 
@@ -380,13 +383,13 @@ public sealed class IdentityEditor : Observable
 
     private string secret = "";
 
-    public AuthKind Kind { get => kind; set { if (Set(ref kind, value)) ForgetBrowser(); } }
+    public AuthKind Kind { get => kind; set { if (Set(ref kind, value)) { ExpiresAt = TokenLifetime.ExpiresAt(Secret, value, CapturedAt); ForgetBrowser(); } } }
 
     public string HeaderName { get; set; } = "Authorization";
 
     public string Prefix { get; set; } = "";
 
-    public string Secret { get => secret; set { secret = value; ForgetBrowser(); } }
+    public string Secret { get => secret; set { secret = value; CapturedAt = DateTimeOffset.UtcNow; ExpiresAt = TokenLifetime.ExpiresAt(value, Kind, CapturedAt); ForgetBrowser(); } }
 
     public string Authority { get; set; } = "";
 
@@ -406,7 +409,7 @@ public sealed class IdentityEditor : Observable
 
     public Infrastructure.BrowserTokenSession? BrowserSession { get; private set; }
 
-    public string SessionDescription => BrowserSession is null ? !IsConfigurable ? "No authentication" : Secret.Length == 0 ? "Not signed in · choose a sign-in method below" : "Token ready · supplied identity is not independently verified" : BrowserSession.RequiresLogin ? "Session is no longer usable. Sign in again before sending." : $"{BrowserSession.Identity.DisplayName}\nSubject: {BrowserSession.Identity.Subject}\nIssuer: {BrowserSession.Identity.Issuer}\nAccess token expires: {BrowserSession.Identity.ExpiresAt:u}\nIdentity verified by signed OIDC ID token";
+    public string SessionDescription => BrowserSession is null ? !IsConfigurable ? "No authentication" : Secret.Length == 0 ? "Not signed in · choose a sign-in method below" : $"Token ready · expires {ExpiresAt:u} · supplied identity is not independently verified" : BrowserSession.RequiresLogin ? "Session is no longer usable. Sign in again before sending." : $"{BrowserSession.Identity.DisplayName}\nSubject: {BrowserSession.Identity.Subject}\nIssuer: {BrowserSession.Identity.Issuer}\nAccess token expires: {BrowserSession.Identity.ExpiresAt:u}\nIdentity verified by signed OIDC ID token";
 
     public bool CanEnterToken => IsConfigurable && BrowserSession is null;
 
@@ -424,7 +427,12 @@ public sealed class IdentityEditor : Observable
 
     public void RefreshSession() { Changed(nameof(SessionDescription)); Changed(nameof(CanEnterToken)); }
 
-    public Task<IdentitySession> ResolveAsync(CancellationToken token) => BrowserSession is null ? Task.FromResult(Session) : BrowserSession.GetIdentityAsync(Alias, AutomaticRefresh, token);
+    public Task<IdentitySession> ResolveAsync(CancellationToken token)
+    {
+        if (BrowserSession is null && Secret.Length > 0 && ExpiresAt <= DateTimeOffset.UtcNow)
+        { Secret = ""; throw new InvalidOperationException("This saved token has expired. Choose another identity or sign in again."); }
+        return BrowserSession is null ? Task.FromResult(Session) : BrowserSession.GetIdentityAsync(Alias, AutomaticRefresh, token);
+    }
 
     public IdentitySession Session => new(Alias, Kind, Secret, HeaderName, Prefix);
 

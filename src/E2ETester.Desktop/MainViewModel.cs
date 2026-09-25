@@ -223,8 +223,15 @@ public sealed partial class MainViewModel : Observable, IDisposable
             return;
         }
         var bypassPrerequisites = RunAnyway;
-        if (bypassPrerequisites && MessageBox.Show(PreparationOwner(), "Run this request without requiring earlier tests to pass?\n\nAvailable earlier HTTP responses may supply referenced values even if their test failed. Missing values must still be entered manually. This override is recorded; assertions still run normally.", "Run anyway — this request only", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) != MessageBoxResult.OK) { RunAnyway = false; return; }
-        var request = editor.Request(identityEditor.Alias); var checks = PackageJson.Clone(editor.Checks.ToList());
+        if (bypassPrerequisites && !(RunAnywayConfirmation?.Invoke() ?? (MessageBox.Show(PreparationOwner(), "Run this request without requiring earlier tests to pass?\n\nAvailable earlier HTTP responses may supply referenced values even if their test failed. Missing values must still be entered manually. This override is recorded; assertions still run normally.", "Run anyway — this request only", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) == MessageBoxResult.OK))) { RunAnyway = false; return; }
+        var request = editor.Request(identityEditor.Alias);
+        if (bypassPrerequisites)
+        {
+            var resolved = ResolveRunAnywayRequest(request);
+            if (resolved is null) { RunAnyway = false; return; }
+            request = resolved;
+        }
+        var checks = PackageJson.Clone(editor.Checks.ToList());
         Busy = true; cancellation = new();
         try
         {
@@ -251,6 +258,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         if (SelectedIdentity is not { IsConfigurable: true } identity) return;
         Busy = true; cancellation = new();
+        await PreserveBrowserIdentityAsync(identity);
         // A failed account switch must not silently leave the previous account ready to send.
         identity.ForgetBrowser(); identity.Secret = ""; identity.Kind = AuthKind.Bearer;
         Changed(nameof(SelectedIdentity));
@@ -259,6 +267,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             Message = "Complete sign-in in your browser. Cancel stops waiting; no API request will be sent.";
             var settings = new BrowserLoginSettings(identity.Authority, identity.ClientId, identity.Scope, identity.RedirectUri, identity.ExpectedSubject, identity.AllowLocalHttp);
             identity.InstallBrowser(await BrowserTokenSession.LoginAsync(settings, cancellationToken: cancellation.Token));
+            await PreserveBrowserIdentityAsync(identity);
             Changed(nameof(SelectedIdentity));
             Message = "Signed in. Review the verified subject and issuer in Authentication before sending. Use another identity profile for a different user.";
         }

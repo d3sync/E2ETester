@@ -60,3 +60,9 @@ The implementation uses [Duende's Apache-2.0 OIDC client](https://docs.duendesof
 The integration suite runs a local RSA-signed identity provider and verifies successful login, PKCE, fresh-login requests, separate users, wrong-account rejection, state/nonce/issuer/audience/signature/expiry rejection, unsigned/missing ID tokens, refresh concurrency/rotation/revocation, report value retention and the real loopback listener's cleanup/cancellation. This is controlled protocol testing, not evidence of compatibility with any particular deployed identity provider.
 
 Run `dotnet run --project tests/E2ETester.IntegrationTests`. The desktop `--smoke=artifacts/authentication.png --authentication-exercise` checks configuration failure behavior and renders the Auth tab without contacting an identity provider.
+
+## Login snapshots and missing source values (0.7.21)
+
+Before a new login or permission preparation replaces a token, the desktop keeps a timestamped identity snapshot. Select it in Auth to reuse the earlier JWT and permissions in another test. The working identity alias stays unchanged so preparation and package references continue to match. Snapshots persist in protected AppData storage across workspaces for the same API origin; JWT exp controls retention, with a fixed 24-hour fallback for bearer tokens without exp. API tokens are retained until removed. Decoded expiry is not authentication validation.
+
+Run anyway bypasses prior-case pass requirements. When a response binding has no usable value, the desktop prompts for the verified value and records it with the request override. It never invents a resource ID or automatically reruns the create case. Missing values can be cancelled without sending.

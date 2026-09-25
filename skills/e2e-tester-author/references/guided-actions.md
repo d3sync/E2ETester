@@ -17,3 +17,9 @@ Resource lookup: cleanup candidates must supply every requested JSON pointer for
 ## Captured values (0.7.20 and later)
 
 The application no longer redacts request/response values, headers, cookies, fixture cells, assertions, preparations, drafts, packages or reports, including MCP results. `sensitive`, `bodySensitive` and `sensitiveColumns` remain accepted for older packages but have no masking effect. Use actual captured `token`/`groupToken` values for bindings and comparisons. There is no redaction setting. Older saved `[REDACTED]` values cannot be recovered: obtain a fresh response or a verified manual resource ID. Continue authoring reusable templates with identity/connection aliases rather than embedding credentials.
+
+## Login snapshots and missing source values (0.7.21)
+
+Before a new login or permission preparation replaces a token, the desktop keeps a timestamped identity snapshot. Select it in Auth to reuse the earlier JWT and permissions in another test. The working identity alias stays unchanged so preparation and package references continue to match. Snapshots persist in protected AppData storage across workspaces for the same API origin; JWT exp controls retention, with a fixed 24-hour fallback for bearer tokens without exp. API tokens are retained until removed. Decoded expiry is not authentication validation.
+
+Run anyway bypasses prior-case pass requirements. When a response binding has no usable value, the desktop prompts for the verified value and records it with the request override. It never invents a resource ID or automatically reruns the create case. Missing values can be cancelled without sending.

@@ -6,7 +6,7 @@ using E2ETester.Core;
 
 namespace E2ETester.Desktop;
 
-internal sealed record RememberedIdentity(string Origin, string Alias, string BrowserProfileKey, AuthKind Kind, string Secret, string HeaderName, string Prefix);
+internal sealed record RememberedIdentity(string Origin, string Alias, string BrowserProfileKey, AuthKind Kind, string Secret, string HeaderName, string Prefix, DateTimeOffset? CapturedAt = null, DateTimeOffset? ExpiresAt = null, bool IsSnapshot = false);
 
 internal sealed class RememberedSessions(string directory)
 {
@@ -16,10 +16,22 @@ internal sealed class RememberedSessions(string directory)
     private string FilePath => Path.Combine(directory, "identities.protected");
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("E2ETester.Sessions.v1");
     internal static string Origin(string address) => new Uri(address).GetLeftPart(UriPartial.Authority);
-    internal List<RememberedIdentity> Read() => Locked(() => ReadCore());
+    internal List<RememberedIdentity> Read()
+    {
+        List<RememberedIdentity> result = [];
+        Update(entries => result = entries);
+        return result;
+    }
     internal void Update(Action<List<RememberedIdentity>> change) => Locked(() =>
     {
-        var entries = ReadCore(); change(entries); Directory.CreateDirectory(directory);
+        var entries = ReadCore(); change(entries);
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i]; var captured = entry.CapturedAt ?? DateTimeOffset.UtcNow;
+            entries[i] = entry with { CapturedAt = captured, ExpiresAt = entry.ExpiresAt ?? E2ETester.Application.TokenLifetime.ExpiresAt(entry.Secret, entry.Kind, captured) };
+        }
+        entries.RemoveAll(e => e.Secret.Length > 0 && e.ExpiresAt <= DateTimeOffset.UtcNow);
+        Directory.CreateDirectory(directory);
         var plain = JsonSerializer.SerializeToUtf8Bytes(entries);
         var temporary = FilePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

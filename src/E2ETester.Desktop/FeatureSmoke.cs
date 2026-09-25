@@ -11,6 +11,7 @@ internal static class FeatureSmoke
 {
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
+        await SessionAndOverrideSmoke.RunAsync();
         await GuidedActionsSmoke.RunAsync(window);
         await UpdateSettingsSmoke.RunAsync(window,path);
         await PreparationSmoke.RunAsync(window, path);

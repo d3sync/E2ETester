@@ -64,11 +64,12 @@ public sealed partial class MainViewModel
             return await identity.ResolveAsync(token);
         }, evidence => entry.HttpEvidence.Add(evidence));
     }
-    private void InvalidatePreparedLogin(PreparationRecovery entry)
+    private async Task InvalidatePreparedLogin(PreparationRecovery entry)
     {
         if (!entry.Plan.RequireFreshLogin) return;
         var identity = Identities.FirstOrDefault(i => i.Alias == entry.IdentityRef);
         if (identity is null) return;
+        await PreserveBrowserIdentityAsync(identity);
         identity.Secret = "";
         if (RememberedSessions.Origin(BaseUrl) == RememberedSessions.Origin(entry.BaseUrl)) RememberIdentity(identity);
         Changed(nameof(SelectedIdentity));
@@ -98,7 +99,7 @@ public sealed partial class MainViewModel
             await AuditPreparation(entry);
             try { await Preparations.ApplyAsync(entry, target, PersistPreparations, default); }
             catch { await AuditPreparation(entry); throw; }
-            InvalidatePreparedLogin(entry);
+            await InvalidatePreparedLogin(entry);
             await AuditPreparation(entry);
             Message = plan.RequireFreshLogin ? "Preparation applied. Sign in again using the same named identity, then send the request." : "Preparation applied and verified. Ready to send.";
         }
@@ -126,7 +127,7 @@ public sealed partial class MainViewModel
             {
                 try { await Preparations.RestoreAsync(entry, Target(entry), PersistPreparations, default); }
                 catch { await AuditPreparation(entry, "restoration_failed"); throw; }
-                InvalidatePreparedLogin(entry); await AuditPreparation(entry);
+                await InvalidatePreparedLogin(entry); await AuditPreparation(entry);
             }
             Message = "Prepared changes restored and verified. Sign in again to refresh any affected JWT.";
         }

@@ -38,8 +38,8 @@ internal static class PreparationSmoke
             await model.PrepareCase.RunAsync();
         }
         await Prepare();
-        if (!model.HasPendingPreparation || model.SelectedIdentity != identity || identity.BrowserProfileKey != profile || identity.Secret.Length != 0 || model.Identities.Count(i => i.IsConfigurable) != 1)
-            throw new InvalidOperationException("Preparation must retain the same identity and browser profile while clearing the old JWT.");
+        if (!model.HasPendingPreparation || model.SelectedIdentity != identity || identity.BrowserProfileKey != profile || identity.Secret.Length != 0 || !model.Identities.Any(i => i.IsSnapshot && i.Secret == "previous-ui-token"))
+            throw new InvalidOperationException("Preparation must retain the same identity and browser profile while preserving the old JWT in a separate snapshot.");
         var protectedConnection = model.Database.Connections.Single(c => c.Alias == "admin-db");
         model.Database.SelectedConnection = protectedConnection;
         if (model.Database.EditConnection.CanExecute(null) || model.Database.DeleteConnection.CanExecute(null)) throw new InvalidOperationException("Active preparation connection was editable.");

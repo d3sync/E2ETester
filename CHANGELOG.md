@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.21
+
+- Run anyway offers manual values for unavailable earlier-response bindings instead of demanding a successful source case. Resolved values and the one-request override remain in the attempt audit.
+- Before Swagger/native re-login or permission preparation replaces a JWT, keep a separately selectable, timestamped identity snapshot with its prior permissions. Snapshots persist across workspaces and restarts in protected AppData storage.
+- Bearer snapshots expire at JWT exp, or after 24 hours when no expiry is available; expiry is a retention hint, not token validation. API tokens remain until explicitly removed. Expired snapshots are pruned on session loading and identity management.
+
 ## 0.7.20
 
 - Removed value redaction from requests, responses, headers/cookies, cURL, database fixtures, checks, preparations, drafts, exports, reports and MCP evidence. Captured tokens remain usable by subsequent tests and Guided Actions after restart.

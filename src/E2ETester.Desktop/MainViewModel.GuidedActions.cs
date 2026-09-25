@@ -82,7 +82,7 @@ public sealed partial class MainViewModel
             preparations.Add(entry);
             try { await Preparations.ApplyAsync(entry, target, PersistPreparations, default); }
             finally { await AuditPreparation(entry); }
-            InvalidatePreparedLogin(entry);
+            await InvalidatePreparedLogin(entry);
             Message = "Guided Action applied. Sign in again if required. Restore changes returns the captured original value.";
         }
         finally { Busy = false; Changed(nameof(PreparationStatus)); NotifyRun(); }
