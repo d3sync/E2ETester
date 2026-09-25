@@ -49,3 +49,11 @@ Preparation reports use schema **1.8** and include preparation/restoration event
 Test connection uses a fixed SELECT 1 and does not require the profile to be marked read-only. Query Studio accepts write-capable accounts; preparation requires writable access. MySQL/MariaDB setup exposes TLS mode and preserves existing settings. Connection errors report safe driver codes; query errors also identify the failing stage. See [compatibility guidance](../skills/e2e-tester-author/references/validation-and-compatibility.md). Run `./Test-Databases.ps1 -MariaDb` to verify the MySQL provider against disposable MariaDB infrastructure; omit the switch for MySQL. Neither run certifies multi-node Percona behavior.
 
 MySQL preparation and restoration use fresh connections with protocol pipelining disabled, retaining the configured TLS settings. Protocol errors identify the failing stage; no write is automatically retried. If recovery is pending, use Restore changes before preparing again. Database proxies and server versions may still need investigation if a protocol error persists.
+
+## Remembered connection defaults
+
+Adding or editing a connection through the setup dialog remembers its noncredential fields in `%LOCALAPPDATA%/E2ETester/Connections`, scoped by API origin and connection alias. Opening a package seeds missing connections referenced by its saved queries or database preparations. In Query Studio, select the seeded connection and choose Edit to supply username/password. Existing connections in the session are never overwritten. Deleting a connection also removes its defaults.
+
+These files use a list of the existing connection-template objects; username is cleared and the format has no password field. They remain local, outside the `.jsee` package. Credentials are session-only unless explicitly saved in an encrypted workspace environment. Connection strings edited directly in Advanced settings are not automatically captured as defaults; use the setup dialog to save defaults.
+
+Transaction isolation is an application implementation detail, not a package setting. An older executable that starts SERIALIZABLE transactions cannot be repaired by relabeling a package schema or editing a preparation description. Use a build containing the MySQL REPEATABLE READ fix.

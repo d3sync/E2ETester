@@ -53,6 +53,22 @@ internal static class FeatureSmoke
             Descendants(settings).OfType<Button>().Single(b => Equals(b.Content, "Save")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }), DispatcherPriority.ApplicationIdle);
         model.OpenResponseSettings.Execute(null);
+        var defaultsRoot = Path.Combine(Path.GetTempPath(), "E2E-defaults-smoke", Guid.NewGuid().ToString("N"));
+        var defaultsStore = new E2ETester.Infrastructure.ConnectionDefaultsStore(Path.Combine(defaultsRoot, "Connections"));
+        defaultsStore.Save("https://seed.example.test", new E2ETester.Infrastructure.DatabaseConnectionDetails { Alias = "seed-db", Provider = E2ETester.Core.DatabaseProvider.MySql, Host = "db.example.test", Database = "testing" });
+        var seededPackage = new E2ETester.Core.TestPackage { BaseUrl = "https://seed.example.test", Cases = [new()], Queries = [new() { ConnectionRef = "seed-db", Provider = E2ETester.Core.DatabaseProvider.MySql, Sql = "SELECT 1" }] };
+        var seededFile = Path.Combine(defaultsRoot, "seeded.jsee");
+        File.WriteAllText(seededFile, E2ETester.Application.PackageJson.Write(seededPackage));
+        using (var seededModel = new MainViewModel(Path.Combine(defaultsRoot, "workspace"), Path.Combine(defaultsRoot, "Sessions")))
+        {
+            seededModel.OpenPackageFile(seededFile);
+            var connection = seededModel.Database.Connections.Single();
+            var builder = new MySqlConnector.MySqlConnectionStringBuilder(connection.ConnectionString);
+            if (builder.Server != "db.example.test" || builder.UserID != "" || builder.Password != "") throw new InvalidOperationException("Package connection was not seeded without credentials.");
+            connection.ConnectionString = new MySqlConnector.MySqlConnectionStringBuilder(connection.ConnectionString) { UserID = "session-user", Password = "session-secret" }.ToString();
+            seededModel.OpenPackageFile(seededFile);
+            if (seededModel.Database.Connections.Count != 1 || !seededModel.Database.Connections[0].ConnectionString.Contains("session-secret")) throw new InvalidOperationException("Seeding replaced an existing session connection.");
+        }
         var file=Path.Combine(Path.GetTempPath(),"package with spaces-"+Guid.NewGuid().ToString("N")+".jsee");
         await File.WriteAllTextAsync(file,AgentResources.Template);model.OpenPackageFile(file);
         if(model.Cases.Count!=2 || model.SelectedCase?.Baseline.Kind!=TestStepKind.SwaggerAuthentication)throw new InvalidOperationException(".jsee package did not open its setup flow.");

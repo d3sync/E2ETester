@@ -9,6 +9,16 @@ internal static class DatabaseTests
     public static async Task RunAsync(Action<bool, string> check, Func<Func<Task>, string, Task> reject, string serverUrl)
     {
         var root = Path.Combine(Path.GetTempPath(), "E2ETester-db-tests", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+        var defaults = new ConnectionDefaultsStore(Path.Combine(root, "defaults"));
+        var connectionTemplate = new DatabaseConnectionDetails { Alias = "permission-db", Provider = DatabaseProvider.MySql, Host = "db.example.test", Database = "testing", Username = "private-user" };
+        defaults.Save("https://api.example.test/path", connectionTemplate);
+        var restoredDefaults = new ConnectionDefaultsStore(Path.Combine(root, "defaults")).Read("https://api.example.test/other").Single();
+        check(restoredDefaults.Host == connectionTemplate.Host && restoredDefaults.Username == "", "connection defaults survive reopening without credentials");
+        check(defaults.Read("https://other.example.test").Count == 0, "connection defaults stay scoped to API origin");
+        defaults.Save("https://api.example.test", connectionTemplate with { Host = "updated.example.test" });
+        check(defaults.Read("https://api.example.test").Single().Host == "updated.example.test", "editing replaces remembered connection defaults");
+        defaults.Save("https://api.example.test", connectionTemplate, remove: true);
+        check(defaults.Read("https://api.example.test").Count == 0, "deleting connection removes remembered defaults");
         var dbPath = Path.Combine(root, "fixtures.db");
         var connectionString = new SqliteConnectionStringBuilder { DataSource = dbPath }.ToString();
         using (var seed = new SqliteConnection(connectionString))

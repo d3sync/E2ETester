@@ -39,6 +39,7 @@ public sealed class DatabaseViewModel : Observable
     public static DatabaseProvider[] Providers { get; } = Enum.GetValues<DatabaseProvider>();
     public static ParameterType[] ParameterTypes { get; } = Enum.GetValues<ParameterType>();
     public static DatabaseCheckKind[] CheckKinds { get; } = Enum.GetValues<DatabaseCheckKind>();
+    public Action<ConnectionEditor, bool>? SaveConnectionDefaults { get; set; }
     public Action<FixtureSelection>? UseFixture { get; set; }
     public Func<QueryEvidence, Task>? AttachEvidence { get; set; }
     public string Message { get => message; set => Set(ref message, value); }
@@ -94,12 +95,14 @@ public sealed class DatabaseViewModel : Observable
     {
         if (Busy || ConnectionChangeRestriction?.Invoke(original) is { }) throw new InvalidOperationException("Restore active changes and finish running operations before editing this connection.");
         if (ValidateConnection(replacement, original) is { } error) throw new InvalidOperationException(error);
+        SaveConnectionDefaults?.Invoke(replacement, false);
         Connections[Connections.IndexOf(original)] = replacement;
         SelectedConnection = replacement;
     }
     internal void RemoveConnection(ConnectionEditor connection)
     {
         if (Busy || ConnectionChangeRestriction?.Invoke(connection) is { }) throw new InvalidOperationException("Restore active changes and finish running operations before deleting this connection.");
+        SaveConnectionDefaults?.Invoke(connection, true);
         Connections.Remove(connection);
         SelectedConnection = Connections.FirstOrDefault();
     }
@@ -141,7 +144,7 @@ public sealed class DatabaseViewModel : Observable
             var alias = Draft.ConnectionRef;
             var suffix = 1; while (Connections.Any(c => c.Alias.Equals(alias, StringComparison.OrdinalIgnoreCase))) alias = "connection-" + suffix++;
             var dialog = new ConnectionSetupWindow(alias, Draft.Provider) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c) };
-            if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. Use Test connection to verify access. Save your workspace environment to remember it securely."; }
+            if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { SaveConnectionDefaults?.Invoke(connection, false); Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. Server settings are remembered locally; credentials stay in this session unless you save an environment."; }
         }, () => !Busy);
         EditConnection = new(() =>
         {
@@ -151,7 +154,7 @@ public sealed class DatabaseViewModel : Observable
                 var dialog = new ConnectionSetupWindow(current) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c, current) };
                 if (dialog.ShowDialog() != true || dialog.Connection is not { } replacement) return;
                 ReplaceConnection(current, replacement);
-                Message = "Connection updated. Test it, then save your workspace environment to remember the changes.";
+                Message = "Connection updated. Server settings are remembered locally; save an environment if you also want to retain credentials.";
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
             { Message = "Could not edit the connection. Check its advanced connection string and try again."; }
@@ -159,9 +162,9 @@ public sealed class DatabaseViewModel : Observable
         DeleteConnection = new(() =>
         {
             if (!CanEditSelectedConnection || SelectedConnection is not { } current) return;
-            if (System.Windows.MessageBox.Show(ConnectionOwner(), $"Delete connection '{current.Alias}'?\n\nThis removes the local profile, not the database. Saved queries keep their connection references. Save your workspace environment afterward to remember the deletion.", "Delete database connection", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
+            if (System.Windows.MessageBox.Show(ConnectionOwner(), $"Delete connection '{current.Alias}'?\n\nThis removes the local profile, not the database. Saved queries keep their connection references. Its remembered server settings are also removed.", "Delete database connection", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
             RemoveConnection(current);
-            Message = "Connection deleted. Save your workspace environment to remember the deletion. Queries using it need a replacement connection.";
+            Message = "Connection and remembered server settings deleted. Queries using it need a replacement connection.";
         }, () => CanEditSelectedConnection);
         BrowseSqlite = new(() =>
         {

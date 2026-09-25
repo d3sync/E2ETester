@@ -128,6 +128,11 @@ public sealed partial class MainViewModel : Observable, IDisposable
         NewIdentity = new(() => SelectedIdentity = AddIdentity(NextIdentityAlias()), () => !Busy);
         LoginBrowser = Command(LoginBrowserAsync, () => SelectedIdentity?.IsConfigurable == true);
         ForgetLogin = new(() => { SelectedIdentity?.ForgetBrowser(); Message = "Browser session removed from this identity. The browser's own sign-in session is unchanged."; }, () => !Busy && SelectedIdentity?.IsConfigurable == true);
+        if (sessionDirectory is not null)
+        {
+            connectionDefaults = new ConnectionDefaultsStore(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(sessionDirectory))!, "Connections"));
+            Database.SaveConnectionDefaults = (connection, remove) => connectionDefaults.Save(BaseUrl, DatabaseConnectionDetails.Read(connection.Profile).Details, remove);
+        }
         InitializeDatabase();
         InitializeAuthoring();
         InitializeWorkspace(workspace);
@@ -163,6 +168,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         draftRecoveryBlocked = false;
         package = PackageJson.Clone(value); run = null; Cases.Clear(); Attempts.Clear();
         Database.LoadQueries(package.Queries);
+        SeedDatabaseConnections();
         foreach (var c in package.Cases) Cases.Add(new(c));
         BaseUrl = package.BaseUrl; SelectedCase = selectFirst ? Cases.FirstOrDefault() : null; SelectedIdentity ??= Identities[0];
         UpdateSwaggerUrlFromPackage();
