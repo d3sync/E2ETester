@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.7.15
+
+- MySQL/Percona preparation uses REPEATABLE READ with a locking read and conditional update, avoiding the SERIALIZABLE restriction in Percona strict mode.
+- Prepare and Restore use fresh MySQL connections with pipelining disabled; protocol errors identify the failing stage without automatically retrying writes.
+- Query Studio accepts write-capable development accounts while retaining provider transaction safeguards. Connection tests and TLS/driver diagnostics are clearer.
+- Database connection setup remembers credential-free server defaults locally by API origin and connection alias, then seeds matching package connections. Username/password remain session-only unless saved in an encrypted environment.
+- Invalid nested JSON expectations report the affected package field through the app and MCP. Authoring prompts and skills include validation, database compatibility and recovery guidance.
+- Windows packaging scripts read the default version from Directory.Build.props.
+
+## Earlier updates (0.7.8–0.7.14)
 
 - Test preparation: a case can apply an exact database-value or API change before it runs, capture the original, require a fresh login and restore afterwards. Preparation is scoped to its run, blocks unrelated cases until restored, and is audited in reports. Package schema 1.5 and report schema 1.8; MCP adds preparation tools behind explicit host approval.
 - Query Studio can edit and delete database connections, preserving passwords and advanced settings; the AI template and prompt default to package schema 1.5.

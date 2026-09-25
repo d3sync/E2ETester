@@ -1,6 +1,7 @@
-param([string]$Version = '0.7.7')
+param([string]$Version = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+if (!$Version) { $Version = ([xml](Get-Content (Join-Path $root 'Directory.Build.props') -Raw)).Project.PropertyGroup.Version }
 python (Join-Path $root 'tools/check_publication.py')
 if ($LASTEXITCODE -ne 0) { throw 'Publication audit failed.' }
 if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.-]+)?$') { throw 'Use a simple release version.' }
