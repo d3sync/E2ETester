@@ -18,3 +18,5 @@ For preparation, permission changes, or setup/restore steps, read [preparation](
 JSON equality expectations contain serialized JSON values inside the expected string; a string value needs nested escaped quotes. Follow the examples in the generation prompt. Validate the exact final file through MCP after all edits; a JSON Schema pass alone cannot check these nested values.
 
 Before delivery or troubleshooting, read [validation and database compatibility](references/validation-and-compatibility.md) for nested JSON encoding, final-file MCP validation, TLS/account distinctions and Percona-safe preparation recovery.
+
+For manual cleanup and permission controls outside test coverage, use package schema 1.6 and top-level guidedActions. Read [Guided Actions](references/guided-actions.md). These are desktop actions, not extra mandatory cases; retain exact resource bindings and persisted restoration.

@@ -18,3 +18,5 @@ API requirements / specification:
 [Paste the desired API behavior, approved endpoints, identities, expected results and optional database schema here.]
 
 Database compatibility: identify the server product/version as well as the connection provider. MySQL-provider scenarios may target MariaDB or Percona XtraDB Cluster. Use the preparation engine rather than ad-hoc SERIALIZABLE SQL. Do not weaken strict mode or TLS, or pretend a write-enabled account is read-only, to bypass a failure. Report the operation and safe error code, inspect recovery, and avoid replaying uncertain mutations.
+
+For manual cleanup and permission controls outside test coverage, use package schema 1.6 and top-level guidedActions. Read [Guided Actions](guided-actions.md). These are desktop actions, not extra mandatory cases; retain exact resource bindings and persisted restoration.

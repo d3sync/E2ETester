@@ -34,7 +34,7 @@ public sealed class AgentTools(AgentWorkspace workspace)
     [McpServerTool(Name = "save_package"), Description("Validate and save a redacted package snapshot with authored cases and checks. Requires authoring permission. Executes nothing.")]
     public Task<string> SavePackage(string packageJson) => Reply(async () => { await workspace.SavePackageAsync(packageJson); return new { saved = true }; });
     [McpServerTool(Name = "validate_package", ReadOnly = true), Description("Validate package JSON without executing requests or returning supplied secrets.")]
-    public Task<string> ValidatePackage(string packageJson) => Reply(() => { var p = PackageJson.Import(packageJson); return Task.FromResult<object>(new { valid = true, cases = p.Cases.Count, queries = p.Queries.Count }); });
+    public Task<string> ValidatePackage(string packageJson) => Reply(() => { var p = PackageJson.Import(packageJson); return Task.FromResult<object>(new { valid = true, cases = p.Cases.Count, queries = p.Queries.Count, guidedActions = p.GuidedActions?.Count ?? 0, guidedActionExecution = "desktop-only" }); });
     [McpServerTool(Name = "start_run"), Description("Import a package and persist a new run for an explicitly allowed base URL. No request is sent.")]
     public Task<string> StartRun(string packageJson, string baseUrl) => Reply(async () => { var run = await workspace.StartAsync(packageJson, baseUrl); return new { run.Id, run.Package }; });
     [McpServerTool(Name = "list_runs", ReadOnly = true), Description("List saved sessions in bounded pages of 50.")]

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.16
+
+- Package schema 1.6 adds optional Guided Actions outside the test sequence: reviewed cleanup requests from saved-run response values and manual permission preparation with flag selection.
+- Cleanup requests are journalled as separate action runs without changing suite coverage. Permission actions retain original-value recovery across restart and require fresh login when configured.
+- Guided Actions includes Restore for captured original permissions. Missing resource IDs require a verified manual target; requests are never automatically replayed.
+- MCP validates/stores schema 1.6 packages; Guided Action execution is desktop-only. Report schema 1.9 supports the new package format.
+
 ## 0.7.15
 
 - MySQL/Percona preparation uses REPEATABLE READ with a locking read and conditional update, avoiding the SERIALIZABLE restriction in Percona strict mode.

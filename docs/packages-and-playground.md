@@ -2,7 +2,7 @@
 
 ## .jsee files
 
-A `.jsee` package is UTF-8 JSON conforming to the [package schema](../schemas): 1.4 for ordinary suites, 1.5 when a case includes [preparation](preparation-and-connections.md). Older 1.0–1.3 packages still import. Export defaults to .jsee; JSON remains available. Opening a package never executes HTTP or SQL.
+A `.jsee` package is UTF-8 JSON conforming to the [package schema](../schemas): 1.4 for ordinary suites, 1.5 when a case includes [preparation](preparation-and-connections.md). Schema 1.6 adds [Guided Actions](guided-actions.md) for optional cleanup and permission controls outside the sequence. Older 1.0–1.3 packages still import. Export defaults to .jsee; JSON remains available. Opening a package never executes HTTP or SQL.
 
 Normal startup checks/repairs current-user Windows registration, the icon and quoted open command. Existing Windows UserChoice is respected; use Open with > E2E Tester if Windows selected another app. Velopack registers its stable launcher. After moving a raw executable, run it again to repair the association.
 

@@ -22,7 +22,7 @@ public sealed partial class MainViewModel
         try
         {
             var needed = package.Queries.Select(q => (Alias: q.ConnectionRef, q.Provider))
-                .Concat(package.Cases.Where(c => c.Preparation is { Kind: PreparationKind.DatabaseValue }).Select(c => (Alias: c.Preparation!.ConnectionRef, c.Preparation!.Provider))).ToHashSet();
+                .Concat(package.Cases.Concat(package.GuidedActions ?? []).Where(c => c.Preparation is { Kind: PreparationKind.DatabaseValue }).Select(c => (Alias: c.Preparation!.ConnectionRef, c.Preparation!.Provider))).ToHashSet();
             foreach (var details in connectionDefaults.Read(package.BaseUrl).Where(d => needed.Contains((d.Alias, d.Provider))))
             {
                 if (Database.Connections.Any(c => c.Alias.Equals(details.Alias, StringComparison.OrdinalIgnoreCase))) continue;

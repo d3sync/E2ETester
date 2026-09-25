@@ -139,6 +139,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         InitializeResponseSettings(workspace);
         InitializeDiagnostics();
         InitializeTools();
+        InitializeGuidedActions();
         InitializePreparation(workspace);
         LoadDatabaseDemo = Command(() => LoadDatabaseDemoAsync(workspace));
         LoadPackage(Demo());
@@ -146,6 +147,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private AsyncCommand Command(Func<Task> action, Func<bool>? allowed = null) => new(action, ex => Message = "Could not complete action: " + ex.Message, () => !Busy && (allowed?.Invoke() ?? true));
     private void RefreshCommands()
     {
+        OpenGuidedActions?.Refresh();
         Database.RefreshConnectionActions();
         Changed(nameof(AllCasesCompleted));
         Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh(); ReuseTestIdentity?.Refresh();
@@ -176,8 +178,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0)) ShowAdvanced = true;
         MarkWorkSaved(); NotifyRun();
     }
-    private TestPackage CurrentPackage() => package with { SchemaVersion = Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
-    private void NotifyRun() { Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
+    private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
+    private void NotifyRun() { OpenGuidedActions?.Refresh(); Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
     private void LoadAttempts()
     {
         Attempts.Clear();

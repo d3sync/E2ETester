@@ -11,6 +11,7 @@ internal static class FeatureSmoke
 {
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
+        await GuidedActionsSmoke.RunAsync(window);
         await UpdateSettingsSmoke.RunAsync(window,path);
         await PreparationSmoke.RunAsync(window, path);
         await CheckNavigationAsync(window, path);
@@ -188,7 +189,7 @@ internal static class FeatureSmoke
         _ = window.Dispatcher.BeginInvoke(new Action(()=>
         {
             var agent=System.Windows.Application.Current.Windows.OfType<TextDocumentWindow>().Single();
-            if(((DockPanel)agent.Content).Children.OfType<TabControl>().Single().Items.Count!=6 || PackageJson.Read<TestPackage>(AgentResources.Template).SchemaVersion != "1.5")throw new InvalidOperationException("AI assistant schema 1.5 resources missing.");
+            if(((DockPanel)agent.Content).Children.OfType<TabControl>().Single().Items.Count!=7 || PackageJson.Read<TestPackage>(AgentResources.Template).SchemaVersion != "1.5")throw new InvalidOperationException("AI assistant schema 1.5 resources missing.");
             Save(agent,path+".agent.png");agent.Close();
         }),DispatcherPriority.ApplicationIdle);
         model.AgentHelp.Execute(null);

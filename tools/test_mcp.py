@@ -65,6 +65,9 @@ with tempfile.TemporaryDirectory(prefix="e2etester-mcp-") as directory:
             assert value["ok"], value
             return value["result"]
         package = {"schemaVersion": "1.2", "id": "protocol-test", "title": "Protocol test", "cases": [{"id": "health", "title": "Health", "request": {"url": "/health"}, "assertions": [{"expected": "200"}]}]}
+        action_package = {"schemaVersion": "1.6", "id": "action-protocol-test", "title": "Action protocol", "cases": [{"id": "create", "title": "Create", "request": {"url": "/health"}}], "guidedActions": [{"id": "cleanup", "title": "Cleanup", "request": {"method": "DELETE", "url": "/items/{{case.create./id}}"}}]}
+        action_result = call("validate_package", {"packageJson": json.dumps(action_package)})
+        assert action_result["cases"] == 1 and action_result["guidedActions"] == 1 and action_result["guidedActionExecution"] == "desktop-only"
         malformed = json.loads(json.dumps(package))
         malformed["cases"][0]["assertions"] = [{"kind": "jsonEquals", "expected": "private-sentinel"}]
         identifier += 1

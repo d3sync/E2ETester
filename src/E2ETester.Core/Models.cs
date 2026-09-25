@@ -80,6 +80,8 @@ public sealed record TestCase
 
 public sealed record TestPackage
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<TestCase>? GuidedActions { get; set; }
     public string SchemaVersion { get; set; } = "1.4";
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public int Revision { get; set; } = 1;

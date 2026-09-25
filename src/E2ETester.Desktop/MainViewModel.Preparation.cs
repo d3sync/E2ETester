@@ -135,7 +135,7 @@ public sealed partial class MainViewModel
     private void EnsurePreparationScope()
     {
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
-        if (preparations.Any(p => p.Status != "restored" && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || p.CaseId != SelectedCase?.Baseline.Id || p.BaseUrl != BaseUrl || SelectedCase.Baseline.Preparation is null)))
+        if (preparations.Any(p => p.Status != "restored" && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl)))
             throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
     }
     private void EnsurePreparationReady(IdentitySession identity)
@@ -143,11 +143,18 @@ public sealed partial class MainViewModel
         EnsurePreparationScope();
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
         if (preparations.Any(p => p.Status == "pending")) throw new InvalidOperationException("Resolve pending preparation changes with Restore changes before sending.");
+        foreach (var action in preparations.Where(p => p.Status == "applied" && p.CaseId.StartsWith("$action:", StringComparison.Ordinal)))
+            CheckPreparedIdentity(action, identity);
         if (SelectedCase?.Baseline.Preparation is not { } plan) return;
         var entry = preparations.LastOrDefault(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == SelectedCase.Baseline.Id && p.BaseUrl == BaseUrl);
         if (entry is null) throw new InvalidOperationException("Select Prepare before sending this case.");
         if (PackageJson.Write(plan with { ValueJson = entry.Plan.ValueJson }) != PackageJson.Write(entry.Plan))
             throw new InvalidOperationException("Preparation configuration changed. Restore changes and prepare again before sending.");
+        CheckPreparedIdentity(entry, identity);
+    }
+    private static void CheckPreparedIdentity(PreparationRecovery entry, IdentitySession identity)
+    {
+        var plan = entry.Plan;
         if (!plan.RequireFreshLogin) return;
         if (identity.Alias != entry.IdentityRef || string.IsNullOrWhiteSpace(identity.Secret) || TokenHash(identity.Secret) == entry.PreviousTokenHash)
             throw new InvalidOperationException("Sign in again using the same named identity to obtain a new JWT after preparation.");

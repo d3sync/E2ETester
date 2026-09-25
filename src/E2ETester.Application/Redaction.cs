@@ -57,7 +57,7 @@ public sealed class Redaction
     {
         var copy = PackageJson.Clone(package);
         copy.BaseUrl = Url(copy.BaseUrl);
-        foreach (var c in copy.Cases)
+        foreach (var c in copy.Cases.Concat(copy.GuidedActions ?? []))
         {
             c.Request = Request(c.Request);
             if (c.Preparation is { } preparation)

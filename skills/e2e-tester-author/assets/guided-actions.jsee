@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.6",
+  "id": "guided-actions-example",
+  "title": "Guided Actions example \u2014 replace placeholder API contracts",
+  "baseUrl": "https://api.example.test",
+  "cases": [
+    {
+      "id": "create-item",
+      "title": "Create a disposable item",
+      "request": {
+        "method": "POST",
+        "url": "/items",
+        "identityRef": "test-user",
+        "sendBody": true,
+        "body": "{\"name\":\"replace-with-a-unique-test-name\"}",
+        "contentType": "application/json"
+      },
+      "assertions": [
+        {
+          "kind": "status",
+          "expected": "201"
+        }
+      ]
+    }
+  ],
+  "guidedActions": [
+    {
+      "id": "cleanup-item",
+      "title": "Delete the created test item",
+      "instructions": "Select the run that created this item, resolve its ID, review the target and confirm. Replace the endpoint and expected status with the actual API contract.",
+      "request": {
+        "method": "DELETE",
+        "url": "/items/{{case.create-item./id}}",
+        "identityRef": "test-user"
+      },
+      "assertions": [
+        {
+          "kind": "status",
+          "expected": "204"
+        }
+      ]
+    },
+    {
+      "id": "choose-permissions",
+      "title": "Choose test permissions",
+      "instructions": "Verify the account key and permission definitions before applying. Restore returns the captured original value.",
+      "request": {
+        "identityRef": "test-user",
+        "url": "/"
+      },
+      "preparation": {
+        "title": "Temporary permissions",
+        "kind": "databaseValue",
+        "provider": "mySql",
+        "connectionRef": "test-admin-db",
+        "table": "accounts",
+        "keyColumn": "id",
+        "keyJson": "1",
+        "valueColumn": "permissions",
+        "valueJson": "1",
+        "flags": [
+          {
+            "name": "Read (example only)",
+            "value": 1
+          },
+          {
+            "name": "Edit (example only)",
+            "value": 2
+          }
+        ],
+        "requireFreshLogin": true
+      }
+    }
+  ]
+}

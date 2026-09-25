@@ -28,7 +28,7 @@ public static class PackageJson
         RejectNulls(document.RootElement, "$");
         var package = Read<TestPackage>(json);
         Validate(package);
-        return package with { SchemaVersion = package.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
+        return package with { SchemaVersion = package.SchemaVersion == "1.6" ? "1.6" : package.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
     }
 
     private static void RejectNulls(JsonElement element, string path)
@@ -51,11 +51,31 @@ public static class PackageJson
     public static void Validate(TestPackage package)
     {
         if (Write(package).Length > 5_000_000) throw new InvalidDataException("Package exceeds the 5 MB limit. Use smaller fixtures or fewer embedded files.");
-        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3, 1.4 and 1.5.");
+        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5" or "1.6")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3, 1.4, 1.5 and 1.6.");
         if (string.IsNullOrWhiteSpace(package.Title) || string.IsNullOrWhiteSpace(package.Id)) throw new InvalidDataException("Package ID and title are required.");
         if (package.Cases.Count == 0 || package.Cases.Count > 1000) throw new InvalidDataException("A package must contain 1–1,000 cases.");
+        if (package.Cases.Any(c => c.Id.StartsWith("$action:", StringComparison.Ordinal))) throw new InvalidDataException("The $action: ID prefix is reserved for action audit records.");
         if (package.Cases.Select(c => c.Id).Distinct().Count() != package.Cases.Count) throw new InvalidDataException("Case IDs must be unique.");
         if (package.Queries.Select(q => q.Id).Distinct().Count() != package.Queries.Count) throw new InvalidDataException("Query IDs must be unique.");
+        if (package.GuidedActions is { } actions)
+        {
+            if (package.SchemaVersion != "1.6") throw new InvalidDataException("Guided Actions require package schema 1.6.");
+            if (actions.Count > 100) throw new InvalidDataException("A package supports up to 100 Guided Actions.");
+            if (actions.Any(a => a.Kind != TestStepKind.Http || a.FixtureRequired || a.FixtureQueryId.Length > 0 || a.DatabaseChecks.Count > 0 || a.ParentId is not null))
+                throw new InvalidDataException("Guided Actions support HTTP requests or preparation, without fixture requirements, database checks or variations.");
+            if (actions.SelectMany(a => ValueBindings.Dependencies(a.Request)).Any(id => !package.Cases.Any(c => c.Id == id))) throw new InvalidDataException("Guided Action bindings must reference a test case, not another action.");
+            if (actions.Count > 0)
+            {
+                try { Validate(package with { GuidedActions = null, Cases = package.Cases.Concat(actions).ToList() }); }
+                catch (PackageFieldValidationException ex)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(ex.FieldPath, @"^\$\.cases\[(\d+)\]");
+                    if (match.Success && int.Parse(match.Groups[1].Value) >= package.Cases.Count)
+                        throw new PackageFieldValidationException("$.guidedActions[" + (int.Parse(match.Groups[1].Value) - package.Cases.Count) + "]" + ex.FieldPath[match.Length..], "Expected value must contain valid JSON, including double quotes for a string.");
+                    throw;
+                }
+            }
+        }
         foreach (var query in package.Queries) DatabaseQueries.Validate(query);
         foreach (var c in package.Cases)
         {
