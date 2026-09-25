@@ -68,6 +68,8 @@ public sealed partial class MainViewModel
         if (plan.Kind == PreparationKind.ApiValue && plan.RequireFreshLogin && (plan.CaptureRequest.IdentityRef == identityRef || plan.UpdateRequest.IdentityRef == identityRef))
             throw new InvalidOperationException("Use a separate administrator identity for permission capture and restoration.");
         var identity = Identities.SingleOrDefault(i => i.Alias == identityRef) ?? throw new InvalidOperationException("Choose the test identity whose permissions are being changed.");
+        if (await CanReusePermissionIdentity(plan, identity))
+        { Message = $"Identity '{identity.Alias}' already has the required permissions. No preparation or login needed."; return; }
         var previousToken = identity.Secret;
         Busy = true;
         try

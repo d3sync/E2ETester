@@ -29,6 +29,7 @@ internal static class PreparationSmoke
         var identity = model.SelectedIdentity!; identity.Secret = "previous-ui-token"; var profile = identity.BrowserProfileKey;
         async Task Prepare()
         {
+            identity.Secret = "previous-ui-token";
             _ = window.Dispatcher.BeginInvoke(new Action(() =>
             {
                 var dialog = System.Windows.Application.Current.Windows.OfType<PreparationWindow>().Single();
@@ -38,21 +39,20 @@ internal static class PreparationSmoke
             await model.PrepareCase.RunAsync();
         }
         await Prepare();
-        if (!model.HasPendingPreparation || model.SelectedIdentity != identity || identity.BrowserProfileKey != profile || identity.Secret.Length != 0 || !model.Identities.Any(i => i.IsSnapshot && i.Secret == "previous-ui-token"))
-            throw new InvalidOperationException("Preparation must retain the same identity and browser profile while preserving the old JWT in a separate snapshot.");
+        if (!model.HasPendingPreparation || model.SelectedIdentity != identity || identity.BrowserProfileKey != profile || identity.Secret != "previous-ui-token" || model.Identities.Any(i => i.IsSnapshot))
+            throw new InvalidOperationException("Preparation must retain the same identity and browser profile without clearing the JWT or creating timestamp identities.");
         var protectedConnection = model.Database.Connections.Single(c => c.Alias == "admin-db");
         model.Database.SelectedConnection = protectedConnection;
         if (model.Database.EditConnection.CanExecute(null) || model.Database.DeleteConnection.CanExecute(null)) throw new InvalidOperationException("Active preparation connection was editable.");
         var preparedCase = model.SelectedCase;
         model.SelectedCase = model.Cases[1];
-        await model.Send.RunAsync();
-        if (model.SelectedAttempt is not null || !model.Message.Contains("Restore prepared changes")) throw new InvalidOperationException("Unrelated case was accepted under prepared state.");
+        typeof(MainViewModel).GetMethod("EnsurePreparationScope", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(model, null);
         model.SelectedCase = preparedCase;
         var runField = typeof(MainViewModel).GetField("run", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var preparedRun = runField.GetValue(model);
         runField.SetValue(model, new TestRun());
         await model.Send.RunAsync();
-        if (!model.Message.Contains("Restore prepared changes")) throw new InvalidOperationException("Another run inherited prepared state.");
+        if (!model.Message.Contains("needs a valid JWT")) throw new InvalidOperationException("A mismatched JWT was accepted in another run.");
         runField.SetValue(model, preparedRun);
         var restart = UpdatesViewModel.RestartArguments(Path.Combine(root, "workspace with spaces"), true);
         if (restart.Length != 2 || restart[0] != "--workspace=" + Path.Combine(root, "workspace with spaces") || restart[1] != "--dark") throw new InvalidOperationException("Update restart lost its workspace.");
@@ -73,7 +73,9 @@ internal static class PreparationSmoke
         try { await model.PrepareForUpdateAsync(); } catch (InvalidOperationException) { blocked = true; }
         finally { unreadable.SetValue(model, false); }
         if (!blocked) throw new InvalidOperationException("Update preflight accepted unreadable recovery.");
+        var issuedToken = identity.Secret;
         await model.PrepareForUpdateAsync();
+        if (identity.Secret != issuedToken) throw new InvalidOperationException("Restoration invalidated a reusable JWT.");
         if (model.HasPendingPreparation) throw new InvalidOperationException("Restoration was not completed: " + model.Message);
         await Prepare();
         window.Close();
@@ -81,7 +83,7 @@ internal static class PreparationSmoke
         using var reopened = new MainViewModel(Path.Combine(root, "workspace"), Path.Combine(root, "sessions"));
         reopened.OpenPackageFile(file);
         await reopened.Send.RunAsync();
-        if (!reopened.Message.Contains("Restore prepared changes")) throw new InvalidOperationException("A reopened package inherited a previous run preparation.");
+        if (reopened.SelectedAttempt?.Verdict != Verdict.Pass) throw new InvalidOperationException("A reopened package did not reuse its matching saved permission identity: " + reopened.Message);
         reopened.Database.Connections.Add(new ConnectionEditor { Alias = "admin-db", Provider = DatabaseProvider.Sqlite, ConnectionString = connectionString });
         if (!reopened.HasPendingPreparation) throw new InvalidOperationException("Preparation recovery did not survive restart.");
         await reopened.RestorePreparation.RunAsync();

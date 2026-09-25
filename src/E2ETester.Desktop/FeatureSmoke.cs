@@ -11,6 +11,7 @@ internal static class FeatureSmoke
 {
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
+        await RoleIdentitySmoke.RunAsync();
         await SessionAndOverrideSmoke.RunAsync();
         await GuidedActionsSmoke.RunAsync(window);
         await UpdateSettingsSmoke.RunAsync(window,path);
@@ -124,6 +125,7 @@ internal static class FeatureSmoke
         using (var second = new MainViewModel(Path.Combine(sessions,"workspace-b"),sessions))
         {
             second.LoadNewSuite();
+            second.SelectedIdentity = second.Identities.Single(i => i.Alias == "returning-user");
             if(second.SelectedIdentity?.Alias!="returning-user" || second.SelectedIdentity.Secret!="remembered-canary-663" || second.SelectedIdentity.BrowserProfileKey!=profileKey)
                 throw new InvalidOperationException("Session or browser profile did not survive workspace restart and rename.");
             second.BaseUrl="https://unrelated.example";

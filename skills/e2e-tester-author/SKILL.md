@@ -13,7 +13,7 @@ For local MCP setup, read [setup and execution](references/mcp-setup.md). Run `s
 
 Validate with `validate_package` before delivery. If MCP is unavailable, use JSON Schema validation and state that runtime validation has not run. Do not execute a generated suite unless the user asked to run it. When running, use prepare/execute operation IDs; retrying an uncertain execution uses the same ID, never a fresh request. Review both automated verdicts and incomplete coverage in the report.
 
-For preparation, permission changes, or setup/restore steps, read [preparation](references/preparation.md), use [schema 1.5](references/test-package.v1.5.schema.json) and [the preparation template](assets/prepared-permissions.jsee). Keep the same identity alias for the same account across permission scenarios. Host-approved MCP preparation uses prepare_environment and restore_environment; prepare_case alone only previews a request.
+For preparation, permission changes, or setup/restore steps, read [preparation](references/preparation.md), use [schema 1.5](references/test-package.v1.5.schema.json) and [the preparation template](assets/prepared-permissions.jsee). Use distinct stable identity aliases for distinct permission sets, even for the same account; reuse each matching valid JWT across cases. Host-approved MCP preparation uses prepare_environment and restore_environment; prepare_case alone only previews a request.
 
 JSON equality expectations contain serialized JSON values inside the expected string; a string value needs nested escaped quotes. Follow the examples in the generation prompt. Validate the exact final file through MCP after all edits; a JSON Schema pass alone cannot check these nested values.
 
@@ -24,3 +24,8 @@ For manual cleanup and permission controls outside test coverage, use package sc
 ## Captured values (0.7.20 and later)
 
 The application no longer redacts request/response values, headers, cookies, fixture cells, assertions, preparations, drafts, packages or reports, including MCP results. `sensitive`, `bodySensitive` and `sensitiveColumns` remain accepted for older packages but have no masking effect. Use actual captured `token`/`groupToken` values for bindings and comparisons. There is no redaction setting. Older saved `[REDACTED]` values cannot be recovered: obtain a fresh response or a verified manual resource ID. Continue authoring reusable templates with identity/connection aliases rather than embedding credentials.
+
+
+## Reusable permission identities (0.7.22)
+
+Use stable named identities for distinct permission sets: `cloud-user` for normal/full-access tests, `cloud-clientadmin` for ClientAdmin, and separate descriptive aliases for other exact flag combinations (for example `cloud-clientadmin-telephony`). Reuse the same alias for every case with that permission set, even when all roles belong to one database account. Never flatten role aliases to cloud-user or generate timestamp identities. A valid JWT whose configured claim equals the required value satisfies permission preparation across cases, suites and restarts. Prepare and sign in only when that role token is unavailable, expired or mismatched. Restoring the database does not invalidate already-issued JWTs. Ordinary non-permission data preparation remains scoped to its operation.

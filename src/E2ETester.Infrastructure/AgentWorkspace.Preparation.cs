@@ -62,7 +62,6 @@ public sealed partial class AgentWorkspace
                 if (old.RunId != runId || old.Recovery.CaseId != caseId) throw new InvalidOperationException("stale_preparation");
                 return new { operationId, state = old.Recovery.Status };
             }
-            if (entries.Any(e => e.Recovery.Status != "restored")) throw new InvalidOperationException("restoration_required");
             var run = await GetRunAsync(runId);
             if (run.FinishedAt is not null) throw new InvalidOperationException("run_finished");
             var test = run.Package.Cases.Single(c => c.Id == caseId);
@@ -71,6 +70,8 @@ public sealed partial class AgentWorkspace
             if (!configuration.ApprovedPreparations.Any(p => PackageJson.Write(p) == PackageJson.Write(plan))) throw new InvalidOperationException("preparation_not_permitted");
             if (plan.RequireFreshLogin && plan.Kind == PreparationKind.ApiValue && new[] { plan.CaptureRequest.IdentityRef, plan.UpdateRequest.IdentityRef }.Contains(test.Request.IdentityRef)) throw new InvalidOperationException("preparation_not_permitted");
             var identity = await Identity(test.Request.IdentityRef);
+            if (PermissionIdentity.Matches(plan, identity)) return new { operationId, state = "identity_ready", identityRef = identity.Alias };
+            if (entries.Any(e => e.Recovery.Status != "restored")) throw new InvalidOperationException("restoration_required");
             var db = configuration.Databases.SingleOrDefault(d => d.Alias == plan.ConnectionRef);
             var entry = new PreparationRecovery { Id = operationId, RunId = runId, CaseId = caseId, PackageId = run.Package.Id, BaseUrl = run.BaseUrl,
                 IdentityRef = identity.Alias, PreviousTokenHash = Hash(identity.Secret), Plan = PackageJson.Clone(plan),
@@ -82,7 +83,7 @@ public sealed partial class AgentWorkspace
             await coordinator.SaveAsync(run);
             try { await Preparations.ApplyAsync(entry, target, () => SaveEnvironment(entries), token); }
             catch { run.PreparationLog.Add(Preparations.Audit(entry) with { Status = "apply_failed" }); await coordinator.SaveAsync(run); throw; }
-            if (plan.RequireFreshLogin) browserSessions.TryRemove(identity.Alias, out _);
+
             run.PreparationLog.Add(Preparations.Audit(entry));
             await coordinator.SaveAsync(run);
             return new { operationId, state = entry.Status, requiresFreshLogin = plan.RequireFreshLogin };
@@ -103,17 +104,22 @@ public sealed partial class AgentWorkspace
             var entry = item.Recovery;
             try { await Preparations.RestoreAsync(entry, EnvironmentTarget(entry), () => SaveEnvironment(entries), token); }
             catch { (run.PreparationLog ??= []).Add(Preparations.Audit(entry) with { Status = "restoration_failed" }); await coordinator.SaveAsync(run); throw; }
-            if (entry.Plan.RequireFreshLogin) browserSessions.TryRemove(entry.IdentityRef, out _);
+
             (run.PreparationLog ??= []).Add(Preparations.Audit(entry));
             await coordinator.SaveAsync(run);
         }
     }
     private async Task EnsureEnvironmentAsync(TestRun run, TestCase test, IdentitySession identity)
     {
-        var pending = (await EnvironmentEntries()).Where(e => e.Recovery.Status != "restored").ToList();
+        var pending = (await EnvironmentEntries()).Where(e => e.Recovery.Status != "restored" && !(e.Recovery.Status == "applied" && PermissionIdentity.IsPermissionPlan(e.Recovery.Plan))).ToList();
         var match = pending.SingleOrDefault(e => e.RunId == run.Id && e.Recovery.CaseId == test.Id);
         if (pending.Any(e => e != match)) throw new InvalidOperationException("restoration_required");
         if (test.Preparation is null) return;
+        if (PermissionIdentity.IsPermissionPlan(test.Preparation))
+        {
+            if (PermissionIdentity.Matches(test.Preparation, identity)) return;
+            throw new InvalidOperationException("authentication_required: named identity needs the expected permission claim and an unexpired JWT");
+        }
         var entry = match?.Recovery;
         if (entry is null || entry.Status != "applied" || entry.BaseUrl != run.BaseUrl || PackageJson.Write(entry.Plan) != PackageJson.Write(test.Preparation)) throw new InvalidOperationException("preparation_required");
         _ = EnvironmentTarget(entry);

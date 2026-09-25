@@ -72,12 +72,11 @@ public sealed partial class MainViewModel
         }
         finally { Busy = false; }
     }
-    private async Task<bool> ImportSwaggerTokenAsync()
+    private Task<bool> ImportSwaggerTokenAsync()
     {
             _ = SwaggerTokenCapture.ValidateAddress(SwaggerUrl);
             if (SelectedIdentity is not { IsConfigurable: true }) NewIdentity.Execute(null);
             var identity = SelectedIdentity!;
-            await PreserveBrowserIdentityAsync(identity);
             var imported = false;
             new SwaggerLoginWindow(SwaggerUrl, token =>
             {
@@ -87,7 +86,7 @@ public sealed partial class MainViewModel
                 try { RememberIdentity(identity); }
                 catch { Message = "Token imported for this session, but could not be saved in AppData. Check disk space and access permissions."; }
             }, identity.BrowserProfileKey) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog();
-            return imported;
+            return Task.FromResult(imported);
     }
     public void LoadGatewayAuthCheck()
     {

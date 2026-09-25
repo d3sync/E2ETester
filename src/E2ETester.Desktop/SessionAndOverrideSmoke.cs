@@ -16,16 +16,16 @@ internal static class SessionAndOverrideSmoke
         var jwt = "e30." + Convert.ToBase64String(Encoding.UTF8.GetBytes("{\"exp\":" + expiry.ToUnixTimeSeconds() + "}")).TrimEnd('=').Replace('+', '-').Replace('/', '_') + ".test";
         using (var model = new MainViewModel(Path.Combine(root, "first"), sessions))
         {
-            model.LoadNewSuite(); var current = model.CreateIdentity("permissions-user"); model.SelectedIdentity = current;
+            model.LoadNewSuite(); var current = model.Identities.Single(i => i.Alias == "cloud-user"); model.SelectedIdentity = current;
             current.Kind = AuthKind.Bearer; current.Secret = jwt;
-            model.PreserveIdentityToken(current); current.Secret = "new-permissions-token";
-            model.PreserveIdentityToken(current); model.PreserveIdentityToken(current);
-            if (model.Identities.Count(i => i.IsSnapshot) != 2) throw new InvalidOperationException("Token snapshots were overwritten or duplicated.");
+            model.RememberIdentity(current);
+            var role = model.CreateIdentity("cloud-clientadmin"); role.Kind = AuthKind.Bearer; role.Secret = "new-permissions-token"; model.RememberIdentity(role); model.RememberIdentity(role);
+            if (model.Identities.Any(i => i.IsSnapshot)) throw new InvalidOperationException("Token snapshots were overwritten or duplicated.");
         }
         using (var model = new MainViewModel(Path.Combine(root, "second"), sessions))
         {
             model.LoadNewSuite();
-            if (!model.Identities.Any(i => i.IsSnapshot && i.Secret == jwt) || !model.Identities.Any(i => i.IsSnapshot && i.Secret == "new-permissions-token")) throw new InvalidOperationException("Saved permission identities did not survive workspace restart.");
+            if (!model.Identities.Any(i => i.Alias == "cloud-user" && i.Secret == jwt) || !model.Identities.Any(i => i.Alias == "cloud-clientadmin" && i.Secret == "new-permissions-token")) throw new InvalidOperationException("Saved permission identities did not survive workspace restart.");
             var snapshot = model.Identities.Single(i => i.Secret == jwt);
             if (snapshot.ExpiresAt?.ToUnixTimeSeconds() != expiry.ToUnixTimeSeconds()) throw new InvalidOperationException("JWT expiry was not retained.");
         }

@@ -112,6 +112,7 @@ public sealed partial class MainViewModel
                 c.RestoreDraft(draft.Edited.Cases.Single(d => d.Id == c.Baseline.Id));
                 c.Status = CaseStatus(saved?.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id));
             }
+            IncludeReferencedIdentities();
             // Reassign after restoring identity references so selection resolves the saved alias.
             SelectedCase = null; SelectedCase = Cases.FirstOrDefault(c => c.Baseline.Id == draft.SelectedCaseId) ?? Cases.FirstOrDefault();
             UpdateSwaggerUrlFromPackage();

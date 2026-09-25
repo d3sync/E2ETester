@@ -34,29 +34,15 @@ public sealed partial class MainViewModel
         }
         catch { Message = "Saved sessions could not be read. Sign in again; existing session files have been kept."; }
     }
-    internal void PreserveIdentityToken(IdentityEditor identity)
+    private async Task RememberBrowserIdentityAsync(IdentityEditor identity)
     {
-        if (!identity.IsConfigurable || string.IsNullOrWhiteSpace(identity.Secret) || identity.ExpiresAt <= DateTimeOffset.UtcNow) return;
-        var origin = RememberedSessions.Origin(BaseUrl);
-        if (Identities.Any(i => i != identity && i.IsSnapshot && i.RememberedOrigin == origin && i.Secret == identity.Secret)) return;
-        var stem = identity.Alias[..Math.Min(identity.Alias.Length, 48)] + " · " + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
-        var alias = stem; var index = 2;
-        while (Identities.Any(i => i.Alias.Equals(alias, StringComparison.OrdinalIgnoreCase))) alias = stem + "-" + index++;
-        var snapshot = AddIdentity(alias);
-        snapshot.Kind = identity.Kind; snapshot.Secret = identity.Secret; snapshot.HeaderName = identity.HeaderName; snapshot.Prefix = identity.Prefix;
-        snapshot.BrowserProfileKey = identity.BrowserProfileKey; snapshot.RememberedOrigin = origin; snapshot.IsSnapshot = true;
-        snapshot.CapturedAt = identity.CapturedAt; snapshot.ExpiresAt = identity.ExpiresAt;
-        RememberIdentity(snapshot);
-    }
-    private async Task PreserveBrowserIdentityAsync(IdentityEditor identity)
-    {
-        if (identity.BrowserSession is not { } browser) { PreserveIdentityToken(identity); return; }
+        if (identity.BrowserSession is not { } browser) { RememberIdentity(identity); return; }
         if (browser.RequiresLogin || browser.Identity.ExpiresAt <= DateTimeOffset.UtcNow) return;
         var current = await browser.GetIdentityAsync(identity.Alias, false);
-        var temporary = new IdentityEditor { Alias = identity.Alias, Kind = current.Kind, Secret = current.Secret, BrowserProfileKey = identity.BrowserProfileKey, ExpiresAt = browser.Identity.ExpiresAt };
-        PreserveIdentityToken(temporary);
+        var saved = new IdentityEditor { Alias = identity.Alias, Kind = current.Kind, Secret = current.Secret, BrowserProfileKey = identity.BrowserProfileKey, ExpiresAt = browser.Identity.ExpiresAt };
+        RememberIdentity(saved);
     }
-    private void RememberIdentity(IdentityEditor identity)
+    internal void RememberIdentity(IdentityEditor identity)
     {
         if (rememberedSessions is null || !identity.IsConfigurable || identity.BrowserSession is not null) return;
         var origin = RememberedSessions.Origin(BaseUrl);

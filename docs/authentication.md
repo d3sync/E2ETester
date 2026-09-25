@@ -61,8 +61,8 @@ The integration suite runs a local RSA-signed identity provider and verifies suc
 
 Run `dotnet run --project tests/E2ETester.IntegrationTests`. The desktop `--smoke=artifacts/authentication.png --authentication-exercise` checks configuration failure behavior and renders the Auth tab without contacting an identity provider.
 
-## Login snapshots and missing source values (0.7.21)
+## Reusable permission identities (0.7.22)
 
-Before a new login or permission preparation replaces a token, the desktop keeps a timestamped identity snapshot. Select it in Auth to reuse the earlier JWT and permissions in another test. The working identity alias stays unchanged so preparation and package references continue to match. Snapshots persist in protected AppData storage across workspaces for the same API origin; JWT exp controls retention, with a fixed 24-hour fallback for bearer tokens without exp. API tokens are retained until removed. Decoded expiry is not authentication validation.
+Use stable named identities for distinct permission sets: `cloud-user` for normal/full-access tests, `cloud-clientadmin` for ClientAdmin, and separate descriptive aliases for other exact flag combinations (for example `cloud-clientadmin-telephony`). Reuse the same alias for every case with that permission set, even when all roles belong to one database account. Never flatten role aliases to cloud-user or generate timestamp identities. A valid JWT whose configured claim equals the required value satisfies permission preparation across cases, suites and restarts. Prepare and sign in only when that role token is unavailable, expired or mismatched. Restoring the database does not invalidate already-issued JWTs. Ordinary non-permission data preparation remains scoped to its operation.
 
-Run anyway bypasses prior-case pass requirements. When a response binding has no usable value, the desktop prompts for the verified value and records it with the request override. It never invents a resource ID or automatically reruns the create case. Missing values can be cancelled without sending.
+Stored bearer tokens expire at JWT exp, with a fixed 24-hour fallback for tokens without exp. The decoded claim check is a workflow comparison, not signature validation. The API validates authorization.

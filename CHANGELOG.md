@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.22
+
+- Permission scenarios use reusable named-role JWTs. Matching, unexpired claims satisfy permission preparation across cases and restarts; Prepare becomes a no-op for an already available role. Ordinary data preparations retain their scope.
+- Permission changes and restoration no longer clear existing JWTs or create timestamp aliases. Distinct role aliases survive package loading and remain available in Auth and Guided Actions. Removed the control that replaced every case identity with one alias.
+- MCP uses the same matching-role rule without requiring database access. Corrected skills, prompts and templates to require separate aliases for distinct permission sets.
+
 ## 0.7.21
 
 - Run anyway offers manual values for unavailable earlier-response bindings instead of demanding a successful source case. Resolved values and the one-request override remain in the attempt audit.

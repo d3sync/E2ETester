@@ -61,6 +61,25 @@ internal static class AgentPreparationTests
                 check(await target.ReadAsync(plan, default) == "15", "MCP restored operation cannot reapply");
                 check((await workspace.GetRunAsync(runId)).PreparationLog?.Last().Status == "restored", "MCP records restoration audit in report");
             }
+            var rolePlan = plan with { JwtClaim = "permissions" };
+            var rolePackage = package with { Cases = [package.Cases[0] with { Preparation = rolePlan }] };
+            string Jwt(int permissions, int hours = 1) => "e30." + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("{\"permissions\":" + permissions + ",\"exp\":" + DateTimeOffset.UtcNow.AddHours(hours).ToUnixTimeSeconds() + "}")).TrimEnd('=').Replace('+', '-').Replace('/', '_') + ".test";
+            Environment.SetEnvironmentVariable(tokenVariable, Jwt(4));
+            await using (var workspace = new AgentWorkspace(config with { Workspace = Path.Combine(directory, "cached-role"), AllowPreparation = false, Databases = [] }))
+            {
+                var roleRun = await workspace.StartAsync(PackageJson.Write(rolePackage), server.Url);
+                for (var repeat = 0; repeat < 2; repeat++)
+                {
+                    var execution = Execution(await workspace.PrepareAsync(roleRun.Id, "case")); await workspace.ExecuteAsync(execution);
+                    for (var i = 0; i < 500 && JsonSerializer.SerializeToElement(await workspace.OperationAsync(execution)).GetProperty("state").GetString() == "running"; i++) await Task.Delay(20);
+                }
+                check((await workspace.GetRunAsync(roleRun.Id)).Attempts.Count == 2 && await target.ReadAsync(plan, default) == "15", "MCP reuses matching permission JWT without database access or preparation writes");
+                Environment.SetEnvironmentVariable(tokenVariable, Jwt(8));
+                await reject(async () => await workspace.ExecuteAsync(Execution(await workspace.PrepareAsync(roleRun.Id, "case"))), "MCP rejects a mismatched permission JWT");
+                Environment.SetEnvironmentVariable(tokenVariable, Jwt(4, -1));
+                await reject(async () => await workspace.ExecuteAsync(Execution(await workspace.PrepareAsync(roleRun.Id, "case"))), "MCP rejects an expired permission JWT");
+            }
+
         }
         finally { Environment.SetEnvironmentVariable(dbVariable, null); Environment.SetEnvironmentVariable(tokenVariable, null); }
     }

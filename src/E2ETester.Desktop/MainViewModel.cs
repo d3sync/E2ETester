@@ -72,7 +72,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
                     validation.IdentityRef = value.Alias;
                 SelectedCase.IdentityRef = value.Alias;
             }
-            Set(ref selectedIdentity, value); ReuseTestIdentity?.Refresh(); LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
+            Set(ref selectedIdentity, value); LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
         }
     }
     public AsyncCommand Import { get; }
@@ -152,7 +152,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         OpenGuidedActions?.Refresh();
         Database.RefreshConnectionActions();
         Changed(nameof(AllCasesCompleted));
-        Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh(); ReuseTestIdentity?.Refresh();
+        Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh();
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();
         foreach (var command in new[] { Cancel, Next, Previous, NewCase, NewRun, AddQuery, AddHeader, AddCheck, NewIdentity }) command?.Refresh();
         OpenDatabase?.Refresh(); AddDatabaseCheck?.Refresh(); VerifyDatabase?.Refresh();
@@ -174,6 +174,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Database.LoadQueries(package.Queries);
         SeedDatabaseConnections();
         foreach (var c in package.Cases) Cases.Add(new(c));
+        if (selectFirst) IncludeReferencedIdentities();
         BaseUrl = package.BaseUrl; SelectedCase = selectFirst ? Cases.FirstOrDefault() : null; SelectedIdentity ??= Identities[0];
         UpdateSwaggerUrlFromPackage();
         RestoreRememberedSessions();
@@ -208,7 +209,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (IsPlayground && run is not null && (run.FinishedAt is not null || run.BaseUrl != BaseUrl)) run = null;
         EnsurePreparationScope();
         var editor = SelectedCase; var identityEditor = SelectedIdentity;
-        if (editor.Baseline.Preparation is not null && !preparations.Any(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == editor.Baseline.Id && p.BaseUrl == BaseUrl))
+        if (editor.Baseline.Preparation is not null && !PermissionIdentity.IsPermissionPlan(editor.Baseline.Preparation) && !preparations.Any(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == editor.Baseline.Id && p.BaseUrl == BaseUrl))
         { Message = "Select Prepare before signing in and sending this case."; return; }
         if (editor.Baseline.Kind == TestStepKind.SwaggerAuthentication && identityEditor.BrowserSession is null && string.IsNullOrWhiteSpace(identityEditor.Secret))
         {
@@ -258,7 +259,6 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         if (SelectedIdentity is not { IsConfigurable: true } identity) return;
         Busy = true; cancellation = new();
-        await PreserveBrowserIdentityAsync(identity);
         // A failed account switch must not silently leave the previous account ready to send.
         identity.ForgetBrowser(); identity.Secret = ""; identity.Kind = AuthKind.Bearer;
         Changed(nameof(SelectedIdentity));
@@ -267,7 +267,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             Message = "Complete sign-in in your browser. Cancel stops waiting; no API request will be sent.";
             var settings = new BrowserLoginSettings(identity.Authority, identity.ClientId, identity.Scope, identity.RedirectUri, identity.ExpectedSubject, identity.AllowLocalHttp);
             identity.InstallBrowser(await BrowserTokenSession.LoginAsync(settings, cancellationToken: cancellation.Token));
-            await PreserveBrowserIdentityAsync(identity);
+            await RememberBrowserIdentityAsync(identity);
             Changed(nameof(SelectedIdentity));
             Message = "Signed in. Review the verified subject and issuer in Authentication before sending. Use another identity profile for a different user.";
         }

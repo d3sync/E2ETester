@@ -17,22 +17,15 @@ public sealed partial class MainViewModel
     public AsyncCommand PrepareCase { get; private set; } = null!;
     public AsyncCommand RestorePreparation { get; private set; } = null!;
     public ActionCommand ConfigurePreparation { get; private set; } = null!;
-    public ActionCommand ReuseTestIdentity { get; private set; } = null!;
     public bool HasPendingPreparation => preparationRecoveryUnreadable || preparations.Any(p => p.Status != "restored");
     public bool HasCasePreparation => SelectedCase?.Baseline.Preparation is not null;
     public string PreparationStatus => preparationRecoveryUnreadable ? "Preparation recovery could not be read. Restore access to the workspace before continuing."
         : preparations.Any(p => p.Status != "restored") ? "Prepared changes are active. Sign in again if required. Restore changes before finishing."
-        : SelectedCase?.Baseline.Preparation is { } plan ? plan.Title + " · select Prepare before sending." : "No preparation required for this case.";
+        : SelectedCase?.Baseline.Preparation is { } plan ? plan.Title + (PermissionIdentity.IsPermissionPlan(plan) ? " · reuse the matching named JWT; Prepare only when needed." : " · select Prepare before sending.") : "No preparation required for this case.";
 
     private void InitializePreparation(string workspace)
     {
         preparationStore = new(Path.Combine(workspace, "Preparation"));
-        ReuseTestIdentity = new(() =>
-        {
-            var identity = SelectedIdentity!;
-            foreach (var test in Cases.Where(c => c.IdentityRef != "none")) test.IdentityRef = identity.Alias;
-            Message = "All authenticated test cases now use '" + identity.Alias + "'. Preparation API administrator identities are unchanged. Browser cookies stay with this identity.";
-        }, () => !Busy && SelectedIdentity?.IsConfigurable == true && !preparations.Any(p => p.Status != "restored"));
         try { preparations = Task.Run(() => preparationStore.LoadAsync<List<PreparationRecovery>>()).GetAwaiter().GetResult() ?? []; }
         catch { preparationRecoveryUnreadable = true; }
         ConfigurePreparation = new(() =>
@@ -64,21 +57,24 @@ public sealed partial class MainViewModel
             return await identity.ResolveAsync(token);
         }, evidence => entry.HttpEvidence.Add(evidence));
     }
-    private async Task InvalidatePreparedLogin(PreparationRecovery entry)
+    private async Task<bool> CanReusePermissionIdentity(PreparationPlan plan, IdentityEditor identity)
     {
-        if (!entry.Plan.RequireFreshLogin) return;
-        var identity = Identities.FirstOrDefault(i => i.Alias == entry.IdentityRef);
-        if (identity is null) return;
-        await PreserveBrowserIdentityAsync(identity);
-        identity.Secret = "";
-        if (RememberedSessions.Origin(BaseUrl) == RememberedSessions.Origin(entry.BaseUrl)) RememberIdentity(identity);
+        try { return PermissionIdentity.Matches(plan, await identity.ResolveAsync(default), identity.BrowserSession?.Identity.ExpiresAt ?? identity.ExpiresAt); }
+        catch (InvalidOperationException) { return false; }
+    }
+    private Task InvalidatePreparedLogin(PreparationRecovery entry)
+    {
+        // Changing/restoring the database does not change an already-issued JWT.
         Changed(nameof(SelectedIdentity));
+        return Task.CompletedTask;
     }
     private async Task PrepareCaseAsync()
     {
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
         var selected = SelectedCase!;
         var plan = PackageJson.Clone(selected.Baseline.Preparation!);
+        if (SelectedIdentity is { } ready && await CanReusePermissionIdentity(plan, ready))
+        { Message = $"Identity '{ready.Alias}' already has the required permissions. Ready to send; no database update or login needed."; return; }
         var dialog = new PreparationWindow(plan, execution: true) { Owner = PreparationOwner() };
         if (dialog.ShowDialog() != true) return;
         plan = dialog.Plan!; Preparations.Validate(plan);
@@ -88,7 +84,7 @@ public sealed partial class MainViewModel
         Busy = true;
         try
         {
-            var identity = SelectedIdentity is null ? "" : (await SelectedIdentity.ResolveAsync(default)).Secret;
+            var identity = SelectedIdentity?.Secret ?? "";
             await RestorePreparationsAsync();
             if (run is null) run = await coordinator.StartAsync(CurrentPackage(), BaseUrl);
             var fingerprint = plan.Kind == PreparationKind.DatabaseValue ? TokenHash(Database.Connections.SingleOrDefault(c => c.Alias == plan.ConnectionRef)?.ConnectionString ?? "") : "";
@@ -129,14 +125,14 @@ public sealed partial class MainViewModel
                 catch { await AuditPreparation(entry, "restoration_failed"); throw; }
                 await InvalidatePreparedLogin(entry); await AuditPreparation(entry);
             }
-            Message = "Prepared changes restored and verified. Sign in again to refresh any affected JWT.";
+            Message = "Prepared changes restored and verified. Saved JWT identities remain available until expiry.";
         }
         finally { Busy = wasBusy; Changed(nameof(PreparationStatus)); RefreshCommands(); }
     }
     private void EnsurePreparationScope()
     {
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
-        if (preparations.Any(p => p.Status != "restored" && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl)))
+        if (preparations.Any(p => p.Status != "restored" && (!PermissionIdentity.IsPermissionPlan(p.Plan) || p.Status != "applied") && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl)))
             throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
     }
     private void EnsurePreparationReady(IdentitySession identity)
@@ -144,9 +140,12 @@ public sealed partial class MainViewModel
         EnsurePreparationScope();
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
         if (preparations.Any(p => p.Status == "pending")) throw new InvalidOperationException("Resolve pending preparation changes with Restore changes before sending.");
-        foreach (var action in preparations.Where(p => p.Status == "applied" && p.CaseId.StartsWith("$action:", StringComparison.Ordinal)))
-            CheckPreparedIdentity(action, identity);
         if (SelectedCase?.Baseline.Preparation is not { } plan) return;
+        if (PermissionIdentity.IsPermissionPlan(plan))
+        {
+            if (PermissionIdentity.Matches(plan, identity, SelectedIdentity?.BrowserSession?.Identity.ExpiresAt ?? SelectedIdentity?.ExpiresAt)) return;
+            throw new InvalidOperationException($"Identity '{identity.Alias}' needs a valid JWT with {plan.JwtClaim} = {plan.ValueJson}. Select Prepare only if you need to change the account, then sign in for this named identity.");
+        }
         var entry = preparations.LastOrDefault(p => p.Status == "applied" && p.PackageId == package.Id && p.CaseId == SelectedCase.Baseline.Id && p.BaseUrl == BaseUrl);
         if (entry is null) throw new InvalidOperationException("Select Prepare before sending this case.");
         if (PackageJson.Write(plan with { ValueJson = entry.Plan.ValueJson }) != PackageJson.Write(entry.Plan))
@@ -156,7 +155,7 @@ public sealed partial class MainViewModel
     private static void CheckPreparedIdentity(PreparationRecovery entry, IdentitySession identity)
     {
         var plan = entry.Plan;
-        if (!plan.RequireFreshLogin) return;
+        if (!plan.RequireFreshLogin || PermissionIdentity.Matches(plan, identity)) return;
         if (identity.Alias != entry.IdentityRef || string.IsNullOrWhiteSpace(identity.Secret) || TokenHash(identity.Secret) == entry.PreviousTokenHash)
             throw new InvalidOperationException("Sign in again using the same named identity to obtain a new JWT after preparation.");
         if (plan.JwtClaim.Length > 0)

@@ -38,7 +38,7 @@ Percona XtraDB Cluster with pxc_strict_mode=ENFORCING rejects SERIALIZABLE trans
 
 Use a real unique/primary key and a transactional table for this single-row workflow. The row lock is not a promise of cluster-wide serializable behavior. Deadlocks, certification conflicts, timeouts or lost connections may still occur. Do not automatically replay mutations or replace an uncertain MCP operation UUID with a new one. Inspect persisted preparation status and restore through the original workspace and connection. Do not delete recovery records or overwrite a conflicting external change.
 
-Capture actual execution-time values in report evidence, not just the package baseline. Keep the same identity alias for the same account, obtain a new JWT when permission claims change, and restore before unrelated cases or finishing. Original values stay in encrypted recovery storage.
+Capture actual execution-time values in report evidence, not just the package baseline. Use stable aliases per permission set and reuse matching unexpired JWTs across cases. Prepare/login only for missing roles; restore database changes before finishing without clearing saved JWTs. Original values stay in encrypted recovery storage.
 
 A MySQL "Packet received out-of-order" error is a protocol failure, not proof of invalid SQL or permissions. Prepare/Restore use fresh non-pooled MySQL connections with pipelining disabled for server/proxy compatibility. Do not disable TLS or replay the write to diagnose it. Record the reported stage, server/driver versions and whether a proxy is involved (unknown is acceptable). If it persists, inspect server/proxy logs; use the existing recovery workflow before another preparation. This mitigation does not prove a particular proxy caused the error.
 

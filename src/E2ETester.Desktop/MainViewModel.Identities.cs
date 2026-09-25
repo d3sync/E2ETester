@@ -4,7 +4,7 @@ public sealed partial class MainViewModel
 {
     internal void IncludeReferencedIdentities()
     {
-        foreach (var alias in Cases.Select(c => c.IdentityRef).Distinct().ToList())
+        foreach (var alias in Cases.Select(c => c.IdentityRef).Concat(package.GuidedActions?.Select(c => c.Request.IdentityRef) ?? []).Distinct().ToList())
             if (!Identities.Any(i => i.Alias == alias)) AddIdentity(alias);
     }
     private string NextIdentityAlias()

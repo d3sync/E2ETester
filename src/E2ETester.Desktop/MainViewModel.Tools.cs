@@ -54,12 +54,7 @@ public sealed partial class MainViewModel
         var localSuite=Path.Combine(RememberedSessions.Root,"Packages","default-suite.jsee");
         if(useLocalDefaultSuite && File.Exists(localSuite)) OpenPackageFile(localSuite);
         else LoadPackage(SuiteDefaults.Create());
-        if (SelectedIdentity?.Secret.Length == 0 && rememberedSessions is not null)
-        {
-            // A new default suite can reuse the most recently remembered identity for its server.
-            var remembered = Identities.LastOrDefault(i => i.RememberedOrigin == RememberedSessions.Origin(BaseUrl) && i.Secret.Length > 0);
-            if (remembered is not null) SelectedIdentity = remembered;
-        }
+
     }
     public void OpenPackageFile(string path)
     {
