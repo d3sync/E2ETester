@@ -42,6 +42,19 @@ internal static class LiveDatabaseTests
             var adminBuilder = new DbConnectionStringBuilder { ConnectionString = admin.ConnectionString };
             adminBuilder[provider == DatabaseProvider.SqlServer ? "Initial Catalog" : "Database"] = "fixtures";
             var writable = admin with { ConnectionString = adminBuilder.ConnectionString, ReadOnlyCredentialsConfirmed = false };
+            check((await new DatabaseExecutor().TestConnectionAsync(writable, default)).ErrorCode is null, $"{provider}: connectivity test accepts write-enabled preparation profile");
+            check((await new DatabaseExecutor().TestConnectionAsync(profile, default)).ErrorCode is null, $"{provider}: connectivity test accepts read-only query profile");
+            if (provider == DatabaseProvider.MySql)
+            {
+                var details = DatabaseConnectionDetails.Read(writable);
+                details.Details.MySqlTlsMode = MySqlSslMode.Required;
+                var tlsProbe = await new DatabaseExecutor().TestConnectionAsync(writable with { ConnectionString = details.Details.Build(details.Password, writable.ConnectionString) }, default);
+                check(tlsProbe.Error is null || tlsProbe.Error.Contains("TLS negotiation failed"), "MySQL/MariaDB: required TLS either connects or gives a specific TLS diagnostic");
+                Console.WriteLine(tlsProbe.Error is null ? "Required TLS supported by test server." : "Required TLS probe: " + tlsProbe.Error);
+                var invalidPassword = new MySqlConnectionStringBuilder(writable.ConnectionString) { Password = "invalid-test-password" };
+                var rejectedLogin = await new DatabaseExecutor().TestConnectionAsync(writable with { ConnectionString = invalidPassword.ToString() }, default);
+                check(rejectedLogin.ErrorCode == "connection_failed" && rejectedLogin.Error!.Contains("1045") && !rejectedLogin.Error.Contains("invalid-test-password"), "MySQL/MariaDB: bad login exposes error code without credentials");
+            }
             var preparation = new PreparationPlan { Provider = provider, ConnectionRef = "live-db", Table = "fixture", KeyColumn = "id", KeyJson = "1", ValueColumn = "note", ValueJson = "\"prepared\"" };
             var target = new DatabasePreparationTarget(writable);
             var recovery = new PreparationRecovery { Plan = preparation, OriginalJson = await target.ReadAsync(preparation, default) };

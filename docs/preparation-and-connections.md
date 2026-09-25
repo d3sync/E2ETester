@@ -43,3 +43,7 @@ Pending changes survive a crash in the workspace's Windows user-encrypted `Prepa
 Preparation reports use schema **1.8** and include preparation/restoration events in JSON, readable text and HTML. Original values remain in encrypted local recovery storage, outside the audit summary. MCP supports explicit prepare_environment, list_preparations and restore_environment tools on Windows with encrypted recovery. Exact preparation plans and writable database aliases must be approved in local host configuration. See [the agent preparation guide](../skills/e2e-tester-author/references/preparation.md).
 
 **Next case** is also beside **Send request** to shorten the repeated mouse movement.
+
+## Connection troubleshooting
+
+Test connection uses a fixed SELECT 1 and does not require the profile to be marked read-only. Query Studio still requires a restricted account; preparation requires writable access. MySQL/MariaDB setup exposes TLS mode and preserves existing settings. Connection errors report safe driver codes; query errors also identify the failing stage. See [compatibility guidance](../skills/e2e-tester-author/references/validation-and-compatibility.md). Run `./Test-Databases.ps1 -MariaDb` to verify the MySQL provider against disposable MariaDB infrastructure; omit the switch for MySQL. Neither run certifies multi-node Percona behavior.

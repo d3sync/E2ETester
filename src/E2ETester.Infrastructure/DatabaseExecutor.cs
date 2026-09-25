@@ -17,6 +17,51 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
     public Task<QueryResult> ExecuteAsync(QueryDefinition query, DatabaseConnectionProfile profile, CancellationToken cancellationToken)
         => Task.Run(() => ExecuteCoreAsync(PackageJson.Clone(query), profile, cancellationToken));
 
+    // A connectivity probe is not arbitrary SQL and does not assert account permissions.
+    public Task<QueryResult> TestConnectionAsync(DatabaseConnectionProfile profile, CancellationToken callerToken)
+        => Task.Run(async () =>
+        {
+            var started = DateTimeOffset.UtcNow;
+            var clock = Stopwatch.StartNew();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(15));
+            try
+            {
+                await using var connection = CreateConnection(profile);
+                await connection.OpenAsync(timeout.Token);
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT 1"; command.CommandTimeout = 15;
+                await command.ExecuteScalarAsync(timeout.Token);
+                return new QueryResult { StartedAt = started, DurationMs = clock.ElapsedMilliseconds };
+            }
+            catch (OperationCanceledException) { return Failed(callerToken.IsCancellationRequested ? "cancelled" : "timeout", "Connection test stopped. Check the server address, port, VPN and firewall if it timed out."); }
+            catch (DbException) when (timeout.IsCancellationRequested) { return Failed(callerToken.IsCancellationRequested ? "cancelled" : "timeout", "Connection test stopped. Check the server address, port, VPN and firewall if it timed out."); }
+            catch (Exception ex) when (ex is DbException or ArgumentException or FormatException or InvalidOperationException or IOException or System.Security.Authentication.AuthenticationException)
+            {
+                return Failed("connection_failed", "Could not connect. Check server/port, database, credentials and TLS settings. " + DiagnosticCode(ex));
+            }
+            QueryResult Failed(string code, string error) => new() { StartedAt = started, DurationMs = clock.ElapsedMilliseconds, ErrorCode = code, Error = error };
+        });
+
+    // Return structured driver codes only; raw messages can contain credentials or SQL/data.
+    private static string DiagnosticCode(Exception ex)
+    {
+        // Classify TLS locally; never echo provider messages containing host/user/data values.
+        for (Exception? cause = ex; cause is not null; cause = cause.InnerException)
+            if (cause is System.Security.Authentication.AuthenticationException || cause.Message.Contains("SSL", StringComparison.OrdinalIgnoreCase) || cause.Message.Contains("TLS", StringComparison.OrdinalIgnoreCase) || cause.Message.Contains("certificate", StringComparison.OrdinalIgnoreCase))
+                return "TLS negotiation failed. Check the server's TLS support, certificate and configured SSL mode.";
+        return ex switch
+    {
+        MySqlException mysql => $"MySQL/MariaDB error {mysql.Number}, SQLSTATE {mysql.SqlState ?? "unknown"}.",
+        SqlException sql => $"SQL Server error {sql.Number}.",
+        PostgresException postgres => $"PostgreSQL SQLSTATE {postgres.SqlState}.",
+        SqliteException sqlite => $"SQLite error {sqlite.SqliteErrorCode}.",
+        System.Security.Authentication.AuthenticationException => "TLS authentication failed.",
+        ArgumentException or FormatException => "The connection settings have an invalid format.",
+        _ => "The driver could not complete the connection."
+    };
+    }
+
     public static DbConnection CreateConnection(DatabaseConnectionProfile profile) => profile.Provider switch
     {
         DatabaseProvider.Sqlite => new SqliteConnection(new SqliteConnectionStringBuilder(profile.ConnectionString) { Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString()),
@@ -33,6 +78,7 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(query.TimeoutSeconds));
         var token = timeout.Token;
+        var stage = "validating query settings";
         try
         {
             DatabaseQueries.Validate(query);
@@ -41,7 +87,9 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
                 return Failure("read_only_account_required", "Configure a database account restricted to reading, then confirm that access in the connection profile.");
             token.ThrowIfCancellationRequested();
             await using var connection = CreateConnection(profile);
+            stage = "connecting to the database";
             await connection.OpenAsync(token);
+            stage = "starting the read-only transaction";
             // Microsoft.Data.Sqlite's async APIs execute synchronously; interrupt the native VM for a real deadline.
             using var sqliteInterrupt = token.Register(() => { if (connection is SqliteConnection local && local.Handle is not null) SQLitePCL.raw.sqlite3_interrupt(local.Handle); });
             // Read-only accounts remain the enforcement boundary for server databases; transaction modes add protection.
@@ -66,6 +114,7 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
                 command.Parameters.Add(p);
             }
             using var cancelRegistration = token.Register(() => { try { command.Cancel(); } catch (DbException) { } catch (ObjectDisposedException) { } });
+            stage = "executing the query";
             await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, token);
             var columns = Enumerable.Range(0, reader.FieldCount).Select(i => new DatabaseColumn(reader.GetName(i), reader.GetDataTypeName(i))).ToList();
             if (columns.Count == 0) return Failure("no_result_set", "The query did not return a table.");
@@ -112,7 +161,7 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
         catch (DbException) when (timeout.IsCancellationRequested) { return Failure(callerToken.IsCancellationRequested ? "cancelled" : "timeout", "Database operation stopped; no request was retried."); }
         catch (Exception ex) when (ex is DbException or ArgumentException or FormatException or InvalidOperationException or IOException or OverflowException)
         {
-            return Failure("database_error", "Query failed. Check the connection, database permissions, SQL dialect and parameter types. Driver details are omitted because they may include credentials or data.");
+            return Failure("database_error", $"Database operation failed while {stage}. {DiagnosticCode(ex)} Check connection settings, database permissions and SQL dialect.");
         }
         QueryResult Failure(string code, string error) => new() { StartedAt = started, DurationMs = clock.ElapsedMilliseconds, ErrorCode = code, Error = error };
     }

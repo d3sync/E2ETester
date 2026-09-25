@@ -199,8 +199,13 @@ public sealed class DatabaseViewModel : Observable
         Busy = true; cancellation = new(); ClearResult();
         try
         {
+            if (connectionOnly)
+            {
+                var probe = await new DatabaseExecutor().TestConnectionAsync(SelectedConnection.Profile, cancellation.Token);
+                Message = probe.Error ?? "Connection succeeded. Read-only permissions were not checked; Query Studio still requires a read-only account, while preparation uses a write-enabled profile.";
+                return;
+            }
             var result = await service.ExecuteAsync(query, SelectedConnection.Profile, cancellation.Token);
-            if (connectionOnly) { Message = result.Result.Error ?? "Connection succeeded."; return; }
             evidence = result; Render(result.Result);
             Message = result.Result.Error ?? $"{result.Result.Rows.Count} rows · {result.Result.DurationMs} ms{(result.Result.Truncated ? " · incomplete/capped result" : "")}. Select a row to use as a fixture or attach this result as evidence.";
         }

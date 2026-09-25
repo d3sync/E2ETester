@@ -18,6 +18,7 @@ public sealed record DatabaseConnectionDetails
     public string File { get; set; } = "";
     public bool WindowsAuthentication { get; set; }
     public bool ReadOnlyAccount { get; set; }
+    public MySqlSslMode MySqlTlsMode { get; set; } = MySqlSslMode.Required;
     public static (DatabaseConnectionDetails Details, string Password) Read(DatabaseConnectionProfile profile)
     {
         var details = new DatabaseConnectionDetails { Alias = profile.Alias, Provider = profile.Provider, ReadOnlyAccount = profile.ReadOnlyCredentialsConfirmed };
@@ -25,7 +26,7 @@ public sealed record DatabaseConnectionDetails
         {
             case DatabaseProvider.MySql:
                 var mysql = new MySqlConnectionStringBuilder(profile.ConnectionString);
-                return (details with { Host = mysql.Server, Port = (int)mysql.Port, Database = mysql.Database, Username = mysql.UserID }, mysql.Password);
+                return (details with { Host = mysql.Server, Port = (int)mysql.Port, Database = mysql.Database, Username = mysql.UserID, MySqlTlsMode = mysql.SslMode }, mysql.Password);
             case DatabaseProvider.PostgreSql:
                 var postgres = new NpgsqlConnectionStringBuilder(profile.ConnectionString);
                 return (details with { Host = postgres.Host ?? "", Port = postgres.Port, Database = postgres.Database ?? "", Username = postgres.Username ?? "" }, postgres.Password ?? "");
@@ -52,7 +53,7 @@ public sealed record DatabaseConnectionDetails
         if (string.IsNullOrWhiteSpace(Host) || string.IsNullOrWhiteSpace(Database)) throw new InvalidDataException("Enter the server and database name supplied by your administrator.");
         return Provider switch
         {
-            DatabaseProvider.MySql => new MySqlConnectionStringBuilder(existing ?? "SslMode=Required;ConnectionTimeout=15") { Server = Host, Port = (uint)(Port == 0 ? 3306 : Port), Database = Database, UserID = Username, Password = password }.ToString(),
+            DatabaseProvider.MySql => new MySqlConnectionStringBuilder(existing ?? "SslMode=Required;ConnectionTimeout=15") { Server = Host, Port = (uint)(Port == 0 ? 3306 : Port), Database = Database, UserID = Username, Password = password, SslMode = MySqlTlsMode }.ToString(),
             DatabaseProvider.PostgreSql => new NpgsqlConnectionStringBuilder(existing ?? "SslMode=Require;Timeout=15") { Host = Host, Port = Port == 0 ? 5432 : Port, Database = Database, Username = Username, Password = password }.ToString(),
             DatabaseProvider.SqlServer => new SqlConnectionStringBuilder(existing ?? "Connect Timeout=15;Encrypt=True") { DataSource = Port == 0 ? Host : $"{Host},{Port}", InitialCatalog = Database, IntegratedSecurity = WindowsAuthentication, UserID = WindowsAuthentication ? "" : Username, Password = WindowsAuthentication ? "" : password }.ToString(),
             _ => throw new InvalidDataException("Choose a supported database type.")

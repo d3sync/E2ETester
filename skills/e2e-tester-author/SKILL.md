@@ -14,3 +14,7 @@ For local MCP setup, read [setup and execution](references/mcp-setup.md). Run `s
 Validate with `validate_package` before delivery. If MCP is unavailable, use JSON Schema validation and state that runtime validation has not run. Do not execute a generated suite unless the user asked to run it. When running, use prepare/execute operation IDs; retrying an uncertain execution uses the same ID, never a fresh request. Review both automated verdicts and incomplete coverage in the report.
 
 For preparation, permission changes, or setup/restore steps, read [preparation](references/preparation.md), use [schema 1.5](references/test-package.v1.5.schema.json) and [the preparation template](assets/prepared-permissions.jsee). Keep the same identity alias for the same account across permission scenarios. Host-approved MCP preparation uses prepare_environment and restore_environment; prepare_case alone only previews a request.
+
+JSON equality expectations contain serialized JSON values inside the expected string; a string value needs nested escaped quotes. Follow the examples in the generation prompt. Validate the exact final file through MCP after all edits; a JSON Schema pass alone cannot check these nested values.
+
+Before delivery or troubleshooting, read [validation and database compatibility](references/validation-and-compatibility.md) for nested JSON encoding, final-file MCP validation, TLS/account distinctions and Percona-safe preparation recovery.

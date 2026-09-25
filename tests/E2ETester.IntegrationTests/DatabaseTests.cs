@@ -19,6 +19,9 @@ internal static class DatabaseTests
         }
         var profile = new DatabaseConnectionProfile("fixture-db", DatabaseProvider.Sqlite, connectionString);
         var executor = new DatabaseExecutor(); var queries = new DatabaseQueries(executor);
+        check((await executor.TestConnectionAsync(profile, default)).ErrorCode is null, "SQLite connectivity probe opens the existing database");
+        var badProbe = await executor.TestConnectionAsync(profile with { ConnectionString = "invalid-secret-setting=private-sentinel" }, default);
+        check(badProbe.ErrorCode == "connection_failed" && !badProbe.Error!.Contains("private-sentinel"), "connection diagnostics identify failure without leaking settings");
         var query = new QueryDefinition { Id = "fixtures", ConnectionRef = "fixture-db", Sql = "SELECT id, name, enabled, note, password FROM fixture ORDER BY id" };
         var evidence = await queries.ExecuteAsync(query, profile, default);
         check(evidence.Result.ErrorCode is null && evidence.Result.Rows.Count == 2, "SQLite query returns fixture rows");

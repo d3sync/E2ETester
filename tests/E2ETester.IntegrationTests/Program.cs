@@ -125,6 +125,14 @@ await AuthenticationTests.RunAsync(Check, Reject, server.Url);
 await DraftTests.RunAsync(Check);
 await ReportTests.RunAsync(Check, directory);
 await ManualAssessmentTests.RunAsync(Check, Reject, directory);
+var invalidExpectation = new TestPackage { Cases = [new() { Assertions = [new() { Kind = CheckKind.JsonEquals, Expected = "plain-secret-sentinel" }] }] };
+try { PackageJson.Import(PackageJson.Write(invalidExpectation)); Check(false, "Invalid JSON expectation must fail"); }
+catch (PackageFieldValidationException ex) { Check(ex.FieldPath == "$.cases[0].assertions[0].expected" && !ex.Message.Contains("plain-secret-sentinel"), "invalid expectation identifies its field without exposing supplied values"); }
+foreach (var expectedValue in new[] { "\"hello\"", "true", "42", "null" })
+{
+    invalidExpectation.Cases[0].Assertions[0].Expected = expectedValue;
+    Check(PackageJson.Import(PackageJson.Write(invalidExpectation)).Cases.Count == 1, "JSON expectation accepts correctly encoded string, boolean, number or null");
+}
 await AgentTests.RunAsync(Check, Reject, server);
 await AgentPreparationTests.RunAsync(Check, Reject, directory, server);
 await PollingTests.RunAsync(Check, server.Url);

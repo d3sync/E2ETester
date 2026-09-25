@@ -12,6 +12,10 @@ public sealed class AgentTools(AgentWorkspace workspace)
     private static async Task<string> Reply(Func<Task<object>> work)
     {
         try { return PackageJson.Write(new { ok = true, result = await work() }); }
+        catch (PackageFieldValidationException ex)
+        {
+            return PackageJson.Write(new { ok = false, error = "invalid_package_field", path = ex.FieldPath, message = ex.Message });
+        }
         catch (Exception ex)
         {
             var code = ex.Message.Split(':')[0];

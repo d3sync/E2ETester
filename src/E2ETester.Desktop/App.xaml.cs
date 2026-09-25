@@ -232,7 +232,11 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             if (e.Args.Any(a => a.StartsWith("--smoke="))) { File.WriteAllText(Path.Combine(Path.GetTempPath(), "E2ETester-smoke-error.txt"), ex.ToString()); Shutdown(1); return; }
-            MessageBox.Show("The workspace could not be opened. Another instance may already be using it.\n\n" + ex.Message, "E2E Tester", MessageBoxButton.OK, MessageBoxImage.Error); Shutdown(1);
+            var message = ex is Application.PackageFieldValidationException or System.Text.Json.JsonException or InvalidDataException
+                ? "A package or saved document could not be loaded because its contents are invalid. No tests were sent."
+                : ex is IOException ? "A file or workspace could not be opened. Check file access and whether another instance is using the workspace."
+                : "E2E Tester could not start.";
+            MessageBox.Show(message + "\n\n" + ex.Message, "E2E Tester", MessageBoxButton.OK, MessageBoxImage.Error); Shutdown(1);
         }
     }
 }

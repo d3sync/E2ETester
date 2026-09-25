@@ -45,6 +45,14 @@ public sealed class ConnectionSetupWindow : Window
         {
         Add("Server", nameof(details.Host)); Add("Port (0 = default)", nameof(details.Port));
         Add("Database name", nameof(details.Database)); Add("Username", nameof(details.Username));
+        if (details.Provider == DatabaseProvider.MySql)
+        {
+            panel.Children.Add(new TextBlock { Text = "TLS / SSL mode (MySQL and MariaDB)", Margin = new Thickness(0, 10, 0, 4) });
+            var tls = new ComboBox { ItemsSource = Enum.GetValues<MySqlConnector.MySqlSslMode>() };
+            tls.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(details.MySqlTlsMode)) { Mode = BindingMode.TwoWay });
+            panel.Children.Add(tls);
+            panel.Children.Add(new TextBlock { Text = "Required needs server TLS support. Preferred can fall back to an unencrypted connection; None disables encryption. Match your administrator's settings.", TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(0, 6, 0, 0) });
+        }
         var windows = new CheckBox { Content = "Windows authentication (SQL Server)", Margin = new Thickness(0, 10, 0, 0) }; windows.SetBinding(CheckBox.IsCheckedProperty, nameof(details.WindowsAuthentication)); if (details.Provider == DatabaseProvider.SqlServer) panel.Children.Add(windows);
         panel.Children.Add(new TextBlock { Text = "Password", Margin = new Thickness(0, 10, 0, 4) });
         panel.Children.Add(password);

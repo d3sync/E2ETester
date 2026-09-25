@@ -65,6 +65,13 @@ with tempfile.TemporaryDirectory(prefix="e2etester-mcp-") as directory:
             assert value["ok"], value
             return value["result"]
         package = {"schemaVersion": "1.2", "id": "protocol-test", "title": "Protocol test", "cases": [{"id": "health", "title": "Health", "request": {"url": "/health"}, "assertions": [{"expected": "200"}]}]}
+        malformed = json.loads(json.dumps(package))
+        malformed["cases"][0]["assertions"] = [{"kind": "jsonEquals", "expected": "private-sentinel"}]
+        identifier += 1
+        send({"id": identifier, "method": "tools/call", "params": {"name": "validate_package", "arguments": {"packageJson": json.dumps(malformed)}}})
+        rejected = json.loads(response(identifier)["content"][0]["text"])
+        assert not rejected["ok"] and rejected["error"] == "invalid_package_field" and rejected["path"] == "$.cases[0].assertions[0].expected", rejected
+        assert "private-sentinel" not in json.dumps(rejected)
         call("save_package", {"packageJson": json.dumps(package)})
         library = call("list_packages", {})
         assert call("get_package", {"packageId": library[0]["id"]})["id"] == "protocol-test"

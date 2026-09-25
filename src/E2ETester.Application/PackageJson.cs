@@ -68,7 +68,7 @@ public static class PackageJson
             foreach (var check in c.DatabaseChecks)
             {
                 if (string.IsNullOrWhiteSpace(check.Id) || !package.Queries.Any(q => q.Id == check.QueryId)) throw new InvalidDataException($"{c.Title}: database check needs an ID and existing query.");
-                using var expected = JsonDocument.Parse(check.ExpectedJson);
+                using var expected = ParseExpected(check.ExpectedJson, $"$.cases[{package.Cases.IndexOf(c)}].databaseChecks[{c.DatabaseChecks.IndexOf(check)}].expectedJson");
                 if (check.Kind == DatabaseCheckKind.RowCount && (expected.RootElement.ValueKind != JsonValueKind.Number || !expected.RootElement.TryGetInt32(out var rows) || rows < 0)) throw new InvalidDataException("Row count must be a nonnegative integer.");
                 if (check.Kind is DatabaseCheckKind.ScalarEquals or DatabaseCheckKind.ScalarNotEquals or DatabaseCheckKind.ScalarGreaterThan or DatabaseCheckKind.ScalarLessThan && string.IsNullOrWhiteSpace(check.Column)) throw new InvalidDataException("Scalar checks require a column name.");
                 if (check.PollTimeoutSeconds is < 0 or > 600 || check.PollIntervalMilliseconds is < 100 or > 60000) throw new InvalidDataException("Polling must be 0–600 seconds with a 100–60,000 ms interval.");
@@ -83,16 +83,24 @@ public static class PackageJson
                 if (a.Kind is CheckKind.JsonEquals or CheckKind.JsonExists or CheckKind.JsonGreaterThan or CheckKind.JsonLessThan or CheckKind.JsonArrayCount)
                 {
                     if (a.Selector.Length > 0 && !a.Selector.StartsWith('/')) throw new InvalidDataException("JSON selectors use JSON Pointer, for example /user/id.");
-                    if (a.Kind != CheckKind.JsonExists) { using var expected = JsonDocument.Parse(a.Expected); }
+                    if (a.Kind != CheckKind.JsonExists) { using var expected = ParseExpected(a.Expected, $"$.cases[{package.Cases.IndexOf(c)}].assertions[{c.Assertions.IndexOf(a)}].expected"); }
                 }
                 if (a.Kind is CheckKind.JsonGreaterThan or CheckKind.JsonLessThan && !decimal.TryParse(a.Expected, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out _)) throw new InvalidDataException("Numeric comparisons require a decimal expectation.");
                 if (a.Kind is CheckKind.JsonArrayCount or CheckKind.DurationLessThan && (!int.TryParse(a.Expected, out var count) || count < 0)) throw new InvalidDataException("Count and duration expectations must be nonnegative integers (milliseconds for duration).");
                 if (a.Kind == CheckKind.StatusIn)
                 {
-                    using var statuses = JsonDocument.Parse(a.Expected);
+                    using var statuses = ParseExpected(a.Expected, $"$.cases[{package.Cases.IndexOf(c)}].assertions[{c.Assertions.IndexOf(a)}].expected");
                     if (statuses.RootElement.ValueKind != JsonValueKind.Array || statuses.RootElement.GetArrayLength() == 0 || statuses.RootElement.EnumerateArray().Any(s => s.ValueKind != JsonValueKind.Number || !s.TryGetInt32(out var status) || status is < 100 or > 599)) throw new InvalidDataException("Status membership requires a JSON array such as [200,201].");
                 }
             }
+        }
+    }
+    private static JsonDocument ParseExpected(string json, string path)
+    {
+        try { return JsonDocument.Parse(json); }
+        catch (JsonException)
+        {
+            throw new PackageFieldValidationException(path, "Expected value must contain valid JSON. For a string such as hello, use an expected field containing the JSON-encoded string (including its double quotes). Numbers and lowercase true/false must remain JSON values. Plain text is only used by text checks such as bodyContains.");
         }
     }
     public static void ValidateRequest(RequestDefinition request, string title = "Request")
