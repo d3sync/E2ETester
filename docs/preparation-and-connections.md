@@ -47,3 +47,5 @@ Preparation reports use schema **1.8** and include preparation/restoration event
 ## Connection troubleshooting
 
 Test connection uses a fixed SELECT 1 and does not require the profile to be marked read-only. Query Studio accepts write-capable accounts; preparation requires writable access. MySQL/MariaDB setup exposes TLS mode and preserves existing settings. Connection errors report safe driver codes; query errors also identify the failing stage. See [compatibility guidance](../skills/e2e-tester-author/references/validation-and-compatibility.md). Run `./Test-Databases.ps1 -MariaDb` to verify the MySQL provider against disposable MariaDB infrastructure; omit the switch for MySQL. Neither run certifies multi-node Percona behavior.
+
+MySQL preparation and restoration use fresh connections with protocol pipelining disabled, retaining the configured TLS settings. Protocol errors identify the failing stage; no write is automatically retried. If recovery is pending, use Restore changes before preparing again. Database proxies and server versions may still need investigation if a protocol error persists.

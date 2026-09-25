@@ -40,4 +40,6 @@ Use a real unique/primary key and a transactional table for this single-row work
 
 Capture actual execution-time values in report evidence, not just the package baseline. Keep the same identity alias for the same account, obtain a new JWT when permission claims change, and restore before unrelated cases or finishing. Original values stay in encrypted recovery storage.
 
+A MySQL "Packet received out-of-order" error is a protocol failure, not proof of invalid SQL or permissions. Prepare/Restore use fresh non-pooled MySQL connections with pipelining disabled for server/proxy compatibility. Do not disable TLS or replay the write to diagnose it. Record the reported stage, server/driver versions and whether a proxy is involved (unknown is acceptable). If it persists, inspect server/proxy logs; use the existing recovery workflow before another preparation. This mitigation does not prove a particular proxy caused the error.
+
 Reference: https://docs.percona.com/percona-xtradb-cluster/8.0/strict-mode.html#explicit-table-locking
