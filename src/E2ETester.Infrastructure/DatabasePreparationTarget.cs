@@ -33,7 +33,9 @@ public sealed class DatabasePreparationTarget(DatabaseConnectionProfile profile)
     private async Task<string> Read(DbConnection connection, DbTransaction? transaction, PreparationPlan plan, CancellationToken token)
     {
         await using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandTimeout = 30;
-        command.CommandText = $"SELECT {Quote(plan.ValueColumn)} FROM {Quote(plan.Table)} WHERE {Quote(plan.KeyColumn)} = @key"; Add(command, "@key", plan.KeyJson);
+        // MySQL runs the replace under REPEATABLE READ, so its in-transaction read takes the row lock explicitly.
+        var lockRow = transaction is not null && profile.Provider == DatabaseProvider.MySql ? " FOR UPDATE" : "";
+        command.CommandText = $"SELECT {Quote(plan.ValueColumn)} FROM {Quote(plan.Table)} WHERE {Quote(plan.KeyColumn)} = @key{lockRow}"; Add(command, "@key", plan.KeyJson);
         await using var reader = await command.ExecuteReaderAsync(token);
         if (!await reader.ReadAsync(token)) throw new InvalidOperationException("Preparation target was not found.");
         var value = reader.IsDBNull(0) ? "null" : JsonSerializer.Serialize(reader.GetValue(0));
@@ -44,7 +46,10 @@ public sealed class DatabasePreparationTarget(DatabaseConnectionProfile profile)
     public async Task ReplaceAsync(PreparationPlan plan, string expectedJson, string replacementJson, CancellationToken token)
     {
         await using var connection = Connect(plan); await connection.OpenAsync(token);
-        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, token);
+        // Percona XtraDB Cluster with pxc_strict_mode=ENFORCING rejects SERIALIZABLE; the locking read plus the
+        // compare-and-swap UPDATE below give the same guarantee on MySQL.
+        var isolation = profile.Provider == DatabaseProvider.MySql ? IsolationLevel.RepeatableRead : IsolationLevel.Serializable;
+        await using var transaction = await connection.BeginTransactionAsync(isolation, token);
         var current = await Read(connection, transaction, plan, token);
         if (!Preparations.Equal(current, expectedJson)) throw new InvalidOperationException("Preparation target changed. No value was overwritten.");
         if (Preparations.Equal(current, replacementJson)) return;
