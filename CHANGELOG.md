@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.18
+
+- A one-request Run anyway checkbox allows explicitly bypassing previous-test pass requirements, including sign-in/remote-IP flow prerequisites. It resets after sending or switching cases.
+- Overrides are recorded in attempt changes and reports. Existing earlier HTTP responses can supply bindings despite later failures; missing values still require manual input, and assertions are evaluated normally.
+
 ## 0.7.17
 
 - Guided Action cleanup resolves the original successful HTTP create response after a later duplicate failure. An attempt picker supports explicit response selection regardless of test verdict.

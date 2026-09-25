@@ -19,7 +19,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private Attempt? selectedAttempt;
     private IdentityEditor? selectedIdentity;
     private string baseUrl = "http://localhost:5188", message = "Open a test package or explore the local demo. Nothing runs automatically.";
-    private bool busy;
+    private bool busy, runAnyway;
+    public bool RunAnyway { get => runAnyway; set => Set(ref runAnyway, value); }
     public ObservableCollection<CaseEditor> Cases { get; } = [];
     public ObservableCollection<Attempt> Attempts { get; } = [];
     public ObservableCollection<IdentityEditor> Identities { get; } = [new()];
@@ -47,6 +48,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         set
         {
             if (!Set(ref selectedCase, value)) return;
+            RunAnyway = false;
             var alias = value?.IdentityRef ?? "none";
             SelectedIdentity = Identities.FirstOrDefault(i => i.Alias == alias) ?? AddIdentity(alias);
             Changed(nameof(SendLabel)); LoadAttempts(); RefreshCommands();
@@ -221,6 +223,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
             Message = "This package requires database data before sending. For /whoami, choose Cloud test above: that API-only package needs no fixtures. Otherwise use Database → Query Studio to select the configured fixture.";
             return;
         }
+        var bypassPrerequisites = RunAnyway;
+        if (bypassPrerequisites && MessageBox.Show(PreparationOwner(), "Run this request without requiring earlier tests to pass?\n\nAvailable earlier HTTP responses may supply referenced values even if their test failed. Missing values must still be entered manually. This override is recorded; assertions still run normally.", "Run anyway — this request only", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) != MessageBoxResult.OK) { RunAnyway = false; return; }
         var request = editor.Request(identityEditor.Alias); var checks = PackageJson.Clone(editor.Checks.ToList());
         Busy = true; cancellation = new();
         try
@@ -238,11 +242,11 @@ public sealed partial class MainViewModel : Observable, IDisposable
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
-            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues, preparationConfirmed: true);
+            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, redactResponseBody: responsePreferences.RedactSensitiveValues, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites);
             editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
         }
-        finally { identityEditor.RefreshSession(); cancellation.Dispose(); cancellation = null; Busy = false; NotifyRun(); LoadAttempts(); }
+        finally { RunAnyway = false; identityEditor.RefreshSession(); cancellation.Dispose(); cancellation = null; Busy = false; NotifyRun(); LoadAttempts(); }
     }
     private async Task LoginBrowserAsync()
     {

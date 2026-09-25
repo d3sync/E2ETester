@@ -55,7 +55,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
-    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true, bool preparationConfirmed = false)
+    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool redactResponseBody = true, bool preparationConfirmed = false, bool bypassPrerequisites = false)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
         try
@@ -64,7 +64,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             if (run.FinishedAt is not null) throw new InvalidOperationException("This run is finished. Start a new run to execute more tests.");
             if (!run.Package.Cases.Any(c => c.Id == baseline.Id)) throw new InvalidOperationException("The case does not belong to this run.");
             var setup = run.Package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication);
-            if (setup is not null && baseline.Id != setup.Id)
+            if (!bypassPrerequisites && setup is not null && baseline.Id != setup.Id)
             {
                 if (run.Attempts.LastOrDefault(a => a.CaseId == setup.Id)?.Verdict != Verdict.Pass)
                     throw new InvalidOperationException("Complete the Swagger sign-in step first.");
@@ -85,6 +85,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                     IdentityAlias = identity.Alias, AuthKind = identity.Kind,
                     Request = new Redaction(Redaction.Secrets(baseline.Request).Append(identity.Secret)).Request(new RequestDefinition { Url = baseline.Request.Url, IdentityRef = identity.Alias }),
                     Checks = [new("authentication-token", true, Verdict.Pass, "Bearer token available", "Token supplied", "No API request sent. Token availability only; the next remote-IP request validates server access.")] };
+                if (bypassPrerequisites) auth.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; authentication availability still verified."));
                 run.Attempts.Add(auth);
                 try { await store.SaveAsync(run); } catch { run.Attempts.Remove(auth); throw; }
                 auth.State = AttemptState.Completed; auth.FinishedAt = DateTimeOffset.UtcNow; Recalculate(auth);
@@ -100,8 +101,8 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 _ = DatabaseQueries.SelectFixture(fixture.Evidence, fixture.RowIndex);
             }
             fixture = fixture is null ? null : PackageJson.Clone(fixture);
-            var frozen = ValueBindings.Request(draft, fixture, run);
-            var resolvedBaseline = fixture is null && ValueBindings.RequiresFixture(baseline.Request)
+            var frozen = ValueBindings.Request(draft, fixture, run, bypassPrerequisites ? GuidedActionBindings.Defaults(draft, run) : null);
+            var resolvedBaseline = bypassPrerequisites || fixture is null && ValueBindings.RequiresFixture(baseline.Request)
                 ? PackageJson.Clone(baseline.Request) : ValueBindings.Request(baseline.Request, fixture, run);
             var frozenAssertions = PackageJson.Clone(assertions);
             if (frozenAssertions.Any(a => a.Expected.Contains(Redaction.Mask))) throw new InvalidOperationException("Re-enter redacted assertion values before running checks.");
@@ -136,6 +137,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 Assertions = frozenAssertions.Select(a => a with { Expected = redactor.Body(a.Expected) }).ToList(),
                 Fixture = fixture, DatabasePlans = plans
             };
+            if (bypassPrerequisites) attempt.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; prior-case prerequisites bypassed. Available response source IDs are recorded in captureSources."));
             run.Attempts.Add(attempt);
             try { await store.SaveAsync(run); }
             catch { run.Attempts.Remove(attempt); throw; }

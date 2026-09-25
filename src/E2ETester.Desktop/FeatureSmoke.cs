@@ -16,7 +16,11 @@ internal static class FeatureSmoke
         await PreparationSmoke.RunAsync(window, path);
         await CheckNavigationAsync(window, path);
         var originalCase = model.SelectedCase;
+        if (!Descendants(window).OfType<CheckBox>().Any(c => Equals(c.Content, "Run anyway"))) throw new InvalidOperationException("Run anyway control is missing.");
+        model.RunAnyway = true;
+        model.SelectedCase = model.Cases.First(c => c != originalCase);
         model.SelectedCase = model.Cases.First(c => c.Baseline.Kind == TestStepKind.Http);
+        if (model.RunAnyway) throw new InvalidOperationException("Run anyway must reset when selecting another case.");
         const string compactJson = "{\"items\":[{\"name\":\"Example result\",\"active\":true}],\"description\":\"A long response value that should wrap to the available width instead of requiring horizontal scrolling.\"}";
         var displayResponse = new ResponseSnapshot { Body = compactJson, StatusCode = 200 };
         model.SelectedAttempt = new Attempt { Response = displayResponse, State = AttemptState.Completed };
