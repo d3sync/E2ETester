@@ -55,6 +55,13 @@ internal static class LiveDatabaseTests
                 var rejectedLogin = await new DatabaseExecutor().TestConnectionAsync(writable with { ConnectionString = invalidPassword.ToString() }, default);
                 check(rejectedLogin.ErrorCode == "connection_failed" && rejectedLogin.Error!.Contains("1045") && !rejectedLogin.Error.Contains("invalid-test-password"), "MySQL/MariaDB: bad login exposes error code without credentials");
             }
+            var writableRead = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { Id = "write-account-read", ConnectionRef = writable.Alias, Provider = provider, Sql = "SELECT id FROM fixture WHERE id = 1" }, writable, default);
+            check(writableRead.ErrorCode is null && writableRead.Rows.Count == 1, $"{provider}: Query Studio reads using a write-enabled account without acknowledgement");
+            if (provider is DatabaseProvider.MySql or DatabaseProvider.PostgreSql)
+            {
+                var blockedWrite = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { Id = "guarded-write", ConnectionRef = writable.Alias, Provider = provider, Sql = "UPDATE fixture SET name = 'unexpected' WHERE id = 1" }, writable, default);
+                check(blockedWrite.ErrorCode == "database_error", $"{provider}: read-only transaction rejects writes from a write-enabled account");
+            }
             var preparation = new PreparationPlan { Provider = provider, ConnectionRef = "live-db", Table = "fixture", KeyColumn = "id", KeyJson = "1", ValueColumn = "note", ValueJson = "\"prepared\"" };
             var target = new DatabasePreparationTarget(writable);
             var recovery = new PreparationRecovery { Plan = preparation, OriginalJson = await target.ReadAsync(preparation, default) };

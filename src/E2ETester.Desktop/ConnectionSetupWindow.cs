@@ -63,7 +63,7 @@ public sealed class ConnectionSetupWindow : Window
         var browse = new Button { Content = "Choose SQLite file…", Margin = new Thickness(0, 8, 0, 8) };
         browse.Click += (_, _) => { var file = new OpenFileDialog { Filter = "SQLite files|*.db;*.sqlite;*.sqlite3|All files|*.*" }; if (file.ShowDialog() == true) { details.File = file.FileName; details.Provider = DatabaseProvider.Sqlite; Render(); } }; panel.Children.Add(browse);
         }
-        var readOnly = new CheckBox { Content = "This is a read-only database account", Margin = new Thickness(0, 8, 0, 8) }; readOnly.SetBinding(CheckBox.IsCheckedProperty, nameof(details.ReadOnlyAccount)); panel.Children.Add(readOnly);
+        var readOnly = new CheckBox { Content = "Read-only account (optional; disables preparation)", Margin = new Thickness(0, 8, 0, 8) }; readOnly.SetBinding(CheckBox.IsCheckedProperty, nameof(details.ReadOnlyAccount)); panel.Children.Add(readOnly);
         var message = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var buttons = new WrapPanel();
         Button Action(string title, Action action) { var b = new Button { Content = title, Margin = new Thickness(0, 6, 6, 0) }; b.Click += (_, _) => { try { action(); } catch (Exception ex) when (ex is IOException or ArgumentException or System.Text.Json.JsonException or InvalidOperationException) { message.Text = "Check the connection fields or template. " + (ex is InvalidDataException ? ex.Message : "The operation could not be completed."); } }; buttons.Children.Add(b); return b; }

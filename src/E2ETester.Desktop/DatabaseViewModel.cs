@@ -202,7 +202,7 @@ public sealed class DatabaseViewModel : Observable
             if (connectionOnly)
             {
                 var probe = await new DatabaseExecutor().TestConnectionAsync(SelectedConnection.Profile, cancellation.Token);
-                Message = probe.Error ?? "Connection succeeded. Read-only permissions were not checked; Query Studio still requires a read-only account, while preparation uses a write-enabled profile.";
+                Message = probe.Error ?? "Connected. Ready to run queries.";
                 return;
             }
             var result = await service.ExecuteAsync(query, SelectedConnection.Profile, cancellation.Token);

@@ -16,7 +16,7 @@ Providers: SQLite, Microsoft SQL Server, MySQL and PostgreSQL. The implementatio
 
 Open Query Studio and add a connection. Its alias and provider must exactly match the query's `connectionRef` and `provider`. Enter a provider-specific connection string in the masked input; use **Choose SQLite file** for an existing local file. **Test connection** executes a simple read query. Connections must be configured again after restarting the application.
 
-SQLite is opened read-only. A native authorizer also rejects changes, database attachment and attempts to disable query-only mode. SQL Server/MySQL/PostgreSQL require a database account with actual read-only permissions; the profile checkbox records that this has been configured. MySQL/PostgreSQL additionally use read-only transactions. These settings do not replace database permissions. Query Studio does not provide setup/teardown writes.
+SQLite is opened read-only. A native authorizer also rejects changes, database attachment and attempts to disable query-only mode. SQL Server/MySQL/PostgreSQL accept write-capable accounts. A restricted read-only account is recommended; the optional profile checkbox records that restriction and prevents preparation using that profile. SQL Server relies on account permissions; rollback does not make arbitrary SQL side-effect free. MySQL/PostgreSQL additionally use read-only transactions. These settings do not replace database permissions. Query Studio does not provide setup/teardown writes.
 
 ## Define queries and checks
 

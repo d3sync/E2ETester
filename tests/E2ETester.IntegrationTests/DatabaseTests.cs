@@ -99,10 +99,10 @@ internal static class DatabaseTests
         check(noQueryExecutor.Count == 0, "journal must save before database verification executes");
         foreach (var provider in new[] { DatabaseProvider.SqlServer, DatabaseProvider.MySql, DatabaseProvider.PostgreSql })
         {
-            var q = query with { Provider = provider }; var p = profile with { Provider = provider, ConnectionString = "" };
+            var q = query with { Provider = provider }; var p = profile with { Provider = provider, ConnectionString = "UnsupportedTestSetting=value" };
             var unavailable = await queries.ExecuteAsync(q, p, default);
-            check(unavailable.Result.ErrorCode == "read_only_account_required", provider + " requires read-only account acknowledgement before connecting");
-            using var adapter = DatabaseExecutor.CreateConnection(p);
+            check(unavailable.Result.ErrorCode == "database_error", provider + " attempts connection without read-only acknowledgement");
+            using var adapter = DatabaseExecutor.CreateConnection(p with { ConnectionString = "" });
             check(adapter is not null, provider + " driver constructs successfully (not a live DB test)");
         }
         using var optionalStore = new SqliteRunStore(Path.Combine(root, "optional-journal"));

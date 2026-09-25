@@ -6,7 +6,7 @@ Open Query Studio and choose **+ Connection**. Choose a database type and enter 
 
 Administrators can export a connection template for testers to import. Templates contain connection details and usernames, but never passwords. Enter the password locally. Workspace → Save environment remembers connection credentials in Windows user-encrypted storage; otherwise connections remain session-only.
 
-Query Studio remains read-only. Confirm the read-only checkbox only when the account is restricted by the database administrator. Preparation uses a separate writable profile; do not mark it read-only.
+Query Studio remains read-only. Confirm the read-only checkbox only when the account is restricted by the database administrator. Write-capable profiles work for both queries and preparation; leave the optional read-only checkbox off for these accounts.
 
 ## Prepare, sign in, send, next
 
@@ -46,4 +46,4 @@ Preparation reports use schema **1.8** and include preparation/restoration event
 
 ## Connection troubleshooting
 
-Test connection uses a fixed SELECT 1 and does not require the profile to be marked read-only. Query Studio still requires a restricted account; preparation requires writable access. MySQL/MariaDB setup exposes TLS mode and preserves existing settings. Connection errors report safe driver codes; query errors also identify the failing stage. See [compatibility guidance](../skills/e2e-tester-author/references/validation-and-compatibility.md). Run `./Test-Databases.ps1 -MariaDb` to verify the MySQL provider against disposable MariaDB infrastructure; omit the switch for MySQL. Neither run certifies multi-node Percona behavior.
+Test connection uses a fixed SELECT 1 and does not require the profile to be marked read-only. Query Studio accepts write-capable accounts; preparation requires writable access. MySQL/MariaDB setup exposes TLS mode and preserves existing settings. Connection errors report safe driver codes; query errors also identify the failing stage. See [compatibility guidance](../skills/e2e-tester-author/references/validation-and-compatibility.md). Run `./Test-Databases.ps1 -MariaDb` to verify the MySQL provider against disposable MariaDB infrastructure; omit the switch for MySQL. Neither run certifies multi-node Percona behavior.

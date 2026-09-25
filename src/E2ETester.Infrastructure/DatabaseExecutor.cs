@@ -83,8 +83,6 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
         {
             DatabaseQueries.Validate(query);
             if (profile.Provider != query.Provider || profile.Alias != query.ConnectionRef) throw new InvalidOperationException("Connection does not match the query.");
-            if (profile.Provider != DatabaseProvider.Sqlite && !profile.ReadOnlyCredentialsConfirmed)
-                return Failure("read_only_account_required", "Configure a database account restricted to reading, then confirm that access in the connection profile.");
             token.ThrowIfCancellationRequested();
             await using var connection = CreateConnection(profile);
             stage = "connecting to the database";
@@ -92,7 +90,8 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
             stage = "starting the read-only transaction";
             // Microsoft.Data.Sqlite's async APIs execute synchronously; interrupt the native VM for a real deadline.
             using var sqliteInterrupt = token.Register(() => { if (connection is SqliteConnection local && local.Handle is not null) SQLitePCL.raw.sqlite3_interrupt(local.Handle); });
-            // Read-only accounts remain the enforcement boundary for server databases; transaction modes add protection.
+            // Restricted accounts are recommended, not required. Provider transaction modes add protection;
+            // SQL Server has no equivalent read-only transaction. Disposal rolls back uncommitted changes.
             if (profile.Provider == DatabaseProvider.MySql) await SetupAsync(connection, "SET TRANSACTION READ ONLY", null, token);
             await using var transaction = connection is SqliteConnection sqlite ? sqlite.BeginTransaction(deferred: true) : await connection.BeginTransactionAsync(token);
             if (profile.Provider == DatabaseProvider.PostgreSql) await SetupAsync(connection, "SET TRANSACTION READ ONLY", transaction, token);
