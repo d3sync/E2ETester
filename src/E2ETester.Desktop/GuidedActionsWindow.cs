@@ -33,12 +33,14 @@ public sealed class GuidedActionsWindow : Window
             foreach (var caseId in ValueBindings.Dependencies(action.Request).Distinct())
             {
                 attemptsPanel.Children.Add(new TextBlock { Text = "Resource response from " + caseId + " (test verdict does not block cleanup)", TextWrapping = TextWrapping.Wrap });
-                var options = GuidedActionBindings.Candidates(source, caseId).Select(a => new { a.Id, Label = $"{a.StartedAt:yyyy-MM-dd HH:mm:ss} · HTTP {a.Response!.StatusCode} · {a.Verdict} · {a.Id}" }).ToList();
+                var options = GuidedActionBindings.Candidates(source, caseId, action.Request).Select(a => new { a.Id, Label = $"{a.StartedAt:yyyy-MM-dd HH:mm:ss} · HTTP {a.Response!.StatusCode} · {a.Verdict} · {a.Id}" }).ToList();
+                if (options.Count == 0) attemptsPanel.Children.Add(new TextBlock { Text = "No response here contains the required value. Use Find saved resource or enter the verified target manually.", TextWrapping = TextWrapping.Wrap });
                 var picker = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", SelectedValuePath = "Id", SelectedValue = chosenAttempts.GetValueOrDefault(caseId) };
                 picker.SelectionChanged += (_, _) => { if (picker.SelectedValue is string id) chosenAttempts[caseId] = id; resetRequest?.Invoke(); };
                 attemptsPanel.Children.Add(picker);
             }
         }
+        var findResource = new Button { Content = "Find saved resource", HorizontalAlignment = HorizontalAlignment.Left }; header.Children.Add(findResource);
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
         var status = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 150, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; footer.Children.Add(status);
         var buttons = new WrapPanel(); footer.Children.Add(buttons);
@@ -62,6 +64,20 @@ public sealed class GuidedActionsWindow : Window
         }
         selection.SelectionChanged += (_, _) => Select(); Select();
         chooseSource.Click += async (_, _) => { try { source = await model.ChooseActionSourceAsync(this) ?? source; SourceLabel(); LoadAttempts(selection.SelectedItem as TestCase); if (selection.SelectedItem is TestCase selected && selected.Preparation is null) editor.Text = PackageJson.Write(selected.Request); } catch (Exception ex) { status.Text = ex.Message; } };
+        findResource.Click += async (_, _) =>
+        {
+            if (selection.SelectedItem is not TestCase action || action.Preparation is not null) return;
+            SetActive(true);
+            try
+            {
+                var found = await model.FindGuidedActionSourceAsync(action.Request);
+                if (found is null) { status.Text = "No matching response was found in this workspace. Look up the resource ID and enter it manually, or open the workspace where it was created."; return; }
+                source = found; SourceLabel(); LoadAttempts(action); editor.Text = PackageJson.Write(action.Request);
+                status.Text = "Found saved resource values. Review the selected source run and resolved target before sending. Nothing has been sent.";
+            }
+            catch (Exception ex) { status.Text = ex.Message; }
+            finally { SetActive(false); }
+        };
         preview.Click += (_, _) => { try { editor.Text = PackageJson.Write(GuidedActionBindings.Resolve(PackageJson.Read<RequestDefinition>(editor.Text), source, chosenAttempts)); } catch (Exception ex) { status.Text = ex.Message + " Enter a verified target manually if the creation response is unavailable."; } };
         execute.Click += async (_, _) =>
         {

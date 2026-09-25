@@ -168,6 +168,13 @@ var manualForce = await coordinator.ExecuteAsync(forceRun, forceCase, forceCase.
 Check(manualForce.Verdict == Verdict.Fail, "Run anyway still evaluates assertions normally for manual values");
 await Reject(() => coordinator.ExecuteAsync(forceRun, forceCase, forceCase.Request with { Url = "/inspect?item={{case.missing./id}}" }, forceCase.Assertions, none, default, bypassPrerequisites: true), "Run anyway does not invent missing resource values");
 Check(Reports.Json(forceRun).Contains("execution.prerequisites"), "Run anyway override is included in exported report evidence");
+recoverySource.Attempts[1].Response = new ResponseSnapshot { StatusCode = 400, Body = "UICC already exists." };
+recoverySource.Attempts.Add(new Attempt { Id = "wrong-shape", CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Fail, Response = new() { StatusCode = 201, Body = "{\"message\":\"no resource value\"}" } });
+Check(GuidedActionBindings.Resolve(cleanupRequest, recoverySource).CaptureSources["create"] == "created", "cleanup skips plain-text duplicate errors and later responses missing the required ID");
+Check(GuidedActionBindings.Candidates(recoverySource, "create", cleanupRequest).Count() == 1, "cleanup picker contains only responses that supply the actual binding");
+await Reject(() => Task.Run(() => GuidedActionBindings.Resolve(cleanupRequest, recoverySource with { Attempts = [recoverySource.Attempts[1]] })), "plain-text-only source cannot become a guessed cleanup ID");
+try { ValueBindings.Resolve("{{case.create./id}}", null, run: recoverySource, selectedAttempts: new Dictionary<string, string> { ["create"] = "duplicate" }); throw new Exception("Expected readable response error"); }
+catch (InvalidOperationException ex) { Check(ex.Message.Contains("not JSON") && !ex.Message.Contains("UICC"), "invalid response JSON gives actionable diagnostics without echoing response data"); }
 if (args.Contains("--live-databases")) await LiveDatabaseTests.RunAsync(Check);
 await WorkflowTests.RunAsync(Check, Reject, directory);
 await PreparationTests.RunAsync(Check, Reject, directory);

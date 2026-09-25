@@ -24,6 +24,22 @@ public sealed partial class MainViewModel
         if (source.Package.Id != package.Id || source.BaseUrl != BaseUrl) throw new InvalidOperationException("Choose a run of this package on the current API environment.");
         return source;
     }
+    internal async Task<TestRun?> FindGuidedActionSourceAsync(RequestDefinition request)
+    {
+        if (!ValueBindings.Dependencies(request).Any()) return run;
+        for (var offset = 0; offset < 1000; offset += 50)
+        {
+            var summaries = await store.ListAsync(offset, 50);
+            foreach (var summary in summaries)
+            {
+                var candidate = await store.LoadAsync(summary.Id);
+                if (candidate is null || candidate.Package.Id != package.Id || candidate.BaseUrl != BaseUrl) continue;
+                if (ValueBindings.Dependencies(request).All(id => GuidedActionBindings.Candidates(candidate, id, request).Any())) return candidate;
+            }
+            if (summaries.Count < 50) break;
+        }
+        return null;
+    }
     internal async Task<string> ExecuteGuidedRequestAsync(TestCase action, RequestDefinition request, TestRun? source)
     {
         if (Busy || Database.Busy) throw new InvalidOperationException("Wait for the current operation.");

@@ -24,11 +24,14 @@ internal static class GuidedActionsSmoke
         var package = new TestPackage { SchemaVersion = "1.6", Id = "actions-demo", BaseUrl = url, Cases = [new() { Id = "create" }], GuidedActions = [cleanup, permissions] };
         var file = Path.Combine(root, "actions.jsee"); File.WriteAllText(file, PackageJson.Write(package));
         var workspace = Path.Combine(root, "workspace");
+            var source = new TestRun { Package = package, BaseUrl = url, Attempts = [new() { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Pass, Response = new() { StatusCode = 201, Body = "{\"id\":123}" } }] };
+            source.Attempts.Add(new Attempt { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Fail, Response = new() { StatusCode = 400, Body = "UICC already exists." } });
+        using (var seed = new E2ETester.Infrastructure.SqliteRunStore(workspace)) await seed.SaveAsync(source);
         using (var model = new MainViewModel(workspace))
         {
             model.OpenPackageFile(file); model.Database.Connections.Add(new() { Alias = "admin", Provider = DatabaseProvider.Sqlite, ConnectionString = cs });
-            var source = new TestRun { Package = package, BaseUrl = url, Attempts = [new() { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Pass, Response = new() { StatusCode = 201, Body = "{\"id\":123}" } }] };
-            source.Attempts.Add(new Attempt { CaseId = "create", State = AttemptState.Completed, Verdict = Verdict.Fail, Response = new() { StatusCode = 409, Body = "{\"error\":\"duplicate\"}" } });
+            var found = await model.FindGuidedActionSourceAsync(cleanup.Request);
+            if (found?.Id != source.Id) throw new InvalidOperationException("Could not find the prior saved resource response.");
             var receive = listener.GetContextAsync();
             var send = model.ExecuteGuidedRequestAsync(cleanup, cleanup.Request, source);
             var context = await receive.WaitAsync(TimeSpan.FromSeconds(10));

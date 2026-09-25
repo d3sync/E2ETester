@@ -23,7 +23,8 @@ public static class ValueBindings
             var attempt = explicitlySelected ? run?.Attempts.SingleOrDefault(a => a.CaseId == id && a.Id == selectedAttempts![id]) : run?.Attempts.LastOrDefault(a => a.CaseId == id);
             if (attempt is not { State: AttemptState.Completed, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } } || (!explicitlySelected && attempt.Verdict != Verdict.Pass)) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
             if (sources is not null) sources[id] = attempt.Id;
-            return Resolve("{{response." + source[(separator + 1)..] + "}}", null, attempt.Response.Body);
+            try { return Resolve("{{response." + source[(separator + 1)..] + "}}", null, attempt.Response.Body); }
+            catch (JsonException) { throw new InvalidOperationException($"The saved response for '{id}' is not JSON and cannot supply this value. Choose a response containing the resource ID, find a saved resource, or enter the verified value manually."); }
         }
         JsonElement cell;
         if (source.StartsWith("fixture.", StringComparison.Ordinal))
@@ -89,11 +90,18 @@ public static class ValueBindings
             values = values.Concat(request.Parts.Where(p => p.Enabled && !p.Binary).Select(p => p.Value));
         return values.Any(v => v.Contains("{{fixture.", StringComparison.Ordinal));
     }
-    public static IEnumerable<string> Dependencies(RequestDefinition request)
+    private static IEnumerable<string> BindingValues(RequestDefinition request)
     {
         var values = request.Query.Concat(request.Headers).Where(f => f.Enabled).Select(f => f.Value).Append(request.Url);
         if (request.SendBody && request.BodyKind == RequestBodyKind.Text) values = values.Append(request.Body);
         if (request.SendBody && request.BodyKind is RequestBodyKind.Multipart or RequestBodyKind.FormUrlEncoded) values = values.Concat(request.Parts.Where(p => p.Enabled && !p.Binary).Select(p => p.Value));
-        return Regex.Matches(string.Join("\n", values), @"\{\{case\.([^.{}]+)\.").Select(m => m.Groups[1].Value).Distinct();
+        return values;
+    }
+    public static IEnumerable<string> CaseExpressions(RequestDefinition request, string caseId) =>
+        Marker.Matches(string.Join("\n", BindingValues(request))).Select(m => m.Value)
+            .Where(expression => expression.StartsWith("{{case." + caseId + ".", StringComparison.Ordinal)).Distinct();
+    public static IEnumerable<string> Dependencies(RequestDefinition request)
+    {
+        return Regex.Matches(string.Join("\n", BindingValues(request)), @"\{\{case\.([^.{}]+)\.").Select(m => m.Groups[1].Value).Distinct();
     }
 }

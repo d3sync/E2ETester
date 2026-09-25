@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.19
+
+- Guided Action response selection checks that a response contains the actual required value, skipping plain-text duplicate errors and unrelated JSON objects.
+- Find saved resource locates a matching response in a prior run of the same package/environment within the workspace, without sending a request.
+- Missing/non-JSON response values show actionable recovery guidance instead of raw JSON parser errors.
+
 ## 0.7.18
 
 - A one-request Run anyway checkbox allows explicitly bypassing previous-test pass requirements, including sign-in/remote-IP flow prerequisites. It resets after sending or switching cases.
