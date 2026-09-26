@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.23
+
+- Build SDK pin updated to .NET 10.0.401.
+- Named role identities share one persistent Swagger browser profile per server, adopting existing cookies on upgrade. JWTs remain separately stored per identity. Profile mappings survive token expiry and application restart.
+- Native OIDC authorization no longer forces prompt=login; provider session and MFA policies still apply. Swagger guidance explains how to obtain a fresh permissions token without clearing browser cookies.
+
 ## 0.7.22
 
 - Permission scenarios use reusable named-role JWTs. Matching, unexpired claims satisfy permission preparation across cases and restarts; Prepare becomes a no-op for an already available role. Ordinary data preparations retain their scope.

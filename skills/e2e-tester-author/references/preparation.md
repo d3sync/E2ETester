@@ -23,3 +23,8 @@ Inspect capabilities first. Preparation requires Windows, `allowPreparation: tru
 Original values are encrypted for the current Windows user in the MCP workspace's `Preparation` directory. Keep this workspace across restarts and until restoration completes. Exiting MCP preserves pending recovery; it does not automatically restore. Reports include preparation audit events using report schema 1.8. After restoration, obtain another token before testing restored permissions.
 
 For database variant restrictions, TLS, account roles and conflict handling, read [validation and compatibility](validation-and-compatibility.md). MySQL preparation uses REPEATABLE READ with a locking read and conditional update for compatibility with Percona enforcing mode; do not disable strict mode as a workaround.
+
+
+## Shared browser sign-in (0.7.23)
+
+Named role identities share a persistent Swagger browser profile per server, while each keeps its own JWT. After changing permissions, use Swagger Logout then Authorize to obtain a newly issued token without clearing browser cookies. Import it into the selected role alias. Existing role tokens stay available. Do not require a new browser profile or repeated MFA for each role; the provider may still require MFA under its policy. Native OIDC no longer forces prompt=login and uses the system browser session, separately from WebView2.

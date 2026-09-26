@@ -43,7 +43,12 @@ internal static class SwaggerSmoke
         });
         string? imported = null;
         var profileKey = "smoke-" + Guid.NewGuid().ToString("N");
-        var login = new SwaggerLoginWindow(url, token => imported = token, profileKey) { Owner = owner, ShowInTaskbar = false };
+        var sessionDirectory = Path.Combine(Path.GetTempPath(), "e2e-shared-browser-" + Guid.NewGuid().ToString("N"));
+        var sessions = new RememberedSessions(sessionDirectory);
+        sessions.Update(entries => entries.Add(new(RememberedSessions.Origin(url), "cloud-user", profileKey, Core.AuthKind.Bearer, "original-role-token", "Authorization", "")));
+        var sharedKey = sessions.SharedBrowserProfile(url, "cloud-clientadmin");
+        if (sharedKey != profileKey) throw new InvalidOperationException("Upgrade did not adopt the previous sign-in profile.");
+        var login = new SwaggerLoginWindow(url, token => imported = token, sharedKey) { Owner = owner, ShowInTaskbar = false };
         try
         {
             login.Show(); await login.Ready.Task.WaitAsync(TimeSpan.FromSeconds(30));
@@ -71,7 +76,12 @@ internal static class SwaggerSmoke
             using (var stream = File.Create(path + ".swagger-page.png")) await login.Browser.CoreWebView2.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, stream);
             login.UseToken.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
             if (imported != "network-canary-552") throw new InvalidOperationException("Network Bearer token capture/import failed.");
-            var reopened = new SwaggerLoginWindow(url, _ => { }, profileKey) { Owner = owner, ShowInTaskbar = false };
+            var anotherRoleKey = new RememberedSessions(sessionDirectory).SharedBrowserProfile(url, "cloud-viewonly");
+            if (anotherRoleKey != sharedKey || sessions.Read().Single().Secret != "original-role-token") throw new InvalidOperationException("Sharing a browser changed an identity JWT or lost its persistent profile mapping.");
+            sessions.Update(entries => entries.Clear());
+            if (new RememberedSessions(sessionDirectory).SharedBrowserProfile(url, "third-role") != sharedKey) throw new InvalidOperationException("Browser mapping was lost when tokens expired or were deleted.");
+            if (sessions.SharedBrowserProfile("https://different.example.test", "other-origin") == sharedKey) throw new InvalidOperationException("Browser mapping crossed server origins.");
+            var reopened = new SwaggerLoginWindow(url, _ => { }, anotherRoleKey) { Owner = owner, ShowInTaskbar = false };
             try
             {
                 reopened.Show(); await reopened.Ready.Task.WaitAsync(TimeSpan.FromSeconds(30));

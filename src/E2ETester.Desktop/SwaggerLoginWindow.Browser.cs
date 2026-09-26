@@ -71,7 +71,7 @@ public partial class SwaggerLoginWindow
             await Browser.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.AllProfile);
             if (closed) return;
             Browser.CoreWebView2.Navigate(permitted.AbsoluteUri);
-            Status.Text = "Browser cookies, site data and saved passwords cleared. Sign in with the account you want to test. Previously imported API tokens are unchanged.";
+            Status.Text = "Shared browser cookies, site data and saved passwords cleared for this server. Sign in with the account you want to test. All previously imported identity JWTs are unchanged.";
         }
         catch { if (!closed) Status.Text = "Could not clear the browser session. Close and reopen the browser, then try again."; }
     }

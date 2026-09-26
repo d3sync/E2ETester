@@ -16,6 +16,23 @@ internal sealed class RememberedSessions(string directory)
     private string FilePath => Path.Combine(directory, "identities.protected");
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("E2ETester.Sessions.v1");
     internal static string Origin(string address) => new Uri(address).GetLeftPart(UriPartial.Authority);
+    internal string SharedBrowserProfile(string address, string preferred) => Locked(() =>
+    {
+        var origin = Origin(address);
+        var path = Path.Combine(directory, "browser-profiles.json");
+        var profiles = File.Exists(path) ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path)) ?? [] : new Dictionary<string, string>();
+        if (profiles.TryGetValue(origin, out var existing)) return existing;
+        // Adopt an existing identity profile so upgrading keeps its Microsoft/Swagger cookies.
+        var candidates = ReadCore().Where(s => s.Origin == origin).OrderByDescending(s => s.CapturedAt)
+            .Select(s => s.BrowserProfileKey).Append(preferred).Append("cloud-user").Distinct().ToList();
+        var profile = candidates.FirstOrDefault(key => Directory.Exists(Path.Combine(BrowserDirectory, "EBWebView", SwaggerLoginWindow.ProfileName(origin, key)))) ?? candidates[0];
+        profiles[origin] = profile;
+        Directory.CreateDirectory(directory);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try { File.WriteAllText(temporary, JsonSerializer.Serialize(profiles)); File.Move(temporary, path, true); }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        return profile;
+    });
     internal List<RememberedIdentity> Read()
     {
         List<RememberedIdentity> result = [];

@@ -17,10 +17,11 @@ public partial class SwaggerLoginWindow : Window
     public SwaggerLoginWindow(string address, Action<string> install, string profileKey = "default", string? browserDataDirectory = null)
     {
         InitializeComponent(); this.install = install; this.browserDataDirectory = browserDataDirectory; permitted = SwaggerTokenCapture.ValidateAddress(address); Address.Text = address;
-        profileName = "swagger-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(permitted.GetLeftPart(UriPartial.Authority) + "|" + profileKey)))[..32];
+        profileName = ProfileName(permitted.GetLeftPart(UriPartial.Authority), profileKey);
         Loaded += InitializeAsync;
         Closed += (_, _) => { closed = true; candidate = null; foreach (var popup in popups.ToArray()) popup.Close(); Browser.Dispose(); };
     }
+    internal static string ProfileName(string origin, string key) => "swagger-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(origin + "|" + key)))[..32];
     private async void InitializeAsync(object sender, RoutedEventArgs e)
     {
         try
@@ -33,7 +34,7 @@ public partial class SwaggerLoginWindow : Window
             if (closed) return;
             ConfigureBrowser(Browser.CoreWebView2);
             ready = true; ReadToken.IsEnabled = true; Browser.CoreWebView2.Navigate(permitted.AbsoluteUri); Ready.TrySetResult();
-            Status.Text = "Sign in here. This browser saves cookies and site data for this identity. Only Bearer tokens for " + permitted.GetLeftPart(UriPartial.Authority) + " are accepted.";
+            Status.Text = "Sign in here. Role identities share this server’s browser cookies and site data; their imported JWTs remain separate. Only Bearer tokens for " + permitted.GetLeftPart(UriPartial.Authority) + " are accepted.";
         }
         catch { Status.Text = "Swagger browser could not start. Install Microsoft Edge WebView2 Runtime, or use the manual token field."; Ready.TrySetException(new InvalidOperationException("Swagger browser initialization failed.")); }
     }

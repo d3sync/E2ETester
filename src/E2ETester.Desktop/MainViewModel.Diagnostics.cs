@@ -77,6 +77,7 @@ public sealed partial class MainViewModel
             _ = SwaggerTokenCapture.ValidateAddress(SwaggerUrl);
             if (SelectedIdentity is not { IsConfigurable: true }) NewIdentity.Execute(null);
             var identity = SelectedIdentity!;
+            identity.BrowserProfileKey = rememberedSessions?.SharedBrowserProfile(SwaggerUrl, identity.BrowserProfileKey) ?? "shared-swagger";
             var imported = false;
             new SwaggerLoginWindow(SwaggerUrl, token =>
             {

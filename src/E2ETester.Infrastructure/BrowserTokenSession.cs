@@ -46,7 +46,7 @@ public sealed class BrowserTokenSession
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(TimeSpan.FromMinutes(5));
-            var result = await client.LoginAsync(new LoginRequest { FrontChannelExtraParameters = new Parameters { { "nonce", nonce }, { "prompt", "login" } } }, deadline.Token);
+            var result = await client.LoginAsync(new LoginRequest { FrontChannelExtraParameters = new Parameters { { "nonce", nonce } } }, deadline.Token);
             if (result.IsError || string.IsNullOrEmpty(result.IdentityToken) || validator.Subject is null || result.AccessTokenExpiration <= DateTimeOffset.UtcNow || result.TokenResponse.TokenType?.Equals("Bearer", StringComparison.OrdinalIgnoreCase) != true)
                 throw new InvalidOperationException();
             validator.Refresh = true;

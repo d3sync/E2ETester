@@ -20,7 +20,7 @@ internal static class AuthenticationTests
         var settings = new BrowserLoginSettings(provider.Url, "e2e-tester", "openid profile offline_access", "http://127.0.0.1:7890/callback/", AllowLocalHttp: true);
         var session = await BrowserTokenSession.LoginAsync(settings, provider);
         check(session.Identity.Subject == "user-a" && session.Identity.Source == "validated_oidc_id_token", "OIDC validates signed identity, issuer, audience and nonce");
-        check(provider.PkceVerified && provider.FreshLoginRequested, "OIDC uses S256 PKCE and requests fresh browser login");
+        check(provider.PkceVerified && !provider.FreshLoginRequested, "OIDC uses S256 PKCE without forcing browser reauthentication");
         var identities = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => session.GetIdentityAsync("admin", true)));
         check(provider.RefreshCount == 1 && identities.Select(i => i.Secret).Distinct().Count() == 1, "concurrent token refresh rotates once and replaces atomically");
         provider.Subject = "user-b";
@@ -96,7 +96,7 @@ internal static class AuthenticationTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             var query = Parse(new Uri(options.StartUrl).Query);
-            FreshLoginRequested = query["prompt"] == "login";
+            FreshLoginRequested = query.TryGetValue("prompt", out var prompt) && prompt == "login";
             var code = Guid.NewGuid().ToString("N");
             codes[code] = new(Subject, query["nonce"], query["code_challenge"], query["redirect_uri"]);
             return Task.FromResult(new BrowserResult { ResultType = BrowserResultType.Success, Response = options.EndUrl + "?code=" + code + "&state=" + (Fault == "state" ? "wrong" : query["state"]) });
