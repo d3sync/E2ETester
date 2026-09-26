@@ -1,0 +1,7 @@
+# Import, schema assertions and CI
+
+Package schema 1.7 adds assertion kind `jsonSchema`; Expected contains serialized JSON Schema text, Selector is unused. Validate the whole response. Prefer explicit draft 2020-12, with bundled local references. Never fetch remote schema references. Binary/truncated responses remain inconclusive. Schema 1.7 also supports preparation and Guided Actions; older schemas remain appropriate when the new assertion is not needed. Use the bundled test-package.v1.7.schema.json.
+
+Postman 2.1 import is a starting point: scripts do not become checks, unsupported authentication/body modes and missing variables produce warnings. Review warnings and translate expected business results explicitly. Do not claim a migrated suite is equivalent until its scripts and checks have been accounted for. OpenAPI supports JSON/YAML and explicitly supplied local reference documents.
+
+The CLI runs `run --package suite.jsee --config host.json --output results`; it shares MCP host permissions, environment-provided identities, preparation and query approvals. No browser login or desktop token extraction. Use a unique output directory per job. Exit 0 means all pass; 1 means failed checks; 2 means incomplete/error. Retain JUnit, canonical JSON/HTML and diagnostics. Inconclusive is not a CI success. Never retry an uncertain mutation automatically. Interactive role-token refresh must be completed before unattended execution. Guided Actions do not run automatically in CI.

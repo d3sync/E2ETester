@@ -26,6 +26,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Public asset staging failed.' }
     dotnet publish src/E2ETester.Mcp --configuration Release --runtime win-x64 --self-contained true --output (Join-Path $publish 'mcp') -p:PackagingRestore=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version=$Version
     if ($LASTEXITCODE -ne 0) { throw 'MCP companion publish failed.' }
+    dotnet publish src/E2ETester.Cli --configuration Release --runtime win-x64 --self-contained true --output (Join-Path $publish 'cli') -p:PackagingRestore=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version=$Version
+    if ($LASTEXITCODE -ne 0) { throw 'CLI companion publish failed.' }
     dotnet vpk pack --packId $PackId --packVersion $Version --packDir $publish --mainExe E2ETester.Desktop.exe --packTitle 'E2E Tester' --packAuthors 'd3sync and E2E Tester contributors' --icon (Join-Path $root 'assets/branding/e2e-tester.ico') --channel win --runtime win-x64 --outputDir $OutputDirectory --shortcuts $Shortcuts --delta None
     if ($LASTEXITCODE -ne 0) { throw 'Velopack packaging failed.' }
     Write-Output "Velopack installer, portable bundle and release feed: $OutputDirectory"

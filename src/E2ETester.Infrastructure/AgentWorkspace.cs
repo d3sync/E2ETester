@@ -66,6 +66,19 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
     private IEnumerable<string> Secrets() => configuration.Identities.Select(i => EnvironmentValue(i.SecretEnvironmentVariable) ?? "").Concat(configuration.Databases.Select(d => EnvironmentValue(d.ConnectionEnvironmentVariable) ?? ""));
     private static string Revision(TestRun run) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(new { run.Package, run.PreparationLog, attempts = run.Attempts.Select(a => new { a.Id, a.State, a.Verdict }) }))));
     public Task<IReadOnlyList<RunSummary>> ListRunsAsync(int offset = 0) => store.ListAsync(offset);
+    public async Task RecordExecutionIssueAsync(string runId,string caseId,string message)
+    {
+        await commands.WaitAsync();
+        try
+        {
+            Idle();var run=await GetRunAsync(runId);var test=run.Package.Cases.Single(c=>c.Id==caseId);
+            var attempt=run.Attempts.LastOrDefault(a=>a.CaseId==caseId);
+            if(attempt is null) { attempt=new Attempt { CaseId=caseId,CaseTitle=test.Title,State=AttemptState.Completed,FinishedAt=DateTimeOffset.UtcNow };run.Attempts.Add(attempt); }
+            attempt.Checks.Add(new("runner",true,Verdict.Inconclusive,"Execution completed","Execution issue",message));
+            attempt.Verdict=Outcomes.Evaluate(attempt.Checks);await coordinator.SaveAsync(run);
+        }
+        finally { commands.Release(); }
+    }
     public async Task<TestRun> GetRunAsync(string id) => await store.LoadAsync(id) ?? throw new InvalidDataException("run_not_found");
     private Task SavePreparation(PreparedExecution p) => store.SaveOperationAsync(p.Id, PackageJson.Write(p));
     private async Task<PreparedExecution> Preparation(string id) => PackageJson.Read<PreparedExecution>(await store.LoadOperationAsync(id) ?? throw new InvalidDataException("execution_not_found"));
@@ -138,9 +151,12 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
             if (state.GetProperty("state").GetString() == "running" && !active.ContainsKey(id)) return new { executionId = id, state = "interrupted", note = "Login was interrupted. Request a new browser login." };
             return state;
         }
+        // Snapshot liveness first. If completion races this read, report running for one
+        // more poll; if already complete, read its final durable state afterwards.
+        var running=active.TryGetValue(id,out var operation)&&!operation.Task.IsCompleted;
         var p = await Preparation(id); var run = await GetRunAsync(p.RunId);
         var attempt = run.Attempts.FirstOrDefault(a => a.ExecutionId == id);
-        return new { executionId = id, state = p.State == "dispatched" ? (active.TryGetValue(id, out var a) && !a.Task.IsCompleted ? "running" : "interrupted") : p.State, attemptId = attempt?.Id, verdict = attempt?.Verdict, note = "An interrupted operation is never replayed. Inspect the run before preparing an intentional new attempt." };
+        return new { executionId = id, state = p.State == "dispatched" ? (running ? "running" : "interrupted") : p.State, attemptId = attempt?.Id, verdict = attempt?.Verdict, note = "An interrupted operation is never replayed. Inspect the run before preparing an intentional new attempt." };
     }
     public object Cancel(string id) { if (active.TryGetValue(id, out var op)) op.Cancel.Cancel(); return new { executionId = id, cancellationRequested = active.ContainsKey(id) }; }
     public async Task<object> AuthenticateAsync(string alias)

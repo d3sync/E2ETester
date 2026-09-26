@@ -32,7 +32,9 @@ public sealed partial class MainViewModel
         {
             if (!IsPlayground) { Message="Open API workspace to import and explore requests separately from this suite."; OpenPlayground.Execute(null); return; }
             var picker = new OpenApiWindow(BaseUrl) { Owner=System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w=>w.DataContext==this) };
-            if (picker.ShowDialog()==true && picker.Selected is { } op)
+            var accepted=picker.ShowDialog()==true;
+            if(accepted && picker.ImportedPackage is {} imported) { LoadPackage(imported); Message="Imported package. Review warnings and add missing assertions before running."; return; }
+            if (accepted && picker.Selected is { } op)
             {
                 run = null;
                 op.Case.Request.Url = RequestUrls.Resolve(op.BaseUrl, op.Case.Request).AbsoluteUri;

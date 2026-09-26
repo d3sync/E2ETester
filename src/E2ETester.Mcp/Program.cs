@@ -12,7 +12,7 @@ try
     var configuration = PackageJson.Read<AgentConfiguration>(await File.ReadAllTextAsync(path));
     await using var workspace = new AgentWorkspace(configuration);
     var toolHost = new AgentTools(workspace);
-    var options = new McpServerOptions { ServerInfo = new() { Name = "E2E Tester", Version = "0.7.7" } };
+    var options = new McpServerOptions { ServerInfo = new() { Name = "E2E Tester", Version = typeof(AgentWorkspace).Assembly.GetName().Version?.ToString(3) ?? "unknown" } };
     options.ToolCollection = new();
     foreach (var method in typeof(AgentTools).GetMethods().Where(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null))
         options.ToolCollection.Add(McpServerTool.Create(method, toolHost));

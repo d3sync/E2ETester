@@ -1,6 +1,6 @@
-# Implementation status — 0.7.7
+# Implementation status — 0.8.0
 
-The local platform is implemented across Core, Application, Infrastructure, Desktop, Mcp and IntegrationTests. Version history is in the [changelog](../CHANGELOG.md); this page summarizes what exists now and what still needs a real deployment to confirm.
+The local platform is implemented across Core, Application, Infrastructure, Desktop, Mcp, Cli and IntegrationTests. Version history is in the [changelog](../CHANGELOG.md); this page summarizes what exists now and what still needs a real deployment to confirm.
 
 ## Implemented
 
@@ -31,6 +31,8 @@ See [testing](testing.md). The integration suite runs against loopback HTTP, a s
 
 ## Out of scope for now
 
-JSON Schema assertions, YAML or external-reference OpenAPI import, remote MCP transport and arbitrary writable setup/teardown SQL. Query Studio remains read-only. Group operations and versioned autosave history are not planned for the initial release.
+Remote MCP transport and arbitrary writable setup/teardown SQL. Query Studio remains read-only. Group operations and versioned autosave history are not planned for the initial release.
 
 See [MCP setup](mcp.md), [HTTP workflow](http-workflow.md), [workspace and distribution](workspace.md) and the [production readiness review](production-readiness-review.md).
+
+Version 0.8.0 adds Postman 2.1 migration with warnings, OpenAPI YAML/supplied reference documents, JSON Schema response assertions and a headless runner with JUnit. See [imports and CI](imports-and-ci.md). The [first-run human study](first-run-study.md) is prepared but not yet conducted.

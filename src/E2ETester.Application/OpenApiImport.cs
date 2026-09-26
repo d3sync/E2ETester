@@ -4,12 +4,12 @@ namespace E2ETester.Application;
 public sealed record ApiOperation(string Label, string BaseUrl, TestCase Case);
 public static class OpenApiImport
 {
-    public static List<ApiOperation> Parse(string json, string fallbackBaseUrl)
+    public static List<ApiOperation> Parse(string json, string fallbackBaseUrl, IReadOnlyDictionary<string, string>? documents = null)
     {
         if (json.Length > 5_000_000) throw new InvalidDataException("OpenAPI document exceeds 5 MB.");
-        using var doc = JsonDocument.Parse(json); var root = doc.RootElement;
+        using var doc = JsonDocument.Parse(SpecificationDocument.Bundle(json, documents)); var root = doc.RootElement;
         var version = Str(root, "openapi"); var swagger = Str(root, "swagger");
-        if (!version.StartsWith("3.") && swagger != "2.0") throw new InvalidDataException("Use an OpenAPI 3.x or Swagger 2.0 JSON document, not the Swagger UI page.");
+        if (!version.StartsWith("3.") && swagger != "2.0") throw new InvalidDataException("Use an OpenAPI 3.x or Swagger 2.0 JSON or YAML document, not the Swagger UI page.");
         var baseUrl = fallbackBaseUrl;
         if (root.TryGetProperty("servers", out var servers) && servers.GetArrayLength() > 0) baseUrl = Str(servers[0], "url");
         else if (Str(root,"host") is { Length: > 0 } host) baseUrl = (root.TryGetProperty("schemes",out var schemes) && schemes.GetArrayLength()>0 ? schemes[0].GetString() : "https") + "://" + host + Str(root,"basePath");

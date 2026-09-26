@@ -2,7 +2,7 @@
 
 ## .jsee files
 
-A `.jsee` package is UTF-8 JSON conforming to the [package schema](../schemas): 1.4 for ordinary suites, 1.5 when a case includes [preparation](preparation-and-connections.md). Schema 1.6 adds [Guided Actions](guided-actions.md) for optional cleanup and permission controls outside the sequence. Older 1.0–1.3 packages still import. Export defaults to .jsee; JSON remains available. Opening a package never executes HTTP or SQL.
+A `.jsee` package is UTF-8 JSON conforming to the [package schema](../schemas): 1.4 for ordinary suites, 1.5 when a case includes [preparation](preparation-and-connections.md). Schema 1.6 adds [Guided Actions](guided-actions.md) for optional cleanup and permission controls outside the sequence. Schema 1.7 adds JSON Schema assertions. Older 1.0–1.3 packages still import. Export defaults to .jsee; JSON remains available. Opening a package never executes HTTP or SQL.
 
 Normal startup checks/repairs current-user Windows registration, the icon and quoted open command. Existing Windows UserChoice is respected; use Open with > E2E Tester if Windows selected another app. Velopack registers its stable launcher. After moving a raw executable, run it again to repair the association.
 
@@ -22,7 +22,7 @@ View report opens a modal with Readable report and Structured JSON tabs. Select 
 
 Tools > API workspace opens a separate window and persistent workspace for ad-hoc HTTP, with the request editor, named identities, cURL evidence, history and recovery, without suite setup steps. Tools > Import OpenAPI request lists operations from a JSON URL or file and adds a selected request. Export package turns these drafts into a guided suite.
 
-Swagger 2.0 and OpenAPI 3.x JSON import supports local parameter references, path/query/header parameters, server URLs, JSON examples and concrete success statuses. Use Swagger's JSON specification URL, not its HTML page. Import does not execute page JavaScript, follow remote references or send operations. Save protected specifications from Swagger and open the local JSON file. YAML, external references, schema-driven body synthesis, complex serialization styles and multiple-server selection are not implemented. Review path values, servers, authentication and bodies before sending.
+Swagger 2.0 and OpenAPI 3.x import accepts JSON/YAML and explicitly supplied reference documents. The same dialog imports Postman 2.1 collections with migration warnings. Choose a request or import all as a package. Review values and unsupported features before sending. See [imports and CI](imports-and-ci.md).
 
 References: [Windows default programs](https://learn.microsoft.com/en-us/windows/win32/shell/default-programs), [OpenAPI specification](https://spec.openapis.org/oas/v3.0.3).
 

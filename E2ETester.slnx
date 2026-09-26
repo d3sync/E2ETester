@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/E2ETester.Application/E2ETester.Application.csproj" />
+    <Project Path="src/E2ETester.Cli/E2ETester.Cli.csproj" />
     <Project Path="src/E2ETester.Core/E2ETester.Core.csproj" />
     <Project Path="src/E2ETester.Desktop/E2ETester.Desktop.csproj" />
     <Project Path="src/E2ETester.Infrastructure/E2ETester.Infrastructure.csproj" />

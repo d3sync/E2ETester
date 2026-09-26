@@ -12,7 +12,7 @@ Query Studio remains read-only. Confirm the read-only checkbox only when the acc
 
 In a case's **Preparation** tab, package authors choose **Configure preparation** to describe the setup. Testers choose **Prepare** beside Send to review the target and value before applying it. Optional flag labels appear as checkboxes and combine through a 64-bit bitwise OR.
 
-Preparation is optional and never executes merely by opening a package. Cases that declare preparation cannot be sent until it succeeds. Packages containing preparation use schema **1.5**, defined in `schemas/test-package.v1.5.schema.json`; older packages remain supported.
+Preparation is optional and never executes merely by opening a package. Cases with data preparation need successful preparation; permission cases may reuse a matching valid identity. Packages containing preparation use schema **1.5**, defined in `schemas/test-package.v1.5.schema.json`; older packages remain supported.
 
 ### Database value
 
@@ -28,11 +28,11 @@ The engine sends the captured ETag as If-Match and verifies the result with anot
 
 Use a separate administrator identity for API preparation when reducing the tested account's permissions, so restoration remains possible. Database preparation does not require another test identity.
 
-### Refresh the existing identity
+### Reuse named permission identities
 
-Set `requireFreshLogin: true` to clear the old token after preparation while keeping the same identity alias and WebView2 profile. Obtain a new access token through Swagger's authorization flow and import it. Importing the cached old token does not satisfy this requirement.
+Use a distinct stable identity alias for each permission set, such as `cloud-user` and `cloud-reader`. With `requireFreshLogin: true` and `jwtClaim`, a matching unexpired JWT satisfies permission preparation. Reuse it across cases and sessions without another database update or login. Prepare and authorize only when that role token is missing, expired or has the wrong claim. Restoring database permissions does not invalidate issued JWTs.
 
-Optional `jwtClaim` compares the decoded claim with the applied value. This is a testing check, not signature verification. If a suite uses different aliases for the same actual account, select that account in Auth and choose **Use this identity for all test cases** before preparing. Administrator identities in preparation API requests remain separate.
+Role identities share persistent Swagger browser sign-in per server. After a permission change, choose Swagger Logout then Authorize to obtain a new token; import it into the selected role identity. Keep the browser cookies. Provider session/MFA policies still apply. Non-permission data preparation retains its operation scope.
 
 ## Restoration and recovery
 

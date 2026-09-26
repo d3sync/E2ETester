@@ -4,7 +4,7 @@ public enum TestStepKind { Http, SwaggerAuthentication }
 public enum Verdict { Pass, Fail, Inconclusive }
 public enum AttemptState { Running, Completed, Cancelled, Interrupted }
 public enum AuthKind { None, Bearer, ApiToken }
-public enum CheckKind { Status, BodyContains, JsonEquals, HeaderEquals, StatusIn, HeaderExists, JsonExists, JsonGreaterThan, JsonLessThan, JsonArrayCount, DurationLessThan, BodyNotEmpty }
+public enum CheckKind { Status, BodyContains, JsonEquals, HeaderEquals, StatusIn, HeaderExists, JsonExists, JsonGreaterThan, JsonLessThan, JsonArrayCount, DurationLessThan, BodyNotEmpty, JsonSchema }
 public enum RequestBodyKind { Text, FormUrlEncoded, Multipart, Binary }
 public sealed record RedirectHop(int StatusCode, string Url, string Location);
 public sealed record BodyPart

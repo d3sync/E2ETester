@@ -12,7 +12,7 @@ public static class Assertions
     {
         CheckResult Result(Verdict verdict, string actual, string message) => new(a.Id, a.Required, verdict, a.Expected, actual, message);
         if (r.StatusCode is null) return Result(Verdict.Inconclusive, "No response", "No HTTP response was available.");
-        var bodyCheck = a.Kind is CheckKind.BodyContains or CheckKind.BodyNotEmpty or CheckKind.JsonEquals or CheckKind.JsonExists or CheckKind.JsonGreaterThan or CheckKind.JsonLessThan or CheckKind.JsonArrayCount;
+        var bodyCheck = a.Kind is CheckKind.JsonSchema or CheckKind.BodyContains or CheckKind.BodyNotEmpty or CheckKind.JsonEquals or CheckKind.JsonExists or CheckKind.JsonGreaterThan or CheckKind.JsonLessThan or CheckKind.JsonArrayCount;
         if (r.BodyEncoding != "text" && bodyCheck) return Result(Verdict.Inconclusive, "Binary body", "Text checks cannot evaluate a binary response.");
         if (bodyCheck && (r.Truncated || r.ErrorCode is not null))
             return Result(Verdict.Inconclusive, "Incomplete body", "The full response body was not captured.");
@@ -22,6 +22,9 @@ public static class Assertions
         {
             switch (a.Kind)
             {
+                case CheckKind.JsonSchema:
+                    var validation = SchemaChecks.Evaluate(a.Expected, r.Body);
+                    return Result(validation.Valid ? Verdict.Pass : Verdict.Fail, validation.Details, "JSON Schema response validation");
                 case CheckKind.Status:
                     actual = r.StatusCode.ToString()!;
                     passed = actual == a.Expected;

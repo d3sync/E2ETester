@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- Import Postman 2.1 collections with explicit migration warnings; OpenAPI accepts YAML and supplied reference documents.
+- Headless CLI shares execution, host permissions, database verification and preparation/restoration with MCP, and emits JUnit plus canonical evidence.
+- Package schema 1.7 adds offline JSON Schema assertions; report schema 1.10 retains their evidence.
+- Corrected permission identity documentation and schema preservation in desktop imports. Added a first-run human study protocol and measured loopback business journey.
+- Installer and portable release include the CLI companion.
+
 ## 0.7.23
 
 - Build SDK pin updated to .NET 10.0.401.

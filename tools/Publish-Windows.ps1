@@ -8,7 +8,7 @@ if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9.-]+)?$') { throw 'Use a si
 $releaseRoot = Join-Path $root 'artifacts/releases'
 $stage = Join-Path $releaseRoot ('E2ETester-' + $Version + '-win-x64-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $stage -ErrorAction Stop | Out-Null
-foreach ($hostName in @('Desktop','Mcp')) {
+foreach ($hostName in @('Desktop','Mcp','Cli')) {
     $project = Join-Path $root "src/E2ETester.$hostName/E2ETester.$hostName.csproj"
     $destination = Join-Path $stage $hostName.ToLowerInvariant()
     & dotnet publish $project --configuration Release --runtime win-x64 --self-contained true --output $destination -p:PackagingRestore=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version=$Version

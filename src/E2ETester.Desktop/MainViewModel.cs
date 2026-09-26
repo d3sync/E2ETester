@@ -181,7 +181,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0)) ShowAdvanced = true;
         MarkWorkSaved(); NotifyRun();
     }
-    private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
+    private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.7" || Cases.Any(c => c.Definition().Assertions.Any(a => a.Kind == CheckKind.JsonSchema)) ? "1.7" : package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
     private void NotifyRun() { OpenGuidedActions?.Refresh(); Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
     private void LoadAttempts()
     {

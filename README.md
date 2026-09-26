@@ -47,7 +47,7 @@ For a generic cloud template, click **Cloud test** or double-click [cloud-checkr
 
 See [features and limits](docs/features.md). Loading a package never sends requests automatically. Reports retain captured values, including request headers, tokens and business data.
 
-Tools > API workspace opens ad-hoc requests with OpenAPI JSON import. See the [workspace guide](docs/packages-and-playground.md).
+Tools > API workspace opens ad-hoc requests with OpenAPI JSON/YAML and Postman collection import. See the [workspace guide](docs/packages-and-playground.md).
 
 ## Screenshots
 
@@ -91,3 +91,5 @@ The first publish script creates one self-contained executable per host plus doc
 Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). Use synthetic reproductions and never attach credentials or private browser profiles.
 
 [MIT license](LICENSE). Dependencies retain their own licenses: [third-party notices](THIRD_PARTY_NOTICES.md). Artwork provenance is in the brand kit. Historical `docs/plan` files describe design intent, not the current feature reference.
+
+For migration and automation, see [imports and CI](docs/imports-and-ci.md). For a new tester, start with [the first-run study](docs/first-run-study.md).

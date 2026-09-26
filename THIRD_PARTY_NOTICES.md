@@ -8,6 +8,10 @@ The self-contained distribution also includes Microsoft's .NET runtime. Edge Web
 | --- | --- | --- |
 | [Duende.IdentityModel.OidcClient 7.1.0](https://www.nuget.org/packages/Duende.IdentityModel.OidcClient/7.1.0) | Duende Software | Apache-2.0 |
 | [Duende.IdentityModel 8.1.0](https://www.nuget.org/packages/Duende.IdentityModel/8.1.0) | Duende Software | Apache-2.0 |
+| [Humanizer.Core 3.0.1](https://www.nuget.org/packages/Humanizer.Core/3.0.1) | Claire Novotny, Mehdi Khalili | MIT |
+| [Json.More.Net 2.2.0](https://www.nuget.org/packages/Json.More.Net/2.2.0) | Greg Dennis | MIT |
+| [JsonPointer.Net 6.0.1](https://www.nuget.org/packages/JsonPointer.Net/6.0.1) | Greg Dennis | MIT |
+| [JsonSchema.Net 8.0.5](https://www.nuget.org/packages/JsonSchema.Net/8.0.5) | Greg Dennis | MIT |
 | [Microsoft.Bcl.Cryptography 9.0.18](https://www.nuget.org/packages/Microsoft.Bcl.Cryptography/9.0.18) | Microsoft | MIT |
 | [Microsoft.Data.SqlClient.Extensions.Abstractions 7.1.0](https://www.nuget.org/packages/Microsoft.Data.SqlClient.Extensions.Abstractions/7.1.0) | Microsoft | MIT |
 | [Microsoft.Data.SqlClient.Internal.Logging 7.1.0](https://www.nuget.org/packages/Microsoft.Data.SqlClient.Internal.Logging/7.1.0) | Microsoft | MIT |
@@ -37,7 +41,6 @@ The self-contained distribution also includes Microsoft's .NET runtime. Edge Web
 | [Microsoft.IdentityModel.Protocols.OpenIdConnect 8.16.0](https://www.nuget.org/packages/Microsoft.IdentityModel.Protocols.OpenIdConnect/8.16.0) | Microsoft | MIT |
 | [Microsoft.IdentityModel.Protocols 8.16.0](https://www.nuget.org/packages/Microsoft.IdentityModel.Protocols/8.16.0) | Microsoft | MIT |
 | [Microsoft.IdentityModel.Tokens 8.16.0](https://www.nuget.org/packages/Microsoft.IdentityModel.Tokens/8.16.0) | Microsoft | MIT |
-| [Microsoft.NET.ILLink.Tasks 10.0.10](https://www.nuget.org/packages/Microsoft.NET.ILLink.Tasks/10.0.10) | Microsoft | MIT |
 | [Microsoft.SqlServer.Server 1.0.0](https://www.nuget.org/packages/Microsoft.SqlServer.Server/1.0.0) | Microsoft | MIT |
 | [Microsoft.Web.WebView2 1.0.4191.47](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4191.47) | Microsoft | LICENSE.txt |
 | [ModelContextProtocol.Core 2.2.0](https://www.nuget.org/packages/ModelContextProtocol.Core/2.2.0) | ModelContextProtocol | Apache-2.0 |
@@ -56,3 +59,4 @@ The self-contained distribution also includes Microsoft's .NET runtime. Edge Web
 | [System.Security.Cryptography.ProtectedData 10.0.10](https://www.nuget.org/packages/System.Security.Cryptography.ProtectedData/10.0.10) | Microsoft | MIT |
 | [System.Threading.RateLimiting 9.0.18](https://www.nuget.org/packages/System.Threading.RateLimiting/9.0.18) | Microsoft | MIT |
 | [Velopack 1.2.0](https://www.nuget.org/packages/Velopack/1.2.0) | Velopack Ltd,Caelan Sayler,Kevin Bost | MIT |
+| [YamlDotNet 18.1.0](https://www.nuget.org/packages/YamlDotNet/18.1.0) | Antoine Aubry | MIT |

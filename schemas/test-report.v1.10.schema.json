@@ -1,0 +1,1476 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://e2etester.local/schemas/test-report.v1.10.schema.json",
+  "title": "E2ETester report 1.10",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "exportedAt",
+    "provisional",
+    "applicationVersion",
+    "targetBuild",
+    "summary",
+    "coverage",
+    "checkEvidence",
+    "redactions",
+    "run"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.10"
+    },
+    "reportId": {
+      "type": "string"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provisional": {
+      "type": "boolean"
+    },
+    "applicationVersion": {
+      "type": "string"
+    },
+    "targetBuild": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coverage"
+      }
+    },
+    "checkEvidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reportCheck"
+      }
+    },
+    "redactions": {
+      "type": "string"
+    },
+    "run": {
+      "$ref": "#/$defs/run"
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "sensitive": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "default": "GET",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "default": "/",
+          "minLength": 1
+        },
+        "query": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "body": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string",
+          "default": "application/json"
+        },
+        "sendBody": {
+          "type": "boolean"
+        },
+        "bodySensitive": {
+          "type": "boolean"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "default": 30
+        },
+        "identityRef": {
+          "type": "string",
+          "default": "none"
+        },
+        "bodyKind": {
+          "enum": [
+            "text",
+            "formUrlEncoded",
+            "multipart",
+            "binary"
+          ]
+        },
+        "parts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/bodyPart"
+          }
+        },
+        "useCookies": {
+          "type": "boolean"
+        },
+        "httpVersion": {
+          "enum": [
+            "1.1",
+            "2.0",
+            "3.0"
+          ]
+        },
+        "proxyUrl": {
+          "type": "string"
+        },
+        "clientCertificateThumbprint": {
+          "type": "string"
+        },
+        "followRedirects": {
+          "type": "boolean"
+        },
+        "maxRedirects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "status",
+            "bodyContains",
+            "bodyNotEmpty", "jsonSchema",
+            "jsonEquals",
+            "headerEquals",
+            "statusIn",
+            "headerExists",
+            "jsonExists",
+            "jsonGreaterThan",
+            "jsonLessThan",
+            "jsonArrayCount",
+            "durationLessThan"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "description": "JSON Pointer for jsonEquals; header name for headerEquals."
+        },
+        "expected": {
+          "type": "string",
+          "default": "200"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assertion"
+          }
+        },
+        "fixtureQueryId": {
+          "type": "string"
+        },
+        "databaseChecks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/databaseCheck"
+          }
+        },
+        "fixtureRequired": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require a selected fixture before sending. Otherwise manual values may be used."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "http",
+            "swaggerAuthentication"
+          ],
+          "default": "http"
+        },
+        "preparation": {
+          "$ref": "#/$defs/preparation"
+        }
+      }
+    },
+    "parameter": {
+      "properties": {
+        "type": {
+          "enum": [
+            "string",
+            "int64",
+            "decimal",
+            "boolean",
+            "guid",
+            "dateTimeOffset"
+          ]
+        },
+        "sensitive": {
+          "type": "boolean"
+        },
+        "isNull": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^@?[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "query": {
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeoutSeconds": {
+          "maximum": 600,
+          "type": "integer",
+          "minimum": 1
+        },
+        "sql": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensitiveColumns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rowLimit": {
+          "maximum": 10000,
+          "type": "integer",
+          "minimum": 1
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "connectionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "enum": [
+            "sqlite",
+            "sqlServer",
+            "mySql",
+            "postgreSql"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "databaseCheck": {
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "rowCount",
+            "scalarEquals",
+            "scalarNotEquals",
+            "scalarGreaterThan",
+            "scalarLessThan",
+            "rowExists",
+            "rowAbsent"
+          ]
+        },
+        "expectedJson": {
+          "type": "string"
+        },
+        "queryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "column": {
+          "type": "string"
+        },
+        "pollTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "pollIntervalMilliseconds": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "bodyPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "package": {
+      "title": "E2ETester package 1.3",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "title",
+        "cases"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "enum": [
+            "1.0",
+            "1.1",
+            "1.2",
+            "1.3",
+            "1.4",
+            "1.5",
+            "1.6", "1.7"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/case"
+          }
+        },
+        "queries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/query"
+          }
+        },
+        "guidedActions": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/case"
+          },
+          "description": "Manual HTTP requests or preparation actions outside test coverage. IDs must be unique across cases and actions."
+        }
+      }
+    },
+    "checkResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "required",
+        "verdict",
+        "expected",
+        "actual",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "expected": {
+          "type": "string"
+        },
+        "actual": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "verifiedIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issuer",
+        "subject",
+        "displayName",
+        "expiresAt",
+        "source"
+      ],
+      "properties": {
+        "issuer": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "const": "validated_oidc_id_token"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statusCode",
+        "headers",
+        "body",
+        "truncated",
+        "capturedBytes",
+        "durationMs",
+        "errorCode",
+        "error"
+      ],
+      "properties": {
+        "statusCode": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "body": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "capturedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bodyEncoding": {
+          "enum": [
+            "text",
+            "base64"
+          ]
+        },
+        "httpVersion": {
+          "type": "string"
+        },
+        "redirects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "statusCode",
+              "url",
+              "location"
+            ],
+            "properties": {
+              "statusCode": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "url": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "url",
+              "httpVersion",
+              "headers",
+              "body",
+              "bodyEncoding",
+              "hasBody",
+              "bodyBytes",
+              "note"
+            ],
+            "properties": {
+              "method": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "httpVersion": {
+                "type": "string"
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "body": {
+                "type": "string"
+              },
+              "bodyEncoding": {
+                "enum": [
+                  "text",
+                  "base64"
+                ]
+              },
+              "hasBody": {
+                "type": "boolean"
+              },
+              "bodyBytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "queryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startedAt",
+        "durationMs",
+        "columns",
+        "rows",
+        "truncated",
+        "errorCode",
+        "error"
+      ],
+      "properties": {
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "dataType"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "dataType": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "queryEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "query",
+        "result",
+        "checkId",
+        "assessment",
+        "purpose"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "query": {
+          "$ref": "#/$defs/query"
+        },
+        "result": {
+          "$ref": "#/$defs/queryResult"
+        },
+        "checkId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/checkResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "exploration",
+            "verification"
+          ]
+        }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "rowIndex"
+      ],
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/queryEvidence"
+        },
+        "rowIndex": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "manualAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "createdAt",
+        "reviewer",
+        "verdict",
+        "reason",
+        "automatedVerdict",
+        "evidenceHash",
+        "reviewerSource"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "automatedVerdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "evidenceHash": {
+          "type": "string",
+          "pattern": "^[A-F0-9]{64}$"
+        },
+        "reviewerSource": {
+          "const": "self_declared"
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "caseId",
+        "caseTitle",
+        "startedAt",
+        "finishedAt",
+        "state",
+        "verdict",
+        "identityAlias",
+        "authKind",
+        "verifiedIdentity",
+        "effectiveUrl",
+        "request",
+        "changes",
+        "assertions",
+        "response",
+        "checks",
+        "fixture",
+        "databasePlans",
+        "databaseEvidence",
+        "manualAssessments"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "caseTitle": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "running",
+            "completed",
+            "cancelled",
+            "interrupted"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "identityAlias": {
+          "type": "string"
+        },
+        "authKind": {
+          "enum": [
+            "none",
+            "bearer",
+            "apiToken"
+          ]
+        },
+        "verifiedIdentity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/verifiedIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectiveUrl": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "original",
+              "current"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "original": {
+                "type": "string"
+              },
+              "current": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assertion"
+          }
+        },
+        "response": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/response"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/checkResult"
+          }
+        },
+        "fixture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/fixture"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "databasePlans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "query"
+            ],
+            "properties": {
+              "check": {
+                "$ref": "#/$defs/databaseCheck"
+              },
+              "query": {
+                "$ref": "#/$defs/query"
+              }
+            }
+          }
+        },
+        "databaseEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/queryEvidence"
+          }
+        },
+        "manualAssessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/manualAssessment"
+          }
+        },
+        "executionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "captureSources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "startedAt",
+        "finishedAt",
+        "packageHash",
+        "package",
+        "baseUrl",
+        "attempts"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "packageHash": {
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/package"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attempt"
+          }
+        },
+        "preparationLog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "at",
+              "caseId",
+              "title",
+              "status"
+            ],
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "caseId": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "runId": {
+                "type": "string"
+              },
+              "identityRef": {
+                "type": "string"
+              },
+              "executionJson": {
+                "type": "string"
+              },
+              "httpEvidenceJson": {
+                "type": "string"
+              },
+              "baseUrl": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "totalCases",
+        "executedCases",
+        "attempts",
+        "hadFailures",
+        "effectiveAttemptPolicy"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "totalCases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executedCases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hadFailures": {
+          "type": "boolean"
+        },
+        "effectiveAttemptPolicy": {
+          "const": "latest attempt per case; all historical attempts retained"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "title",
+        "parentId",
+        "attemptId",
+        "verdict",
+        "state",
+        "manualVerdict",
+        "manualAssessmentId",
+        "manualAssessmentIsCurrent"
+      ],
+      "properties": {
+        "caseId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attemptId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "NotRun",
+            "Running",
+            "Completed",
+            "Cancelled",
+            "Interrupted"
+          ]
+        },
+        "manualVerdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manualAssessmentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manualAssessmentIsCurrent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "reportCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptId",
+        "checkId",
+        "required",
+        "verdict",
+        "expected",
+        "actual",
+        "expectedText",
+        "actualText",
+        "message",
+        "evidencePointer"
+      ],
+      "properties": {
+        "attemptId": {
+          "type": "string"
+        },
+        "checkId": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ]
+        },
+        "expected": {},
+        "actual": {},
+        "expectedText": {
+          "type": "string"
+        },
+        "actualText": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "evidencePointer": {
+          "type": "string",
+          "pattern": "^/run/attempts/[0-9]+/checks/[0-9]+$"
+        }
+      }
+    },
+    "preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "connectionRef": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "keyColumn": {
+          "type": "string"
+        },
+        "keyJson": {
+          "type": "string"
+        },
+        "valueColumn": {
+          "type": "string"
+        },
+        "valueJson": {
+          "type": "string"
+        },
+        "jwtClaim": {
+          "type": "string"
+        },
+        "valuePointer": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "databaseValue",
+            "apiValue"
+          ]
+        },
+        "provider": {
+          "enum": [
+            "sqlite",
+            "sqlServer",
+            "mySql",
+            "postgreSql"
+          ]
+        },
+        "requireFreshLogin": {
+          "type": "boolean"
+        },
+        "allowUnconditionalApiUpdate": {
+          "type": "boolean"
+        },
+        "captureRequest": {
+          "$ref": "#/$defs/request"
+        },
+        "updateRequest": {
+          "$ref": "#/$defs/request"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

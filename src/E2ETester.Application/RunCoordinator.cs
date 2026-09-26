@@ -105,7 +105,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 ? PackageJson.Clone(baseline.Request) : ValueBindings.Request(baseline.Request, fixture, run);
             var frozenAssertions = PackageJson.Clone(assertions);
             if (frozenAssertions.Any(a => a.Expected.Contains(LegacyEvidence.Placeholder))) throw new InvalidOperationException("Re-enter redacted assertion values before running checks.");
-            PackageJson.Validate(new TestPackage { Queries = run.Package.Queries, Cases = [new TestCase { Request = frozen, Assertions = frozenAssertions, FixtureQueryId = baseline.FixtureQueryId, FixtureRequired = baseline.FixtureRequired, DatabaseChecks = baseline.DatabaseChecks }] });
+            PackageJson.Validate(new TestPackage { SchemaVersion = run.Package.SchemaVersion, Queries = run.Package.Queries, Cases = [new TestCase { Request = frozen, Assertions = frozenAssertions, FixtureQueryId = baseline.FixtureQueryId, FixtureRequired = baseline.FixtureRequired, DatabaseChecks = baseline.DatabaseChecks }] });
             if (identity.Alias != frozen.IdentityRef) throw new InvalidOperationException("Select the identity required by this request.");
             if (identity.Kind != AuthKind.None && string.IsNullOrWhiteSpace(identity.Secret)) throw new InvalidOperationException($"Identity '{identity.Alias}' has no token. Choose the identity you signed in with in Auth, or sign in for this identity.");
             if (identity.Kind != AuthKind.None && frozen.Headers.Any(f => f.Enabled && f.Name.Equals(identity.Kind == AuthKind.Bearer ? "Authorization" : identity.HeaderName, StringComparison.OrdinalIgnoreCase)))

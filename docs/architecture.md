@@ -34,7 +34,7 @@ An editor keeps the imported baseline alongside current values. The coordinator 
 
 Each attempt is PASS, FAIL or INCONCLUSIVE. Required database verification can leave a successful HTTP exchange inconclusive until the data check finishes. The latest attempt per case determines automated coverage; historical failures remain visible. Manual assessments accompany automated results and are tied to an evidence hash.
 
-Fixtures are optional data inputs, not a GET requirement. A package's explicit `fixtureQueryId` creates that prerequisite. The local database demo uses it; the cloud checkremoteip package does not. Changing a URL never silently removes declared database checks.
+Fixtures are optional data inputs, not a GET requirement. A package's `fixtureRequired` flag creates a selection prerequisite; a saved query alone can remain optional. The local database demo uses it; the cloud checkremoteip package does not. Changing a URL never silently removes declared database checks.
 
 ## Data and identity
 
@@ -49,3 +49,5 @@ Add assertions in Core/Application, database adapters in Infrastructure, and exp
 Velopack operates before WPF initialization. Update checks are user-triggered. The installed desktop can select an exact full package from a trusted feed; a lower version is an explicit downgrade. Before applying, the app saves its draft and backs up the workspace. Application rollback does not downgrade database schema or restore user data automatically.
 
 The historical design notes remain under `docs/plan`; they describe intent and may include deferred ideas. This document describes the current implementation. See [feature overview](features.md) and [testing](testing.md).
+
+The `E2ETester.Cli` host uses `HeadlessRunner` and `AgentWorkspace` for unattended execution with the same permissions and persistence as MCP. It writes JUnit plus canonical reports. OpenAPI/Postman import and offline JSON Schema evaluation live in Application; the desktop and CLI share them.
