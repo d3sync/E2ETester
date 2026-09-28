@@ -65,6 +65,8 @@ public sealed record Assertion
 public sealed record TestCase
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<IdentityClaimCondition>? AppliesWhen { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public PreparationPlan? Preparation { get; set; }
     public TestStepKind Kind { get; set; }
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
@@ -77,6 +79,8 @@ public sealed record TestCase
     public bool FixtureRequired { get; set; }
     public List<DatabaseCheck> DatabaseChecks { get; set; } = [];
 }
+
+public sealed record IdentityClaimCondition(string IdentityRef, string Claim, string ExpectedJson, string Description = "");
 
 public sealed record TestPackage
 {

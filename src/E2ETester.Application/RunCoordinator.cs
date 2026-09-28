@@ -54,7 +54,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
-    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool preparationConfirmed = false, bool bypassPrerequisites = false)
+    public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool preparationConfirmed = false, bool bypassPrerequisites = false, bool applicabilityConfirmed = false, IReadOnlyList<string>? applicabilityIssues = null)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
         try
@@ -62,6 +62,8 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             if (executionId is not null && run.Attempts.FirstOrDefault(a => a.ExecutionId == executionId) is { } known) return known;
             if (run.FinishedAt is not null) throw new InvalidOperationException("This run is finished. Start a new run to execute more tests.");
             if (!run.Package.Cases.Any(c => c.Id == baseline.Id)) throw new InvalidOperationException("The case does not belong to this run.");
+            if(baseline.AppliesWhen?.Count>0 && !applicabilityConfirmed) throw new InvalidOperationException("Review tester applicability before execution.");
+            if(applicabilityIssues?.Count>0 && !bypassPrerequisites) throw new InvalidOperationException("This case does not apply: " + string.Join(" ",applicabilityIssues));
             var setup = run.Package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication);
             if (!bypassPrerequisites && setup is not null && baseline.Id != setup.Id)
             {
@@ -84,6 +86,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                     IdentityAlias = identity.Alias, AuthKind = identity.Kind,
                     Request = PackageJson.Clone(new RequestDefinition { Url = baseline.Request.Url, IdentityRef = identity.Alias }),
                     Checks = [new("authentication-token", true, Verdict.Pass, "Bearer token available", "Token supplied", "No API request sent. Token availability only; the next remote-IP request validates server access.")] };
+                if(applicabilityIssues?.Count>0) auth.Changes.Add(new("execution.applicability",string.Join(" ",applicabilityIssues),"Tester explicitly chose Run anyway; expected results unchanged."));
                 if (bypassPrerequisites) auth.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; authentication availability still verified."));
                 run.Attempts.Add(auth);
                 try { await store.SaveAsync(run); } catch { run.Attempts.Remove(auth); throw; }
@@ -132,6 +135,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 Assertions = frozenAssertions,
                 Fixture = fixture, DatabasePlans = plans
             };
+            if(applicabilityIssues?.Count>0) attempt.Changes.Add(new("execution.applicability",string.Join(" ",applicabilityIssues),"Tester explicitly chose Run anyway; expected results unchanged."));
             if (bypassPrerequisites) attempt.Changes.Add(new("execution.prerequisites", "Normal flow requirements", "Tester explicitly chose Run anyway; prior-case prerequisites bypassed. Available response source IDs are recorded in captureSources."));
             run.Attempts.Add(attempt);
             try { await store.SaveAsync(run); }

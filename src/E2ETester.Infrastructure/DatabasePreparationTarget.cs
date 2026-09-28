@@ -12,6 +12,7 @@ public sealed class DatabasePreparationTarget(DatabaseConnectionProfile profile)
 {
     private DbConnection Connect(PreparationPlan plan)
     {
+        if (IdentityBindings.KeyBinding(plan) is not null) throw new InvalidOperationException("Resolve the signed-in account before accessing its preparation target.");
         Preparations.Validate(plan);
         if (profile.Alias != plan.ConnectionRef || profile.Provider != plan.Provider) throw new InvalidOperationException("Choose the connection named by the preparation.");
         if (profile.ReadOnlyCredentialsConfirmed) throw new InvalidOperationException("Preparation needs a write-enabled connection. Leave the read-only account flag off only if the account permits writes.");

@@ -5,7 +5,7 @@ public static class SuiteDefaults
     public static TestPackage Create(string title = "New API test suite", string baseUrl = "https://api.example.test") => Ensure(new TestPackage { Title = title, BaseUrl = baseUrl });
     public static TestPackage Ensure(TestPackage source)
     {
-        var package = PackageJson.Clone(source) with { SchemaVersion = source.SchemaVersion is "1.6" or "1.7" ? source.SchemaVersion : source.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
+        var package = PackageJson.Clone(source) with { SchemaVersion = source.SchemaVersion is "1.6" or "1.7" or "1.8" ? source.SchemaVersion : source.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
         if (package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication) is { } existing)
         {
             package.Cases.Remove(existing); package.Cases.Insert(0, existing);

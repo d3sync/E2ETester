@@ -70,7 +70,13 @@ public sealed partial class AgentWorkspace
             if (!configuration.ApprovedPreparations.Any(p => PackageJson.Write(p) == PackageJson.Write(plan))) throw new InvalidOperationException("preparation_not_permitted");
             if (plan.RequireFreshLogin && plan.Kind == PreparationKind.ApiValue && new[] { plan.CaptureRequest.IdentityRef, plan.UpdateRequest.IdentityRef }.Contains(test.Request.IdentityRef)) throw new InvalidOperationException("preparation_not_permitted");
             var identity = await Identity(test.Request.IdentityRef);
-            if (PermissionIdentity.Matches(plan, identity)) return new { operationId, state = "identity_ready", identityRef = identity.Alias };
+            var template=plan;
+            plan=await IdentityBindings.ResolveAsync(plan,Identity);
+            if (PermissionIdentity.Matches(plan, identity))
+            {
+                try { await IdentityBindings.CheckSameAccountAsync(template,identity,Identity); return new { operationId, state = "identity_ready", identityRef = identity.Alias }; }
+                catch(InvalidOperationException) { /* Prepare the source account, then sign in as that account for this role. */ }
+            }
             if (entries.Any(e => e.Recovery.Status != "restored")) throw new InvalidOperationException("restoration_required");
             var db = configuration.Databases.SingleOrDefault(d => d.Alias == plan.ConnectionRef);
             var entry = new PreparationRecovery { Id = operationId, RunId = runId, CaseId = caseId, PackageId = run.Package.Id, BaseUrl = run.BaseUrl,
@@ -115,6 +121,8 @@ public sealed partial class AgentWorkspace
         var match = pending.SingleOrDefault(e => e.RunId == run.Id && e.Recovery.CaseId == test.Id);
         if (pending.Any(e => e != match)) throw new InvalidOperationException("restoration_required");
         if (test.Preparation is null) return;
+        await IdentityBindings.CheckSameAccountAsync(test.Preparation,identity,Identity);
+        test = test with { Preparation = await IdentityBindings.ResolveAsync(test.Preparation,Identity) };
         if (PermissionIdentity.IsPermissionPlan(test.Preparation))
         {
             if (PermissionIdentity.Matches(test.Preparation, identity)) return;

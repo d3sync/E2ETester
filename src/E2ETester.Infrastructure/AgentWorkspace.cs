@@ -123,6 +123,8 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
             if (p.Revision != Revision(run)) throw new InvalidOperationException("stale_preparation: prepare again after editing the package.");
             Target(RequestUrls.Resolve(run.BaseUrl, ValueBindings.Request(p.Case.Request, p.Fixture, run)));
             var identity = await Identity(p.Case.Request.IdentityRef);
+            var applicability=await IdentityBindings.ApplicabilityAsync(p.Case,Identity);
+            if(applicability.Count>0)throw new InvalidOperationException("Case applicability mismatch: "+string.Join(" ",applicability)+". Review in the desktop; automated overrides are not enabled.");
             await EnsureEnvironmentAsync(run, p.Case, identity);
             await SavePreparation(p with { State = "dispatched" });
             var cancel = new CancellationTokenSource();
@@ -132,7 +134,7 @@ public sealed partial class AgentWorkspace : IAsyncDisposable
                 await start.Task;
                 try
                 {
-                    await coordinator.ExecuteAsync(run, run.Package.Cases.Single(c => c.Id == p.CaseId), p.Case.Request, p.Case.Assertions, identity, cancel.Token, p.Fixture, p.Id, preparationConfirmed: true);
+                    await coordinator.ExecuteAsync(run, run.Package.Cases.Single(c => c.Id == p.CaseId), p.Case.Request, p.Case.Assertions, identity, cancel.Token, p.Fixture, p.Id, preparationConfirmed: true, applicabilityConfirmed: true);
                     await SavePreparation(p with { State = "finished" });
                 }
                 catch { try { await SavePreparation(p with { State = "failed_or_interrupted" }); } catch { /* Durable dispatch prevents retry even when storage fails. */ } }

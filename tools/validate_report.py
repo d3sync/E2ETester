@@ -9,7 +9,7 @@ if len(sys.argv) < 2:
 for name in sys.argv[1:]:
     document = json.loads(Path(name).read_text(encoding="utf-8-sig"))
     version = document.get("schemaVersion")
-    if version not in ("1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10"):
+    if version not in ("1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11"):
         raise ValueError("Unsupported report version")
     schema = json.loads((Path(__file__).resolve().parents[1] / f"schemas/test-report.v{version}.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)

@@ -9,6 +9,7 @@ public static class PermissionIdentity
     // This compares supplied claims, not signatures. The API still validates the JWT on each request.
     public static bool Matches(PreparationPlan? plan, IdentitySession identity, DateTimeOffset? expiresAt = null)
     {
+        if (plan is not null && IdentityBindings.KeyBinding(plan) is not null) return false;
         if (!IsPermissionPlan(plan) || identity.Kind != AuthKind.Bearer || string.IsNullOrWhiteSpace(identity.Secret)) return false;
         var expiry = expiresAt ?? identity.Verified?.ExpiresAt ?? TokenLifetime.ExpiresAt(identity.Secret, identity.Kind, DateTimeOffset.UtcNow);
         if (expiry <= DateTimeOffset.UtcNow) return false;

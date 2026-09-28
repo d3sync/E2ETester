@@ -12,6 +12,7 @@ internal static class FeatureSmoke
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
         await RoleIdentitySmoke.RunAsync();
+        await TesterSetupSmoke.RunAsync(window,path);
         await SessionAndOverrideSmoke.RunAsync();
         await GuidedActionsSmoke.RunAsync(window);
         await UpdateSettingsSmoke.RunAsync(window,path);
@@ -177,12 +178,12 @@ internal static class FeatureSmoke
         _ = window.Dispatcher.BeginInvoke(new Action(()=>
         {
             var agent=System.Windows.Application.Current.Windows.OfType<TextDocumentWindow>().Single();
-            if(((DockPanel)agent.Content).Children.OfType<TabControl>().Single().Items.Count!=7 || PackageJson.Read<TestPackage>(AgentResources.Template).SchemaVersion != "1.5")throw new InvalidOperationException("AI assistant schema 1.5 resources missing.");
+            if(((DockPanel)agent.Content).Children.OfType<TabControl>().Single().Items.Count!=8 || PackageJson.Read<TestPackage>(AgentResources.Template).SchemaVersion != "1.5")throw new InvalidOperationException("AI assistant resources missing.");
             Save(agent,path+".agent.png");agent.Close();
         }),DispatcherPriority.ApplicationIdle);
         model.AgentHelp.Execute(null);
         var kit=Path.Combine(Path.GetTempPath(),"agent-kit-smoke-"+Guid.NewGuid().ToString("N"));AgentResources.ExportKit(kit);
-        if(!File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.5.schema.json")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","assets","prepared-permissions.jsee")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","SKILL.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.4.schema.json")))throw new InvalidOperationException("Exported skill incomplete.");
+        if(!File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.8.schema.json")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","tester-setup.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.5.schema.json")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","assets","prepared-permissions.jsee")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","SKILL.md")) || !File.Exists(Path.Combine(kit,"e2e-tester-author","references","test-package.v1.4.schema.json")))throw new InvalidOperationException("Exported skill incomplete.");
         var toolsButton=Descendants(window).OfType<Button>().Single(b=>b.ContextMenu is not null);
         toolsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await window.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);

@@ -93,3 +93,5 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md
 [MIT license](LICENSE). Dependencies retain their own licenses: [third-party notices](THIRD_PARTY_NOTICES.md). Artwork provenance is in the brand kit. Historical `docs/plan` files describe design intent, not the current feature reference.
 
 For migration and automation, see [imports and CI](docs/imports-and-ci.md). For a new tester, start with [the first-run study](docs/first-run-study.md).
+
+For portable suites across tester accounts, see [reusable tester setup](docs/tester-setup.md).

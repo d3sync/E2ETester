@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+- Bind database preparation keys to named JWT claims, with restoration pinned to the captured row and original value.
+- Review tester setup from Tools; flag group/client assumptions and explicitly override them with Run anyway without changing assertions.
+- Require reused permission tokens to belong to the bound account. Add package schema 1.8 and report schema 1.11, with matching desktop, MCP and authoring resources.
+
+
 ## 0.8.0
 
 - Import Postman 2.1 collections with explicit migration warnings; OpenAPI accepts YAML and supplied reference documents.

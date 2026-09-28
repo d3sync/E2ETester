@@ -155,6 +155,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh();
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();
         foreach (var command in new[] { Cancel, Next, Previous, NewCase, NewRun, AddQuery, AddHeader, AddCheck, NewIdentity }) command?.Refresh();
+        ReviewTesterSetup?.Refresh();
         OpenDatabase?.Refresh(); AddDatabaseCheck?.Refresh(); VerifyDatabase?.Refresh();
         LoadDatabaseDemo?.Refresh();
         LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
@@ -181,7 +182,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0)) ShowAdvanced = true;
         MarkWorkSaved(); NotifyRun();
     }
-    private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.7" || Cases.Any(c => c.Definition().Assertions.Any(a => a.Kind == CheckKind.JsonSchema)) ? "1.7" : package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
+    private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.8" || Cases.Select(c => c.Definition()).Concat(package.GuidedActions ?? []).Any(c => c.AppliesWhen is not null || c.Preparation is {} p && IdentityBindings.KeyBinding(p) is not null) ? "1.8" : package.SchemaVersion == "1.7" || Cases.Any(c => c.Definition().Assertions.Any(a => a.Kind == CheckKind.JsonSchema)) ? "1.7" : package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
     private void NotifyRun() { OpenGuidedActions?.Refresh(); Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
     private void LoadAttempts()
     {
@@ -223,8 +224,10 @@ public sealed partial class MainViewModel : Observable, IDisposable
             Message = "This package requires database data before sending. For /whoami, choose Cloud test above: that API-only package needs no fixtures. Otherwise use Database → Query Studio to select the configured fixture.";
             return;
         }
+        var applicability = await IdentityBindings.ApplicabilityAsync(editor.Baseline, ResolveSetupIdentity);
+        if(applicability.Count>0 && !RunAnyway) throw new InvalidOperationException("This case may not apply to this tester: " + string.Join(" ",applicability) + " Review tester setup, or select Run anyway to explicitly override. Expected results will not be changed.");
         var bypassPrerequisites = RunAnyway;
-        if (bypassPrerequisites && !(RunAnywayConfirmation?.Invoke() ?? (MessageBox.Show(PreparationOwner(), "Run this request without requiring earlier tests to pass?\n\nAvailable earlier HTTP responses may supply referenced values even if their test failed. Missing values must still be entered manually. This override is recorded; assertions still run normally.", "Run anyway — this request only", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) == MessageBoxResult.OK))) { RunAnyway = false; return; }
+        if (bypassPrerequisites && !(RunAnywayConfirmation?.Invoke() ?? (MessageBox.Show(PreparationOwner(), "Run this request despite prerequisites or tester applicability warnings?\n" + string.Join("\n", applicability) + "\nAvailable earlier HTTP responses may supply referenced values even if their test failed. Missing values must still be entered manually. This override is recorded; assertions still run normally.", "Run anyway — this request only", MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) == MessageBoxResult.OK))) { RunAnyway = false; return; }
         var request = editor.Request(identityEditor.Alias);
         if (bypassPrerequisites)
         {
@@ -237,7 +240,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         try
         {
             var identity = await identityEditor.ResolveAsync(cancellation.Token);
-            EnsurePreparationReady(identity);
+            await EnsurePreparationReady(identity);
             RememberIdentity(identityEditor);
             identityEditor.RefreshSession();
             if (run is null)
@@ -249,7 +252,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
-            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites);
+            var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites, applicabilityConfirmed: true, applicabilityIssues: applicability);
             editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
         }

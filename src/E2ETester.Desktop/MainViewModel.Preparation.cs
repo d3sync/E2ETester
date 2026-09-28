@@ -28,6 +28,7 @@ public sealed partial class MainViewModel
         preparationStore = new(Path.Combine(workspace, "Preparation"));
         try { preparations = Task.Run(() => preparationStore.LoadAsync<List<PreparationRecovery>>()).GetAwaiter().GetResult() ?? []; }
         catch { preparationRecoveryUnreadable = true; }
+        ReviewTesterSetup = Command(ReviewTesterSetupAsync, () => !Database.Busy);
         ConfigurePreparation = new(() =>
         {
             if (SelectedCase is null) return;
@@ -59,7 +60,7 @@ public sealed partial class MainViewModel
     }
     private async Task<bool> CanReusePermissionIdentity(PreparationPlan plan, IdentityEditor identity)
     {
-        try { return PermissionIdentity.Matches(plan, await identity.ResolveAsync(default), identity.BrowserSession?.Identity.ExpiresAt ?? identity.ExpiresAt); }
+        try { var role=await identity.ResolveAsync(default); await IdentityBindings.CheckSameAccountAsync(plan,role,ResolveSetupIdentity); return PermissionIdentity.Matches(await ResolvePreparation(plan), role, identity.BrowserSession?.Identity.ExpiresAt ?? identity.ExpiresAt); }
         catch (InvalidOperationException) { return false; }
     }
     private Task InvalidatePreparedLogin(PreparationRecovery entry)
@@ -75,6 +76,7 @@ public sealed partial class MainViewModel
         var plan = PackageJson.Clone(selected.Baseline.Preparation!);
         if (SelectedIdentity is { } ready && await CanReusePermissionIdentity(plan, ready))
         { Message = $"Identity '{ready.Alias}' already has the required permissions. Ready to send; no database update or login needed."; return; }
+        plan = await ResolvePreparation(plan);
         var dialog = new PreparationWindow(plan, execution: true) { Owner = PreparationOwner() };
         if (dialog.ShowDialog() != true) return;
         plan = dialog.Plan!; Preparations.Validate(plan);
@@ -135,12 +137,14 @@ public sealed partial class MainViewModel
         if (preparations.Any(p => p.Status != "restored" && (!PermissionIdentity.IsPermissionPlan(p.Plan) || p.Status != "applied") && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl)))
             throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
     }
-    private void EnsurePreparationReady(IdentitySession identity)
+    private async Task EnsurePreparationReady(IdentitySession identity)
     {
         EnsurePreparationScope();
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
         if (preparations.Any(p => p.Status == "pending")) throw new InvalidOperationException("Resolve pending preparation changes with Restore changes before sending.");
         if (SelectedCase?.Baseline.Preparation is not { } plan) return;
+        await IdentityBindings.CheckSameAccountAsync(plan,identity,ResolveSetupIdentity);
+        plan = await ResolvePreparation(plan);
         if (PermissionIdentity.IsPermissionPlan(plan))
         {
             if (PermissionIdentity.Matches(plan, identity, SelectedIdentity?.BrowserSession?.Identity.ExpiresAt ?? SelectedIdentity?.ExpiresAt)) return;

@@ -409,7 +409,7 @@ public sealed class IdentityEditor : Observable
 
     public Infrastructure.BrowserTokenSession? BrowserSession { get; private set; }
 
-    public string SessionDescription => BrowserSession is null ? !IsConfigurable ? "No authentication" : Secret.Length == 0 ? "Not signed in · choose a sign-in method below" : $"Token ready · expires {ExpiresAt:u} · supplied identity is not independently verified" : BrowserSession.RequiresLogin ? "Session is no longer usable. Sign in again before sending." : $"{BrowserSession.Identity.DisplayName}\nSubject: {BrowserSession.Identity.Subject}\nIssuer: {BrowserSession.Identity.Issuer}\nAccess token expires: {BrowserSession.Identity.ExpiresAt:u}\nIdentity verified by signed OIDC ID token";
+    public string SessionDescription => BrowserSession is null ? !IsConfigurable ? "No authentication" : Secret.Length == 0 ? "Not signed in · choose a sign-in method below" : $"Token stored · expires {ExpiresAt:u} · supplied identity is not independently verified" : BrowserSession.RequiresLogin ? "Session is no longer usable. Sign in again before sending." : $"{BrowserSession.Identity.DisplayName}\nSubject: {BrowserSession.Identity.Subject}\nIssuer: {BrowserSession.Identity.Issuer}\nAccess token expires: {BrowserSession.Identity.ExpiresAt:u}\nIdentity verified by signed OIDC ID token";
 
     public bool CanEnterToken => IsConfigurable && BrowserSession is null;
 

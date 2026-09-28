@@ -49,12 +49,14 @@ public sealed partial class MainViewModel
         try
         {
             var identity = await identityEditor.ResolveAsync(cancellation.Token);
+            var issues = await IdentityBindings.ApplicabilityAsync(action, ResolveSetupIdentity);
+            if (issues.Count > 0 && MessageBox.Show(PreparationOwner(), string.Join("\n", issues) + "\n\nRun this action anyway? Its expected results remain unchanged.", "Review action applicability", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return "Action cancelled.";
             var resolved = GuidedActionBindings.Resolve(request, source);
             // The source run is immutable evidence; actions get their own durable run and never alter suite coverage.
             var single = PackageJson.Clone(action); single.Preparation = null; single.Request = resolved;
-            var actionRun = await coordinator.StartAsync(new TestPackage { Title = "Guided Action · " + action.Title,
+            var actionRun = await coordinator.StartAsync(new TestPackage { SchemaVersion = package.SchemaVersion, Title = "Guided Action · " + action.Title,
                 Description = "Package: " + package.Id + "; source run: " + (source?.Id ?? "manual values"), BaseUrl = BaseUrl, Cases = [single] }, BaseUrl);
-            var attempt = await coordinator.ExecuteAsync(actionRun, single, resolved, single.Assertions, identity, cancellation.Token);
+            var attempt = await coordinator.ExecuteAsync(actionRun, single, resolved, single.Assertions, identity, cancellation.Token, bypassPrerequisites: issues.Count > 0, applicabilityConfirmed: true, applicabilityIssues: issues);
             actionRun.FinishedAt = DateTimeOffset.UtcNow; await coordinator.SaveAsync(actionRun);
             return $"{attempt.Verdict} · saved action run {actionRun.Id}\nHTTP {attempt.Response?.StatusCode}\n{attempt.Response?.Error}\n{attempt.Response?.Body}";
         }
@@ -68,8 +70,9 @@ public sealed partial class MainViewModel
         if (plan.Kind == PreparationKind.ApiValue && plan.RequireFreshLogin && (plan.CaptureRequest.IdentityRef == identityRef || plan.UpdateRequest.IdentityRef == identityRef))
             throw new InvalidOperationException("Use a separate administrator identity for permission capture and restoration.");
         var identity = Identities.SingleOrDefault(i => i.Alias == identityRef) ?? throw new InvalidOperationException("Choose the test identity whose permissions are being changed.");
-        if (await CanReusePermissionIdentity(plan, identity))
+        if (await CanReusePermissionIdentity(action.Preparation is {} template ? template with { ValueJson=plan.ValueJson } : plan, identity))
         { Message = $"Identity '{identity.Alias}' already has the required permissions. No preparation or login needed."; return; }
+        plan = await ResolvePreparation(plan);
         var previousToken = identity.Secret;
         Busy = true;
         try

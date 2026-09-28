@@ -1,10 +1,11 @@
 using E2ETester.Core;
+using E2ETester.Application;
 namespace E2ETester.Desktop;
 public sealed partial class MainViewModel
 {
     internal void IncludeReferencedIdentities()
     {
-        foreach (var alias in Cases.Select(c => c.IdentityRef).Concat(package.GuidedActions?.Select(c => c.Request.IdentityRef) ?? []).Distinct().ToList())
+        foreach (var alias in Cases.Select(c => c.Definition()).Concat(package.GuidedActions ?? []).SelectMany(IdentityBindings.References).Distinct().ToList())
             if (!Identities.Any(i => i.Alias == alias)) AddIdentity(alias);
     }
     private string NextIdentityAlias()
@@ -26,7 +27,7 @@ public sealed partial class MainViewModel
         if (Identities.Any(i => i != current && i.Alias.Equals(name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException("An identity already uses that name.");
     }
-    internal int IdentityUses(IdentityEditor identity) => Cases.Count(c => c.IdentityRef == identity.Alias);
+    internal int IdentityUses(IdentityEditor identity) => Cases.Select(c=>c.Definition()).Concat(package.GuidedActions??[]).Count(c=>IdentityBindings.References(c).Contains(identity.Alias));
     internal async Task ChangeIdentityAsync(IdentityEditor identity, string? rename = null, IdentityEditor? replacement = null, bool clearToken = false)
     {
         if (Busy || Database.Busy) throw new InvalidOperationException("Wait for the current operation to finish.");
@@ -39,6 +40,9 @@ public sealed partial class MainViewModel
             if (replacement is null || replacement == identity || !Identities.Contains(replacement)) throw new InvalidOperationException("Choose a replacement for the tests using this identity.");
             if (!replacement.IsConfigurable && Cases.Any(c => c.IdentityRef == old && c.Baseline.Kind == TestStepKind.SwaggerAuthentication)) throw new InvalidOperationException("Sign-in steps need a named replacement identity, not 'none'.");
         }
+        var replacementAlias=rename ?? replacement?.Alias;
+        if(replacementAlias is not null && replacementAlias.IndexOfAny(['.', '{', '}'])>=0 && Cases.Select(c=>c.Baseline).Concat(package.GuidedActions??[]).Any(c=>c.Preparation is {} p && IdentityBindings.KeyBinding(p)?.Alias==old))
+            throw new InvalidOperationException("An identity used in a key binding cannot contain dots or braces.");
         var saved = await profiles.LoadAsync<List<SavedEnvironment>>() ?? [];
         if (rename is not null && saved.Any(e => e.Identities.Any(i => i.Alias == old) && e.Identities.Any(i => i.Alias != old && i.Alias.Equals(rename, StringComparison.OrdinalIgnoreCase))))
             throw new InvalidOperationException("A saved environment already uses that name. Choose another name.");
@@ -76,6 +80,8 @@ public sealed partial class MainViewModel
                 if (wasSelected) SelectedIdentity = replacement ?? Identities[0];
             }
         }
+        if(replacementAlias is not null && !clearToken)
+            foreach(var test in Cases.Select(c=>c.Baseline).Concat(package.GuidedActions??[]))IdentityBindings.Rename(test,old,replacementAlias);
         Changed(nameof(SelectedIdentity));
         await SaveDraftAsync();
         Message = rename is not null ? "Identity renamed. Draft references and saved environments updated; previous attempts retain their original identity names." : deleting ? "Identity and its saved credentials removed. Browser cookies are retained; clear them in the Swagger sign-in window if needed." : "Token and native login cleared, including saved environments. Browser cookies are unchanged.";

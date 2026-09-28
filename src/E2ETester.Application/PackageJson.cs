@@ -28,7 +28,7 @@ public static class PackageJson
         RejectNulls(document.RootElement, "$");
         var package = Read<TestPackage>(json);
         Validate(package);
-        return package with { SchemaVersion = package.SchemaVersion is "1.6" or "1.7" ? package.SchemaVersion : package.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
+        return package with { SchemaVersion = package.SchemaVersion is "1.6" or "1.7" or "1.8" ? package.SchemaVersion : package.Cases.Any(c => c.Preparation is not null) ? "1.5" : "1.4" };
     }
 
     private static void RejectNulls(JsonElement element, string path)
@@ -51,7 +51,7 @@ public static class PackageJson
     public static void Validate(TestPackage package)
     {
         if (Write(package).Length > 5_000_000) throw new InvalidDataException("Package exceeds the 5 MB limit. Use smaller fixtures or fewer embedded files.");
-        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5" or "1.6" or "1.7")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7.");
+        if (package.SchemaVersion is not ("1.0" or "1.1" or "1.2" or "1.3" or "1.4" or "1.5" or "1.6" or "1.7" or "1.8")) throw new InvalidDataException("Supported package schemas: 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 and 1.8.");
         if (string.IsNullOrWhiteSpace(package.Title) || string.IsNullOrWhiteSpace(package.Id)) throw new InvalidDataException("Package ID and title are required.");
         if (package.Cases.Count == 0 || package.Cases.Count > 1000) throw new InvalidDataException("A package must contain 1–1,000 cases.");
         if (package.Cases.Any(c => c.Id.StartsWith("$action:", StringComparison.Ordinal))) throw new InvalidDataException("The $action: ID prefix is reserved for action audit records.");
@@ -59,7 +59,7 @@ public static class PackageJson
         if (package.Queries.Select(q => q.Id).Distinct().Count() != package.Queries.Count) throw new InvalidDataException("Query IDs must be unique.");
         if (package.GuidedActions is { } actions)
         {
-            if (package.SchemaVersion is not ("1.6" or "1.7")) throw new InvalidDataException("Guided Actions require package schema 1.6.");
+            if (package.SchemaVersion is not ("1.6" or "1.7" or "1.8")) throw new InvalidDataException("Guided Actions require package schema 1.6.");
             if (actions.Count > 100) throw new InvalidDataException("A package supports up to 100 Guided Actions.");
             if (actions.Any(a => a.Kind != TestStepKind.Http || a.FixtureRequired || a.FixtureQueryId.Length > 0 || a.DatabaseChecks.Count > 0 || a.ParentId is not null))
                 throw new InvalidDataException("Guided Actions support HTTP requests or preparation, without fixture requirements, database checks or variations.");
@@ -74,6 +74,16 @@ public static class PackageJson
                         throw new PackageFieldValidationException("$.guidedActions[" + (int.Parse(match.Groups[1].Value) - package.Cases.Count) + "]" + ex.FieldPath[match.Length..], "Expected value must contain valid JSON, including double quotes for a string.");
                     throw;
                 }
+            }
+        }
+        foreach(var test in package.Cases.Concat(package.GuidedActions ?? []))
+        {
+            if((test.AppliesWhen is not null || test.Preparation is {} p && IdentityBindings.KeyBinding(p) is not null) && package.SchemaVersion != "1.8") throw new InvalidDataException("Identity key bindings and applicability conditions require package schema 1.8.");
+            if(test.AppliesWhen?.Count > 32) throw new InvalidDataException("A case supports up to 32 applicability conditions.");
+            foreach(var condition in test.AppliesWhen ?? [])
+            {
+                if(string.IsNullOrWhiteSpace(condition.IdentityRef)||string.IsNullOrWhiteSpace(condition.Claim))throw new InvalidDataException("Applicability needs an identity alias and claim name.");
+                _ = Preparations.Scalar(condition.ExpectedJson);
             }
         }
         foreach (var query in package.Queries) DatabaseQueries.Validate(query);
@@ -98,7 +108,7 @@ public static class PackageJson
             ValidateRequest(c.Request, c.Title);
             foreach (var a in c.Assertions)
             {
-                if (a.Kind == CheckKind.JsonSchema) { if (package.SchemaVersion != "1.7") throw new InvalidDataException("JSON Schema assertions require package schema 1.7."); _ = SchemaChecks.Build(a.Expected); }
+                if (a.Kind == CheckKind.JsonSchema) { if (package.SchemaVersion is not ("1.7" or "1.8")) throw new InvalidDataException("JSON Schema assertions require package schema 1.7."); _ = SchemaChecks.Build(a.Expected); }
                 if (a.Kind == CheckKind.Status && (!int.TryParse(a.Expected, out var status) || status is < 100 or > 599))
                     throw new InvalidDataException($"{c.Title}: expected status must be 100–599.");
                 if (a.Kind is CheckKind.JsonEquals or CheckKind.JsonExists or CheckKind.JsonGreaterThan or CheckKind.JsonLessThan or CheckKind.JsonArrayCount)

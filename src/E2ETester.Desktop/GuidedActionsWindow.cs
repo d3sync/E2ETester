@@ -87,7 +87,8 @@ public sealed class GuidedActionsWindow : Window
                 if (action.Preparation is not null)
                 {
                     var plan = PackageJson.Read<PreparationPlan>(editor.Text);
-                    var dialog = new PreparationWindow(plan, execution: true) { Owner = this };
+                    var resolvedPlan = await model.ResolvePreparation(plan);
+                    var dialog = new PreparationWindow(resolvedPlan, execution: true) { Owner = this };
                     if (dialog.ShowDialog() != true) return;
                     SetActive(true); await model.ApplyGuidedPermissionsAsync(action, dialog.Plan!, selectedIdentity.Alias); status.Text = model.Message;
                 }
