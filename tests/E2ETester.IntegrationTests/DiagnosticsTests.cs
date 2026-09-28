@@ -40,7 +40,7 @@ internal static class DiagnosticsTests
         check(SwaggerTokenCapture.FromAuthorization(swagger, "https://example.test/api", "Bearer canary") == "canary", "Swagger same-origin bearer accepted");
         foreach (var url in new[] { "https://example.test.evil/api", "http://example.test/api", "https://example.test:444/api", "https://other.test/api" })
             check(SwaggerTokenCapture.FromAuthorization(swagger, url, "Bearer canary") is null, "Swagger foreign origin rejected " + url);
-        foreach (var header in new[] { "Basic canary", "Bearer ", "Bearer bad\r\nheader", "Bearer " + LegacyEvidence.Placeholder })
+        foreach (var header in new[] { "Basic canary", "Bearer ", "Bearer bad\r\nheader" })
             check(SwaggerTokenCapture.FromAuthorization(swagger, "https://example.test/api", header) is null, "invalid captured authorization rejected");
     }
 }

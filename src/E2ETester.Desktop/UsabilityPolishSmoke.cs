@@ -33,7 +33,7 @@ internal static class UsabilityPolishSmoke
             model.Database.SaveConnectionDefaults!(connection, false);
             model.SelectedIdentity!.Secret = "local-sign-in-placeholder";
             await model.Send.RunAsync(); runLabel = model.RunLabel;
-            model.SelectedCase = model.Cases[1]; await model.SaveDraftAsync();
+            model.SelectedCase = model.Cases[1]; model.SelectedCase.Body = "{\"groupToken\":\"original-resumed-value\",\"note\":\"[REDACTED]\"}"; model.SelectedCase.BodySensitive = true; await model.SaveDraftAsync();
             var files = await model.SaveLocalReportsAsync();
             if (!Path.GetFileName(files.Simple).StartsWith("source-package-name_report") || !File.Exists(files.Full)) throw new InvalidOperationException("Local paired reports lost source filename.");
         }
@@ -41,6 +41,7 @@ internal static class UsabilityPolishSmoke
         {
             await model.RestoreDraft.RunAsync();
             if (model.RunLabel != runLabel || model.SelectedCase != model.Cases[1] || !model.Database.Connections.Any(c => c.Alias == "remembered-db" && c.RememberLocally)) throw new InvalidOperationException("Restart lost run position or remembered connection.");
+            if (model.SelectedCase!.Body != "{\"groupToken\":\"original-resumed-value\",\"note\":\"[REDACTED]\"}") throw new InvalidOperationException("Saving/resuming changed raw draft values.");
             var window = new MainWindow(model, restoreDraft: false) { Owner = owner }; window.Show();
             model.SelectedCase = model.Cases[1]; model.AddCheck.Execute(null); window.RequestTabs.SelectedIndex = 4;
             await window.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);

@@ -50,7 +50,6 @@ public static class ValueBindings
             cell = cell.Clone();
         }
         else throw new InvalidDataException($"Unknown binding '{source}'.");
-        if (Text(cell).Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) throw new InvalidOperationException("A redacted value cannot be used as a binding.");
         return cell;
     }
 

@@ -109,7 +109,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         Import = Command(ImportAsync); ExportPackage = Command(ExportPackageAsync);
         Send = Command(SendAsync, () => SelectedCase is not null && (run?.FinishedAt is null || IsPlayground));
         ExportReport = Command(ExportReportAsync, () => run is not null);
-        SaveResponse = Command(SaveResponseAsync, () => SelectedAttempt?.Response is { Truncated: false, ErrorCode: null } response && !response.Body.Contains(LegacyEvidence.Placeholder));
+        SaveResponse = Command(SaveResponseAsync, () => SelectedAttempt?.Response is { Truncated: false, ErrorCode: null } response);
         Finish = Command(FinishAsync, () => run is not null && run.FinishedAt is null);
         Resume = Command(ResumeAsync); AddVariation = Command(AddVariationAsync, () => SelectedCase is not null && run?.FinishedAt is null);
         BrowseRuns = Command(BrowseRunsAsync);
@@ -367,7 +367,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
 
     private async Task SaveResponseAsync()
     {
-        if (SelectedAttempt?.Response is not { Truncated: false, ErrorCode: null } response || response.Body.Contains(LegacyEvidence.Placeholder)) return;
+        if (SelectedAttempt?.Response is not { Truncated: false, ErrorCode: null } response) return;
         var dialog = new SaveFileDialog { Filter = "Response content|*.*", FileName = response.BodyEncoding == "base64" ? "response.bin" : "response.txt" };
         if (dialog.ShowDialog() != true) return;
         var bytes = response.BodyEncoding == "base64" ? Convert.FromBase64String(response.Body) : System.Text.Encoding.UTF8.GetBytes(response.Body);

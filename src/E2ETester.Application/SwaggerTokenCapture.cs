@@ -13,6 +13,6 @@ public static class SwaggerTokenCapture
         if (!Uri.TryCreate(requestUrl, UriKind.Absolute, out var request) || request.UserInfo.Length > 0 || request.GetLeftPart(UriPartial.Authority) != swagger.GetLeftPart(UriPartial.Authority)) return null;
         if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return null;
         var token = authorization[7..].Trim();
-        return token.Length is > 0 and <= 65536 && !token.Any(char.IsWhiteSpace) && token != LegacyEvidence.Placeholder ? token : null;
+        return token.Length is > 0 and <= 65536 && !token.Any(char.IsWhiteSpace) ? token : null;
     }
 }

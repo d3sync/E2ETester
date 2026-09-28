@@ -107,16 +107,11 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             var resolvedBaseline = bypassPrerequisites || fixture is null && ValueBindings.RequiresFixture(baseline.Request)
                 ? PackageJson.Clone(baseline.Request) : ValueBindings.Request(baseline.Request, fixture, run);
             var frozenAssertions = PackageJson.Clone(assertions);
-            if (frozenAssertions.Any(a => a.Expected.Contains(LegacyEvidence.Placeholder))) throw new InvalidOperationException("Re-enter redacted assertion values before running checks.");
             PackageJson.Validate(new TestPackage { SchemaVersion = run.Package.SchemaVersion, Queries = run.Package.Queries, Cases = [new TestCase { Request = frozen, Assertions = frozenAssertions, FixtureQueryId = baseline.FixtureQueryId, FixtureRequired = baseline.FixtureRequired, DatabaseChecks = baseline.DatabaseChecks }] });
             if (identity.Alias != frozen.IdentityRef) throw new InvalidOperationException("Select the identity required by this request.");
             if (identity.Kind != AuthKind.None && string.IsNullOrWhiteSpace(identity.Secret)) throw new InvalidOperationException($"Identity '{identity.Alias}' has no token. Choose the identity you signed in with in Auth, or sign in for this identity.");
             if (identity.Kind != AuthKind.None && frozen.Headers.Any(f => f.Enabled && f.Name.Equals(identity.Kind == AuthKind.Bearer ? "Authorization" : identity.HeaderName, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("The identity and request both set the authentication header. Disable the manual header or select no authentication.");
-            var rawBody = frozen.SendBody && frozen.BodyKind is RequestBodyKind.Text or RequestBodyKind.Binary;
-            var partBody = frozen.SendBody && frozen.BodyKind is RequestBodyKind.FormUrlEncoded or RequestBodyKind.Multipart;
-            if (frozen.Headers.Concat(frozen.Query).Any(f => f.Enabled && f.Value.Contains(LegacyEvidence.Placeholder)) || partBody && frozen.Parts.Any(p => p.Enabled && p.Value.Contains(LegacyEvidence.Placeholder)) || rawBody && frozen.Body.Contains(LegacyEvidence.Placeholder) || frozen.Url.Contains(LegacyEvidence.Placeholder))
-                throw new InvalidOperationException("Re-enter redacted values before sending this request.");
             var url = RequestUrls.Resolve(run.BaseUrl, frozen);
             var safeRequest = PackageJson.Clone(frozen);
             var plans = baseline.DatabaseChecks.Select(check =>

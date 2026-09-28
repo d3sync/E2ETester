@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3
+
+- Remove all remaining legacy redaction-specific guards from requests, response saving, bindings, SQL checks, Swagger capture and binary validation. Sensitive metadata has no masking effect; values are handled as ordinary data.
+- Verify sensitive values and literal placeholder text survive API capture, persistence, reports, queries and draft resume unchanged. Historical placeholders already saved by older versions cannot reconstruct the original data; clean original packages remain usable.
+
+
 ## 0.8.2
 
 - Add visible dismissible action feedback, aligned body options and dark-mode check selectors; move Cloud test into Tools.

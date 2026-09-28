@@ -40,7 +40,7 @@ internal static class BodyTests
         check(PackageJson.Clone(new ResponseSnapshot { Body = secret, BodyEncoding = "base64" }).Body == secret, "known secrets in binary responses are retained");
         using var store = new SqliteRunStore(Path.Combine(Path.GetTempPath(), "E2ETester-omitted-body", Guid.NewGuid().ToString("N")));
         var coordinator = new RunCoordinator(store, transport);
-        var omitted = new TestCase { Request = new() { Url = "/health", SendBody = false, Body = LegacyEvidence.Placeholder, Parts = [new() { Value = "{{case.unavailable./id}}" }] }, Assertions = [new()] };
+        var omitted = new TestCase { Request = new() { Url = "/health", SendBody = false, Body = "[REDACTED]", Parts = [new() { Value = "{{case.unavailable./id}}" }] }, Assertions = [new()] };
         var run = await coordinator.StartAsync(new() { Cases = [omitted] }, baseUrl);
         check((await coordinator.ExecuteAsync(run, omitted, omitted.Request, omitted.Assertions, identity, default)).Verdict == Verdict.Pass, "omitted body does not require inactive secrets or capture bindings");
     }

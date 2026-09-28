@@ -35,7 +35,6 @@ public sealed class DatabaseQueries(IDatabaseExecutor executor)
                 p.IsNull = cell.ValueKind == JsonValueKind.Null;
                 p.Value = ValueBindings.Text(cell);
             }
-            if (p.Value.Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) throw new InvalidOperationException("Re-enter redacted query parameters.");
         }
         var result = await executor.ExecuteAsync(query, profile, token);
         return SafeEvidence(query, result, profile.ConnectionString);
@@ -62,9 +61,7 @@ public sealed class DatabaseQueries(IDatabaseExecutor executor)
         {
             if (result.Rows.Count != 1) return VerdictResult(Verdict.Fail, result.Rows.Count.ToString(CultureInfo.InvariantCulture), "Scalar check requires exactly one row.");
             if (!result.Rows[0].TryGetValue(check.Column, out actual)) return VerdictResult(Verdict.Inconclusive, "Missing column", $"Query did not return '{check.Column}'.");
-            if (actual.ToString().Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, LegacyEvidence.Placeholder, "This older evidence contains a redacted placeholder. Capture it again to compare the value.");
         }
-        if (check.ExpectedJson.Contains(LegacyEvidence.Placeholder, StringComparison.Ordinal)) return VerdictResult(Verdict.Inconclusive, "Redacted expectation", "Re-enter the expectation in a new case/run.");
         using var expected = JsonDocument.Parse(check.ExpectedJson);
         var matches = JsonNode.DeepEquals(JsonNode.Parse(actual.GetRawText()), JsonNode.Parse(check.ExpectedJson));
         if (check.Kind == DatabaseCheckKind.ScalarNotEquals) matches = !matches;
