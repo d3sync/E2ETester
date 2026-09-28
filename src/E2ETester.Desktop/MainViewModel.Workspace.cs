@@ -42,7 +42,7 @@ public sealed partial class MainViewModel
             var saved = await profiles.LoadAsync<List<SavedEnvironment>>() ?? [];
             saved.RemoveAll(e => e.Name == EnvironmentName);
             saved.Add(new(EnvironmentName, BaseUrl, Identities.Where(i => i.IsConfigurable).Select(i => new SavedIdentity(i.Alias, i.Kind, i.Secret, i.HeaderName, i.Prefix, i.Authority, i.ClientId, i.Scope, i.RedirectUri, i.ExpectedSubject, i.AutomaticRefresh, i.AllowLocalHttp)).ToList(), Database.Connections.Select(c => c.Profile).ToList()));
-            await profiles.SaveAsync(saved); await RefreshWorkspaceAsync(); Message = "Environment saved with Windows user encryption. Browser sessions remain in memory; sign in again after restarting.";
+            await profiles.SaveAsync(saved); await RefreshWorkspaceAsync(); Message = "Environment saved with Windows user encryption. Saved browser sessions and valid tokens remain available across restarts.";
         });
         LoadEnvironment = Command(async () =>
         {
@@ -53,7 +53,7 @@ public sealed partial class MainViewModel
             Database.Connections.Clear(); foreach (var d in saved.Databases) Database.Connections.Add(new() { Alias = d.Alias, Provider = d.Provider, ConnectionString = d.ConnectionString, ReadOnlyCredentialsConfirmed = d.ReadOnlyCredentialsConfirmed });
             SelectedIdentity = Identities.FirstOrDefault(i => i.Alias == SelectedCase?.IdentityRef) ?? Identities[0];
             Database.SelectedConnection = Database.Connections.FirstOrDefault(c => c.Alias == Database.Draft.ConnectionRef);
-            Message = "Environment restored locally. Browser identities need a new sign-in.";
+            Message = "Environment restored locally. Valid remembered identities can be reused.";
         });
         ForgetEnvironment = Command(async () =>
         {

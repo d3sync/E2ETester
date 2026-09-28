@@ -13,6 +13,7 @@ public sealed class ConnectionEditor : Observable
     private string alias = "local-db", connectionString = "";
     private DatabaseProvider provider;
     private bool confirmed;
+    public bool RememberLocally { get; set; }
     public string Alias { get => alias; set => Set(ref alias, value); }
     public DatabaseProvider Provider { get => provider; set => Set(ref provider, value); }
     public string ConnectionString { get => connectionString; set => Set(ref connectionString, value); }
@@ -144,7 +145,7 @@ public sealed class DatabaseViewModel : Observable
             var alias = Draft.ConnectionRef;
             var suffix = 1; while (Connections.Any(c => c.Alias.Equals(alias, StringComparison.OrdinalIgnoreCase))) alias = "connection-" + suffix++;
             var dialog = new ConnectionSetupWindow(alias, Draft.Provider) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c) };
-            if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { SaveConnectionDefaults?.Invoke(connection, false); Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. Server settings are remembered locally; credentials stay in this session unless you save an environment."; }
+            if (dialog.ShowDialog() == true && dialog.Connection is { } connection) { SaveConnectionDefaults?.Invoke(connection, false); Connections.Add(connection); SelectedConnection = connection; Message = "Connection ready. The connection is ready; credentials are encrypted locally when Remember is selected."; }
         }, () => !Busy);
         EditConnection = new(() =>
         {
@@ -154,7 +155,7 @@ public sealed class DatabaseViewModel : Observable
                 var dialog = new ConnectionSetupWindow(current) { Owner = ConnectionOwner(), ValidateConnection = c => ValidateConnection(c, current) };
                 if (dialog.ShowDialog() != true || dialog.Connection is not { } replacement) return;
                 ReplaceConnection(current, replacement);
-                Message = "Connection updated. Server settings are remembered locally; save an environment if you also want to retain credentials.";
+                Message = "Connection updated. Local encrypted storage follows the Remember setting.";
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
             { Message = "Could not edit the connection. Check its advanced connection string and try again."; }

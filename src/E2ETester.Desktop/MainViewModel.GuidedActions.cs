@@ -9,7 +9,7 @@ public sealed partial class MainViewModel
 {
     public ActionCommand OpenGuidedActions { get; private set; } = null!;
     private void InitializeGuidedActions() => OpenGuidedActions = new(() =>
-        new GuidedActionsWindow(this, package.GuidedActions ?? []) { Owner = PreparationOwner() }.ShowDialog(),
+        new GuidedActionsWindow(this, PermissionActions.ForPackage(CurrentPackage())) { Owner = PreparationOwner() }.ShowDialog(),
         () => !Busy && !Database.Busy);
     internal TestRun? GuidedActionSource => run;
     internal async Task<TestRun?> ChooseActionSourceAsync(Window owner)
@@ -70,8 +70,6 @@ public sealed partial class MainViewModel
         if (plan.Kind == PreparationKind.ApiValue && plan.RequireFreshLogin && (plan.CaptureRequest.IdentityRef == identityRef || plan.UpdateRequest.IdentityRef == identityRef))
             throw new InvalidOperationException("Use a separate administrator identity for permission capture and restoration.");
         var identity = Identities.SingleOrDefault(i => i.Alias == identityRef) ?? throw new InvalidOperationException("Choose the test identity whose permissions are being changed.");
-        if (await CanReusePermissionIdentity(action.Preparation is {} template ? template with { ValueJson=plan.ValueJson } : plan, identity))
-        { Message = $"Identity '{identity.Alias}' already has the required permissions. No preparation or login needed."; return; }
         plan = await ResolvePreparation(plan);
         var previousToken = identity.Secret;
         Busy = true;
@@ -88,7 +86,7 @@ public sealed partial class MainViewModel
             try { await Preparations.ApplyAsync(entry, target, PersistPreparations, default); }
             finally { await AuditPreparation(entry); }
             await InvalidatePreparedLogin(entry);
-            Message = "Guided Action applied. Sign in again if required. Restore changes returns the captured original value.";
+            Message = "Guided Action applied and verified successfully. The database value was updated. Existing JWTs are unchanged; sign in for a new token if needed. Restore changes returns the captured original value.";
         }
         finally { Busy = false; Changed(nameof(PreparationStatus)); NotifyRun(); }
     }

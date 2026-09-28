@@ -70,7 +70,7 @@ public sealed partial class MainViewModel
     }
     private WorkspaceDraft CaptureDraft() => new()
     {
-        RunId = run?.Id, SelectedCaseId = SelectedCase?.Baseline.Id,
+        SourcePackageFileName = sourcePackageFileName, RunId = run?.Id, SelectedCaseId = SelectedCase?.Baseline.Id,
         Baseline = package with { Cases = Cases.Select(c => PackageJson.Clone(c.Baseline)).ToList() },
         Edited = CurrentPackage(), QueryDraft = Database.CurrentQuery()
     };
@@ -104,6 +104,7 @@ public sealed partial class MainViewModel
                 if (!saved.Package.Cases.Select(c => c.Id).SequenceEqual(draft.Edited.Cases.Select(c => c.Id))) throw new InvalidDataException("The run has changed since this draft was saved. Open it from Saved runs instead.");
             }
             LoadPackage(draft.Baseline, false);
+            sourcePackageFileName = draft.SourcePackageFileName;
             package = draft.Edited with { Cases = draft.Baseline.Cases };
             run = saved; BaseUrl = draft.Edited.BaseUrl; Database.LoadQueries(draft.Edited.Queries);
             if (draft.QueryDraft is not null) Database.RestoreQueryDraft(draft.QueryDraft);

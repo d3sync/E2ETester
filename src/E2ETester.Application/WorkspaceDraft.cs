@@ -4,6 +4,7 @@ namespace E2ETester.Application;
 
 public sealed record WorkspaceDraft
 {
+    public string? SourcePackageFileName { get; init; }
     public int Version { get; init; } = 1;
     public string? RunId { get; init; }
     public string? SelectedCaseId { get; init; }

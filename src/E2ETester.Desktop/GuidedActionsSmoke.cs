@@ -51,6 +51,13 @@ internal static class GuidedActionsSmoke
             if (!reopened.HasPendingPreparation) throw new InvalidOperationException("Action recovery did not survive restart.");
             await reopened.RestorePreparation.RunAsync();
             if (reopened.HasPendingPreparation) throw new InvalidOperationException("Could not restore action: " + reopened.Message);
+            var rolePlan = plan with { RequireFreshLogin = true, JwtClaim = "permissions" };
+            var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new { permissions = "4", exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds() }))).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            reopened.Identities.Add(new IdentityEditor { Alias = "manual-role", Kind = AuthKind.Bearer, Secret = "e30." + payload + ".signature" });
+            await reopened.ApplyGuidedPermissionsAsync(permissions with { Preparation = rolePlan }, rolePlan, "manual-role");
+            using (var db = new SqliteConnection(cs)) { db.Open(); using var cmd = db.CreateCommand(); cmd.CommandText = "SELECT permissions FROM account WHERE id=1"; if (Convert.ToInt64(cmd.ExecuteScalar()) != 4) throw new InvalidOperationException("Explicit manual permissions were skipped because a matching JWT exists."); }
+            if (!reopened.Message.Contains("verified successfully")) throw new InvalidOperationException("Permission success feedback is missing.");
+            await reopened.RestorePreparation.RunAsync();
         }
         using (var db = new SqliteConnection(cs)) { db.Open(); using var cmd = db.CreateCommand(); cmd.CommandText = "SELECT permissions FROM account WHERE id=1"; if ((long)cmd.ExecuteScalar()! != 15) throw new InvalidOperationException("Action restoration lost the original permission value."); }
     }

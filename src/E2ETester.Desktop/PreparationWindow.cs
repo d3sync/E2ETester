@@ -27,6 +27,12 @@ public sealed class PreparationWindow : Window
         var json = new TextBox { Text = PackageJson.Write(Plan), AcceptsReturn = true, AcceptsTab = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontFamily = new System.Windows.Media.FontFamily("Consolas") };
         var value = new TextBox { Text = Plan.ValueJson };
         var flags = new List<(CheckBox Check, long Value)>();
+        void SyncFlags()
+        {
+            var valid = long.TryParse(value.Text, CultureInfo.InvariantCulture, out var current);
+            foreach (var item in flags) item.Check.IsChecked = valid && (item.Value == 0 ? current == 0 : (current & item.Value) == item.Value);
+            message.Text = valid || flags.Count == 0 ? "" : "Enter a whole-number permission value to select its flags.";
+        }
         if (execution)
         {
             var panel = new StackPanel();
@@ -37,8 +43,13 @@ public sealed class PreparationWindow : Window
             {
                 var check = new CheckBox { Content = $"{flag.Name} ({flag.Value})", IsChecked = flag.Value == 0 ? selected == 0 : (selected & flag.Value) == flag.Value, Margin = new Thickness(0, 8, 0, 0) };
                 flags.Add((check, flag.Value)); panel.Children.Add(check);
-                check.Click += (_, _) => value.Text = flags.Where(f => f.Check.IsChecked == true).Aggregate(0L, (v, f) => v | f.Value).ToString(CultureInfo.InvariantCulture);
+                check.Click += (_, _) => {
+                    if (!long.TryParse(value.Text, CultureInfo.InvariantCulture, out var current)) current = 0;
+                    value.Text = (flag.Value == 0 ? 0 : check.IsChecked == true ? current | flag.Value : current & ~flag.Value).ToString(CultureInfo.InvariantCulture);
+                    SyncFlags();
+                };
             }
+            value.TextChanged += (_, _) => SyncFlags();
             if (Plan.RequireFreshLogin) panel.Children.Add(new TextBlock { Text = "After Apply, sign in again using the same identity to obtain the updated JWT.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 0) });
             root.Children.Add(new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         }

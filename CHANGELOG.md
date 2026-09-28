@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+- Add visible dismissible action feedback, aligned body options and dark-mode check selectors; move Cloud test into Tools.
+- Synchronize numeric permission values and flags, preserve unknown bits, and provide role/manual permission actions. Explicit Guided Actions apply and verify updates independently of JWT reuse.
+- Remember database connections with Windows-user encryption and retain package copies, source filenames and recovery across restarts.
+- Save a simple HTML report and compressed full evidence ZIP using package-based timestamped names. Keep unfinished-run recovery unchanged.
+- Consolidate agent instructions and add basic Guided Actions to templates.
+
+
 ## 0.8.1
 
 - Bind database preparation keys to named JWT claims, with restoration pinned to the captured row and original value.

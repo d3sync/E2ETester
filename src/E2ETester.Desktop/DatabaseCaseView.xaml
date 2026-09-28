@@ -4,7 +4,7 @@
   <TextBlock Grid.Row="1" Text="POST-REQUEST DATABASE CHECKS" Style="{StaticResource Caption}"/>
   <DataGrid Grid.Row="2" ItemsSource="{Binding SelectedCase.DatabaseChecks}" CanUserDeleteRows="True"><DataGrid.Columns>
    <DataGridTemplateColumn Header="Query" Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding DataContext.Database.Queries, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding QueryId, UpdateSourceTrigger=PropertyChanged}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-   <DataGridComboBoxColumn Header="Check" ItemsSource="{x:Static local:DatabaseViewModel.CheckKinds}" SelectedItemBinding="{Binding Kind}" Width="105"/>
+   <DataGridComboBoxColumn ElementStyle="{StaticResource {x:Type ComboBox}}" EditingElementStyle="{StaticResource {x:Type ComboBox}}" Header="Check" ItemsSource="{x:Static local:DatabaseViewModel.CheckKinds}" SelectedItemBinding="{Binding Kind}" Width="105"/>
    <DataGridTextColumn Header="Column" Binding="{Binding Column}" Width="70"/><DataGridTextColumn Header="Expected JSON" Binding="{Binding ExpectedJson}" Width="95"/><DataGridCheckBoxColumn Header="Req." Binding="{Binding Required}" Width="40"/>
    <DataGridTextColumn Header="Poll seconds (0=once)" Binding="{Binding PollTimeoutSeconds}" Width="125"/><DataGridTextColumn Header="Interval ms" Binding="{Binding PollIntervalMilliseconds}" Width="85"/>
   </DataGrid.Columns></DataGrid>

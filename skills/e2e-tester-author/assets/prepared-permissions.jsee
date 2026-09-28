@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.5",
+  "schemaVersion": "1.6",
   "id": "prepared-permissions",
   "title": "Prepared permission scenario",
   "baseUrl": "https://api.example.test",
@@ -7,7 +7,7 @@
     {
       "id": "sign-in",
       "kind": "swaggerAuthentication",
-      "title": "01 · Sign in with Swagger",
+      "title": "01 \u00b7 Sign in with Swagger",
       "request": {
         "method": "GET",
         "url": "/swagger/",
@@ -17,7 +17,7 @@
     },
     {
       "id": "remote-ip",
-      "title": "02 · Validate server access",
+      "title": "02 \u00b7 Validate server access",
       "request": {
         "method": "GET",
         "url": "/whoami",
@@ -34,7 +34,7 @@
     },
     {
       "id": "restricted-operation",
-      "title": "03 · Check restricted access",
+      "title": "03 \u00b7 Check restricted access",
       "instructions": "Configure the local write-enabled database connection and replace the example account key. Prepare, select flags, sign in again using the same identity, then send. Replace this endpoint and expected status for your API.",
       "request": {
         "method": "GET",
@@ -49,6 +49,92 @@
           "required": true
         }
       ],
+      "preparation": {
+        "title": "Set test account permissions",
+        "kind": "databaseValue",
+        "connectionRef": "test-admin-db",
+        "provider": "mySql",
+        "table": "accounts",
+        "keyColumn": "id",
+        "keyJson": "\"REPLACE_WITH_TEST_ACCOUNT_KEY\"",
+        "valueColumn": "permissions",
+        "valueJson": "4",
+        "flags": [
+          {
+            "name": "Read",
+            "value": 4
+          },
+          {
+            "name": "Write",
+            "value": 8
+          }
+        ],
+        "requireFreshLogin": true,
+        "jwtClaim": "permissions"
+      }
+    }
+  ],
+  "guidedActions": [
+    {
+      "id": "action-api-access",
+      "title": "Check API access",
+      "request": {
+        "method": "GET",
+        "url": "/whoami",
+        "identityRef": "test-user"
+      },
+      "assertions": [
+        {
+          "id": "status",
+          "kind": "status",
+          "expected": "200",
+          "required": true
+        }
+      ],
+      "instructions": "Repeat the access check outside the test flow."
+    },
+    {
+      "id": "action-role-restricted-operation",
+      "title": "Set permissions: permission-user",
+      "instructions": "Apply this role, then obtain a JWT if needed. Restore changes restores the captured original.",
+      "request": {
+        "method": "GET",
+        "url": "/restricted-operation",
+        "identityRef": "permission-user"
+      },
+      "preparation": {
+        "title": "Set test account permissions",
+        "kind": "databaseValue",
+        "connectionRef": "test-admin-db",
+        "provider": "mySql",
+        "table": "accounts",
+        "keyColumn": "id",
+        "keyJson": "\"REPLACE_WITH_TEST_ACCOUNT_KEY\"",
+        "valueColumn": "permissions",
+        "valueJson": "4",
+        "flags": [
+          {
+            "name": "Read",
+            "value": 4
+          },
+          {
+            "name": "Write",
+            "value": 8
+          }
+        ],
+        "requireFreshLogin": true,
+        "jwtClaim": "permissions"
+      }
+    },
+    {
+      "id": "action-choose-permissions",
+      "title": "Choose permissions\u2026",
+      "instructions": "Enter a numeric permission value or select flags. Review and apply. Use built-in Restore changes afterward.",
+      "request": {
+        "method": "GET",
+        "url": "/restricted-operation",
+        "identityRef": "permission-user"
+      },
       "preparation": {
         "title": "Set test account permissions",
         "kind": "databaseValue",

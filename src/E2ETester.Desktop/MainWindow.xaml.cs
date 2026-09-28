@@ -55,6 +55,13 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) => { model.PropertyChanged -= ModelChanged; model.OpenDatabaseRequested -= ShowDatabase; model.Dispose(); };
     }
+    private void DismissActivity(object sender, RoutedEventArgs e) => ActivityBanner.Visibility = Visibility.Collapsed;
+    private void ShowActivity()
+    {
+        ActivityText.Text = viewModel.Message;
+        ActivityBanner.Visibility = string.IsNullOrWhiteSpace(viewModel.Message) ? Visibility.Collapsed : Visibility.Visible;
+        System.Windows.Automation.AutomationProperties.SetLiveSetting(ActivityText, System.Windows.Automation.AutomationLiveSetting.Polite);
+    }
     private void ShowDatabase() => new DatabaseWindow(viewModel.Database) { Owner = this }.ShowDialog();
     private void OpenToolsMenu(object sender, RoutedEventArgs e)
     {
@@ -68,6 +75,7 @@ public partial class MainWindow : Window
     private void CaseListKeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (!viewModel.CanEdit) e.Handled = true; }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.Message)) ShowActivity();
         if (e.PropertyName == nameof(MainViewModel.SelectedCase))
             _ = Dispatcher.BeginInvoke(new Action(() =>
             {

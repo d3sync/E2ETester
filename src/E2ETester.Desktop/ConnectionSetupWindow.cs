@@ -13,11 +13,13 @@ public sealed class ConnectionSetupWindow : Window
 {
     private DatabaseConnectionDetails details;
     private string savedPassword = "";
+    private bool rememberLocally;
     private readonly ConnectionEditor? original;
     public Func<ConnectionEditor, string?>? ValidateConnection { get; set; }
     public ConnectionSetupWindow(ConnectionEditor connection) : this(connection.Alias, connection.Provider)
     {
         original = connection;
+        rememberLocally = connection.RememberLocally;
         (details, savedPassword) = DatabaseConnectionDetails.Read(connection.Profile);
         Title = "Edit database connection";
         Render();
@@ -64,13 +66,16 @@ public sealed class ConnectionSetupWindow : Window
         browse.Click += (_, _) => { var file = new OpenFileDialog { Filter = "SQLite files|*.db;*.sqlite;*.sqlite3|All files|*.*" }; if (file.ShowDialog() == true) { details.File = file.FileName; details.Provider = DatabaseProvider.Sqlite; Render(); } }; panel.Children.Add(browse);
         }
         var readOnly = new CheckBox { Content = "Read-only account (optional; disables preparation)", Margin = new Thickness(0, 8, 0, 8) }; readOnly.SetBinding(CheckBox.IsCheckedProperty, nameof(details.ReadOnlyAccount)); panel.Children.Add(readOnly);
+        var remember = new CheckBox { Content = "Remember connection and credentials for my Windows user", IsChecked = rememberLocally, Margin = new Thickness(0, 8, 0, 8) };
+        remember.Click += (_, _) => rememberLocally = remember.IsChecked == true;
+        panel.Children.Add(remember);
         var message = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var buttons = new WrapPanel();
         Button Action(string title, Action action) { var b = new Button { Content = title, Margin = new Thickness(0, 6, 6, 0) }; b.Click += (_, _) => { try { action(); } catch (Exception ex) when (ex is IOException or ArgumentException or System.Text.Json.JsonException or InvalidOperationException) { message.Text = "Check the connection fields or template. " + (ex is InvalidDataException ? ex.Message : "The operation could not be completed."); } }; buttons.Children.Add(b); return b; }
         Action("Import template…", () => { var file = new OpenFileDialog { Filter = "Connection template|*.json" }; if (file.ShowDialog() == true) { details = PackageJson.Read<DatabaseConnectionDetails>(File.ReadAllText(file.FileName)); savedPassword = ""; Render(); } });
         Action("Export template…", () => { var file = new SaveFileDialog { Filter = "Connection template|*.json", FileName = "database-connection.json" }; if (file.ShowDialog() == true) File.WriteAllText(file.FileName, PackageJson.Write(details)); });
         Action(original is null ? "Use connection" : "Save changes", () => {
-            var candidate = new ConnectionEditor { Alias = details.Alias.Trim(), Provider = details.Provider, ConnectionString = details.Build(savedPassword, original?.Provider == details.Provider ? original.ConnectionString : null), ReadOnlyCredentialsConfirmed = details.ReadOnlyAccount };
+            var candidate = new ConnectionEditor { RememberLocally = rememberLocally, Alias = details.Alias.Trim(), Provider = details.Provider, ConnectionString = details.Build(savedPassword, original?.Provider == details.Provider ? original.ConnectionString : null), ReadOnlyCredentialsConfirmed = details.ReadOnlyAccount };
             if (ValidateConnection?.Invoke(candidate) is { } error) { message.Text = error; return; }
             Connection = candidate; DialogResult = true;
         }).Style = (Style)FindResource("Primary");

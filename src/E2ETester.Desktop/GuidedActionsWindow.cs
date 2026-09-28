@@ -42,7 +42,7 @@ public sealed class GuidedActionsWindow : Window
         }
         var findResource = new Button { Content = "Find saved resource", HorizontalAlignment = HorizontalAlignment.Left }; header.Children.Add(findResource);
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
-        var status = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 150, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; footer.Children.Add(status);
+        var status = new TextBox { FontSize = 15, Padding = new Thickness(12), BorderThickness = new Thickness(2), IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 150, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; status.SetResourceReference(Control.BorderBrushProperty, "Link"); footer.Children.Add(status);
         var buttons = new WrapPanel(); footer.Children.Add(buttons);
         var preview = new Button { Content = "Resolve saved values" }; buttons.Children.Add(preview);
         var execute = new Button { Content = "Review and run action…", Style = (Style)FindResource("Primary") }; buttons.Children.Add(execute);

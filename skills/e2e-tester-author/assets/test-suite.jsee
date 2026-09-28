@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.5",
+  "schemaVersion": "1.6",
   "id": "example-suite",
   "revision": 1,
   "title": "Example API suite",
@@ -10,7 +10,7 @@
     {
       "id": "swagger-sign-in",
       "kind": "swaggerAuthentication",
-      "title": "01 · Sign in with Swagger",
+      "title": "01 \u00b7 Sign in with Swagger",
       "instructions": "Complete Swagger sign-in and import the bearer token. This step sends no API request.",
       "request": {
         "method": "GET",
@@ -23,8 +23,36 @@
     {
       "id": "remote-ip",
       "kind": "http",
-      "title": "02 · Validate remote IP",
+      "title": "02 \u00b7 Validate remote IP",
       "instructions": "Expect HTTP 200 and a non-empty string. Review the returned IP value.",
+      "request": {
+        "method": "GET",
+        "url": "/whoami",
+        "identityRef": "cloud-user"
+      },
+      "assertions": [
+        {
+          "id": "ip-status",
+          "kind": "status",
+          "expected": "200",
+          "required": true
+        },
+        {
+          "id": "ip-body",
+          "kind": "bodyNotEmpty",
+          "expected": "",
+          "required": true
+        }
+      ],
+      "fixtureRequired": false
+    }
+  ],
+  "guidedActions": [
+    {
+      "id": "action-api-access",
+      "kind": "http",
+      "title": "Check API access",
+      "instructions": "Repeat the access check outside the test flow.",
       "request": {
         "method": "GET",
         "url": "/whoami",

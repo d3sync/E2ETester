@@ -16,11 +16,17 @@ public sealed partial class MainViewModel
         : string.Join("\n\n", SelectedAttempt.DatabaseEvidence.Select(e => $"{e.Result.StartedAt:O}\n{e.Query.Title} · {e.Query.ConnectionRef} · {e.Query.Provider}\n{e.Purpose} · {e.Assessment?.Verdict.ToString() ?? "Evidence only"}\n{e.Result.Rows.Count} rows · {e.Result.DurationMs} ms{(e.Result.Truncated ? " · INCOMPLETE" : "")}\n{e.Result.Error ?? e.Assessment?.Message}\n{PackageJson.Write(e.Result.Rows)}"));
 
     private ConnectionDefaultsStore? connectionDefaults;
+    private SavedConnections? savedConnections;
     private void SeedDatabaseConnections()
     {
         if (connectionDefaults is null) return;
         try
         {
+            foreach (var saved in savedConnections?.Read(package.BaseUrl) ?? [])
+            {
+                if (Database.Connections.Any(c => c.Alias.Equals(saved.Alias, StringComparison.OrdinalIgnoreCase))) continue;
+                Database.Connections.Add(new ConnectionEditor { Alias = saved.Alias, Provider = saved.Provider, ConnectionString = saved.ConnectionString, ReadOnlyCredentialsConfirmed = saved.ReadOnlyCredentialsConfirmed, RememberLocally = true });
+            }
             var needed = package.Queries.Select(q => (Alias: q.ConnectionRef, q.Provider))
                 .Concat(package.Cases.Concat(package.GuidedActions ?? []).Where(c => c.Preparation is { Kind: PreparationKind.DatabaseValue }).Select(c => (Alias: c.Preparation!.ConnectionRef, c.Preparation!.Provider))).ToHashSet();
             foreach (var details in connectionDefaults.Read(package.BaseUrl).Where(d => needed.Contains((d.Alias, d.Provider))))

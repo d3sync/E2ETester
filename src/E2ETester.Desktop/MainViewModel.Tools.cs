@@ -13,9 +13,11 @@ public sealed partial class MainViewModel
     public ActionCommand OpenPlayground { get; private set; } = null!;
     public ActionCommand ImportOpenApi { get; private set; } = null!;
     public ActionCommand ViewReport { get; private set; } = null!;
+    public ActionCommand OpenSavedFiles { get; private set; } = null!;
     public ActionCommand AgentHelp { get; private set; } = null!;
     private void InitializeTools()
     {
+        OpenSavedFiles = new(() => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(workspacePath) { UseShellExecute = true }));
         ManageIdentities = new(() => { PruneExpiredIdentities(); new IdentityManagerWindow(this) { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog(); }, () => !Busy && !Database.Busy);
         ShowAbout = new(() => new AboutWindow { Owner = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => w.DataContext == this) }.ShowDialog());
         OpenPlayground = new(() =>
@@ -48,7 +50,7 @@ public sealed partial class MainViewModel
     private void ShowReport()
     {
         if(run is null)return;
-        new TextDocumentWindow("Test report", ("Readable report", Reports.Text(run)), ("Structured JSON", Reports.Json(run))) { Owner=System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w=>w.DataContext==this) }.ShowDialog();
+        new TextDocumentWindow("Test report", ("Simple report", Reports.SimpleText(run)), ("Full report", Reports.Text(run)), ("Structured JSON", Reports.Json(run))) { Owner=System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w=>w.DataContext==this) }.ShowDialog();
     }
     private bool IsSetupCase(CaseEditor item) => !IsPlayground && Cases.FirstOrDefault()?.Baseline.Kind == TestStepKind.SwaggerAuthentication && Cases.IndexOf(item) < 2;
     public void LoadNewSuite()
@@ -62,6 +64,7 @@ public sealed partial class MainViewModel
     {
         if(new FileInfo(path).Length>5_000_000)throw new InvalidDataException("Package exceeds 5 MB.");
         LoadPackage(SuiteDefaults.Ensure(PackageJson.Import(File.ReadAllText(path))));
+        RememberPackageFile(path);
         Message="Package opened. Nothing has been sent. Start with Swagger sign-in.";
     }
 }

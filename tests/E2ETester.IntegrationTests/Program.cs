@@ -178,6 +178,7 @@ await Reject(() => Task.Run(() => GuidedActionBindings.Resolve(cleanupRequest, r
 try { ValueBindings.Resolve("{{case.create./id}}", null, run: recoverySource, selectedAttempts: new Dictionary<string, string> { ["create"] = "duplicate" }); throw new Exception("Expected readable response error"); }
 catch (InvalidOperationException ex) { Check(ex.Message.Contains("not JSON") && !ex.Message.Contains("UICC"), "invalid response JSON gives actionable diagnostics without echoing response data"); }
 if (args.Contains("--live-databases")) await LiveDatabaseTests.RunAsync(Check);
+await LocalArchiveTests.RunAsync(Check, directory);
 await IdentityBindingTests.RunAsync(Check, Reject, directory, server);
 await BusinessJourneyTests.RunAsync(Check, directory);
 await ImportAndCiTests.RunAsync(Check, Reject, directory, server);

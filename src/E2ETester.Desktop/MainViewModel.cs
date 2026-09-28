@@ -29,7 +29,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public static CheckKind[] CheckKinds { get; } = Enum.GetValues<CheckKind>();
     public string PackageTitle { get => package.Title; set { package.Title = value; Changed(); } }
     public string BaseUrl { get => baseUrl; set { if(Set(ref baseUrl, value)) { RestoreRememberedSessions(); UpdateSwaggerUrlFromPackage(); } } }
-    public string Message { get => message; set => Set(ref message, value); }
+    public string Message { get => message; set { message = value; Changed(); } }
     public bool Busy { get => busy; private set { Set(ref busy, value); Changed(nameof(CanEdit)); RefreshCommands(); } }
     public bool CanEdit => !Busy;
     public bool AllCasesCompleted => run is not null && Cases.Count > 0
@@ -133,7 +133,11 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (sessionDirectory is not null)
         {
             connectionDefaults = new ConnectionDefaultsStore(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(sessionDirectory))!, "Connections"));
-            Database.SaveConnectionDefaults = (connection, remove) => connectionDefaults.Save(BaseUrl, DatabaseConnectionDetails.Read(connection.Profile).Details, remove);
+            savedConnections = new SavedConnections(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(sessionDirectory))!, "Connections"));
+            Database.SaveConnectionDefaults = (connection, remove) => {
+                savedConnections.Save(BaseUrl, connection.Profile, remove || !connection.RememberLocally);
+                connectionDefaults.Save(BaseUrl, DatabaseConnectionDetails.Read(connection.Profile).Details, remove);
+            };
         }
         InitializeDatabase();
         InitializeAuthoring();
@@ -171,6 +175,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private void LoadPackage(TestPackage value, bool selectFirst = true)
     {
         draftRecoveryBlocked = false;
+        sourcePackageFileName = null;
         package = PackageJson.Clone(value); run = null; Cases.Clear(); Attempts.Clear();
         Database.LoadQueries(package.Queries);
         SeedDatabaseConnections();
@@ -196,7 +201,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (dialog.ShowDialog() != true) return;
         if (new FileInfo(dialog.FileName).Length > 5_000_000) throw new InvalidDataException("Package exceeds the 5 MB limit.");
         var imported = PackageJson.Import(await File.ReadAllTextAsync(dialog.FileName));
-        LoadPackage(IsPlayground ? imported : SuiteDefaults.Ensure(imported)); Message = "Package loaded. Review the base URL and authentication before sending.";
+        LoadPackage(IsPlayground ? imported : SuiteDefaults.Ensure(imported)); RememberPackageFile(dialog.FileName); Message = "Package loaded. Review the base URL and authentication before sending.";
     }
     private async Task ExportPackageAsync()
     {
@@ -221,7 +226,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (editor.Fixture is null && (editor.FixtureRequired || ValueBindings.RequiresFixture(editor.Request(identityEditor.Alias))))
         {
             ShowAdvanced = true;
-            Message = "This package requires database data before sending. For /whoami, choose Cloud test above: that API-only package needs no fixtures. Otherwise use Database → Query Studio to select the configured fixture.";
+            Message = "This package requires database data before sending. For /whoami, choose Tools → Cloud test: that API-only package needs no fixtures. Otherwise use Database → Query Studio to select the configured fixture.";
             return;
         }
         var applicability = await IdentityBindings.ApplicabilityAsync(editor.Baseline, ResolveSetupIdentity);
@@ -252,6 +257,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
             }
             if (BaseUrl != run.BaseUrl) throw new InvalidOperationException("The run's base URL is frozen. Start a new run to change environments.");
             Message = "Sending once… You can cancel waiting; the server may still process the request.";
+            await ArchiveRunPackageAsync();
             var attempt = await coordinator.ExecuteAsync(run, editor.ExecutionBaseline(), request, checks, identity, cancellation.Token, editor.Fixture, preparationConfirmed: true, bypassPrerequisites: bypassPrerequisites, applicabilityConfirmed: true, applicabilityIssues: applicability);
             editor.Status = CaseStatus(attempt);
             LoadAttempts(); Message = $"{editor.Status}. Review the evidence, add a variation, or continue to the next case.";
@@ -344,17 +350,21 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private async Task ExportReportAsync()
     {
         if (run is null) return;
-        var dialog = new SaveFileDialog { Filter = "JSON report (*.json)|*.json|HTML report (*.html)|*.html|Evidence bundle (*.zip)|*.zip", FileName = $"test-report-{run.Id[..8]}", AddExtension = true };
+        var files = await SaveLocalReportsAsync();
+        Message = "Reports saved locally: " + files.Simple + " and " + Path.GetFileName(files.Full);
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Optional: copy both reports to another folder" };
         if (dialog.ShowDialog() == true)
         {
-            var report = Reports.Create(run);
-            if (Path.GetExtension(dialog.FileName).Equals(".zip", StringComparison.OrdinalIgnoreCase)) { await Reports.WriteBundleAsync(dialog.FileName, run); Message = "Evidence bundle exported with JSON, HTML, package and SHA-256 manifest."; ShowReport(); return; }
-            var html = Path.GetExtension(dialog.FileName).Equals(".html", StringComparison.OrdinalIgnoreCase);
-            await Reports.WriteAtomicAsync(dialog.FileName, html ? Reports.Html(report) : PackageJson.Write(report));
-            Message = html ? "HTML report exported with every attempt and expandable evidence." : "JSON report exported with typed checks, evidence references and incomplete coverage.";
-            ShowReport();
+            foreach (var path in new[] { files.Simple, files.Full })
+            {
+                var destination = Path.Combine(dialog.FolderName, Path.GetFileName(path));
+                if (!Path.GetFullPath(destination).Equals(Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) File.Copy(path, destination, false);
+            }
+            Message = "Simple report and full evidence ZIP copied to " + dialog.FolderName;
         }
+        ShowReport();
     }
+
     private async Task SaveResponseAsync()
     {
         if (SelectedAttempt?.Response is not { Truncated: false, ErrorCode: null } response || response.Body.Contains(LegacyEvidence.Placeholder)) return;
