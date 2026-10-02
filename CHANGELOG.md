@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.4
+
+- Execute Query Studio, fixture and database verification queries directly without explicit read-only transactions. Retain parameters, deadlines, cancellation, result limits and SQLite read-only protections.
+- Keep preparation and restoration transactions separate and unchanged.
+
+
 ## 0.8.3
 
 - Remove all remaining legacy redaction-specific guards from requests, response saving, bindings, SQL checks, Swagger capture and binary validation. Sensitive metadata has no masking effect; values are handled as ordinary data.

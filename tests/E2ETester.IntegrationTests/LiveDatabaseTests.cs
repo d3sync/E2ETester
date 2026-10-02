@@ -57,10 +57,31 @@ internal static class LiveDatabaseTests
             }
             var writableRead = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { Id = "write-account-read", ConnectionRef = writable.Alias, Provider = provider, Sql = "SELECT id FROM fixture WHERE id = 1" }, writable, default);
             check(writableRead.ErrorCode is null && writableRead.Rows.Count == 1, $"{provider}: Query Studio reads using a write-enabled account without acknowledgement");
-            if (provider is DatabaseProvider.MySql or DatabaseProvider.PostgreSql)
+            if (provider == DatabaseProvider.SqlServer)
             {
-                var blockedWrite = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { Id = "guarded-write", ConnectionRef = writable.Alias, Provider = provider, Sql = "UPDATE fixture SET name = 'unexpected' WHERE id = 1" }, writable, default);
-                check(blockedWrite.ErrorCode == "database_error", $"{provider}: read-only transaction rejects writes from a write-enabled account");
+                var state = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { Id = "transaction-state", ConnectionRef = writable.Alias, Provider = provider, Sql = "SELECT @@TRANCOUNT AS active_transactions" }, writable, default);
+                check(state.ErrorCode is null && state.Rows.Single()["active_transactions"].GetInt32() == 0, "SQL Server: SELECT executes without an explicit transaction");
+            }
+            if (provider == DatabaseProvider.MySql)
+            {
+                // Trace only our disposable database server to verify the actual wire commands.
+                await using var trace = DatabaseExecutor.CreateConnection(admin); await trace.OpenAsync();
+                await Execute(trace, "SET GLOBAL log_output='TABLE'; SET GLOBAL general_log=ON");
+                try
+                {
+                    var sql = "SELECT 1 AS value /* e2e_direct_" + Guid.NewGuid().ToString("N") + " */";
+                    var traced = await new DatabaseExecutor().ExecuteAsync(new QueryDefinition { ConnectionRef = writable.Alias, Provider = provider, Sql = sql }, writable, default);
+                    await using var find = trace.CreateCommand(); find.CommandText = "SELECT thread_id FROM mysql.general_log WHERE argument=@sql ORDER BY event_time DESC LIMIT 1";
+                    var parameter = find.CreateParameter(); parameter.ParameterName = "@sql"; parameter.Value = sql; find.Parameters.Add(parameter);
+                    var thread = await find.ExecuteScalarAsync();
+                    check(traced.ErrorCode is null && thread is not null, "MySQL/MariaDB: direct SELECT appears in server trace");
+                    await using var commands = trace.CreateCommand(); commands.CommandText = "SELECT argument FROM mysql.general_log WHERE thread_id=@thread";
+                    var id = commands.CreateParameter(); id.ParameterName = "@thread"; id.Value = thread!; commands.Parameters.Add(id);
+                    var statements = new List<string>();
+                    await using (var reader = await commands.ExecuteReaderAsync()) while (await reader.ReadAsync()) statements.Add((reader.GetValue(0) is byte[] bytes ? System.Text.Encoding.UTF8.GetString(bytes) : reader.GetString(0)).Trim().ToUpperInvariant());
+                    check(!statements.Any(s => s.StartsWith("SET TRANSACTION") || s.StartsWith("START TRANSACTION") || s == "BEGIN" || s == "ROLLBACK"), "MySQL/MariaDB: server trace contains no explicit query transaction setup or rollback");
+                }
+                finally { await Execute(trace, "SET GLOBAL general_log=OFF"); }
             }
             var preparation = new PreparationPlan { Provider = provider, ConnectionRef = "live-db", Table = "fixture", KeyColumn = "id", KeyJson = "1", ValueColumn = "note", ValueJson = "\"prepared\"" };
             var target = new DatabasePreparationTarget(writable);
@@ -108,7 +129,7 @@ internal static class LiveDatabaseTests
             Verify(large.Result.ErrorCode is null && large.Result.Truncated && large.Result.Rows[0]["text"].GetString()!.Length == 16384, "large cell is bounded");
             var duplicate = await queries.ExecuteAsync(query with { Sql = "SELECT 1 AS id, 2 AS id" }, profile, default);
             Verify(duplicate.Result.ErrorCode == "duplicate_columns", "ambiguous columns rejected");
-            // Test the actual account privileges independently of the executor's read-only transaction.
+            // Query Studio relies on the actual server account privileges.
             await using (var restricted = DatabaseExecutor.CreateConnection(profile))
             {
                 await restricted.OpenAsync();

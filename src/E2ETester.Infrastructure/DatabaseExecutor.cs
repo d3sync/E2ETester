@@ -87,15 +87,12 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
             await using var connection = CreateConnection(profile);
             stage = "connecting to the database";
             await connection.OpenAsync(token);
-            stage = "starting the read-only transaction";
+            stage = "configuring the query";
             // Microsoft.Data.Sqlite's async APIs execute synchronously; interrupt the native VM for a real deadline.
             using var sqliteInterrupt = token.Register(() => { if (connection is SqliteConnection local && local.Handle is not null) SQLitePCL.raw.sqlite3_interrupt(local.Handle); });
-            // Restricted accounts are recommended, not required. Provider transaction modes add protection;
-            // SQL Server has no equivalent read-only transaction. Disposal rolls back uncommitted changes.
-            if (profile.Provider == DatabaseProvider.MySql) await SetupAsync(connection, "SET TRANSACTION READ ONLY", null, token);
-            await using var transaction = connection is SqliteConnection sqlite ? sqlite.BeginTransaction(deferred: true) : await connection.BeginTransactionAsync(token);
-            if (profile.Provider == DatabaseProvider.PostgreSql) await SetupAsync(connection, "SET TRANSACTION READ ONLY", transaction, token);
-            if (profile.Provider == DatabaseProvider.Sqlite) await SetupAsync(connection, "PRAGMA query_only=ON", transaction, token);
+            // Execute ordinary queries directly; transaction setup can fail on database proxies/clusters.
+            // Preparation uses its own separate transactional capture/update/restore path.
+            if (profile.Provider == DatabaseProvider.Sqlite) await SetupAsync(connection, "PRAGMA query_only=ON", token);
             if (connection is SqliteConnection guarded)
             {
                 SQLitePCL.raw.sqlite3_set_authorizer(guarded.Handle, (SQLitePCL.strdelegate_authorizer)((_, action, pragma, function, _, _) =>
@@ -105,7 +102,7 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
                         ? SQLitePCL.raw.SQLITE_OK : SQLitePCL.raw.SQLITE_DENY), null);
             }
             await using var command = connection.CreateCommand();
-            command.Transaction = transaction; command.CommandText = query.Sql; command.CommandTimeout = query.TimeoutSeconds;
+            command.CommandText = query.Sql; command.CommandTimeout = query.TimeoutSeconds;
             foreach (var parameter in query.Parameters)
             {
                 var p = command.CreateParameter(); p.ParameterName = "@" + parameter.Name.TrimStart('@');
@@ -154,7 +151,7 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
             }
             if (!truncated && await reader.NextResultAsync(token)) truncated = true;
             return new QueryResult { StartedAt = started, DurationMs = clock.ElapsedMilliseconds, Columns = columns, Rows = rows, Truncated = truncated };
-            // Disposing the transaction rolls it back. No commit or API retry is performed.
+            // No explicit transaction or automatic retry is used for Query Studio.
         }
         catch (OperationCanceledException) { return Failure(callerToken.IsCancellationRequested ? "cancelled" : "timeout", "Database operation stopped; no request was retried."); }
         catch (DbException) when (timeout.IsCancellationRequested) { return Failure(callerToken.IsCancellationRequested ? "cancelled" : "timeout", "Database operation stopped; no request was retried."); }
@@ -164,9 +161,9 @@ public sealed class DatabaseExecutor : IDatabaseExecutor
         }
         QueryResult Failure(string code, string error) => new() { StartedAt = started, DurationMs = clock.ElapsedMilliseconds, ErrorCode = code, Error = error };
     }
-    private static async Task SetupAsync(DbConnection connection, string sql, DbTransaction? transaction, CancellationToken token)
+    private static async Task SetupAsync(DbConnection connection, string sql, CancellationToken token)
     {
-        await using var command = connection.CreateCommand(); command.CommandText = sql; command.Transaction = transaction; command.CommandTimeout = 10;
+        await using var command = connection.CreateCommand(); command.CommandText = sql; command.CommandTimeout = 10;
         await command.ExecuteNonQueryAsync(token);
     }
     public static (DbType Type, object Value) ParameterValue(QueryParameter p)

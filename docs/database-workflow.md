@@ -16,7 +16,7 @@ Providers: SQLite, Microsoft SQL Server, MySQL and PostgreSQL. The implementatio
 
 Open Query Studio and add a connection. Its alias and provider must exactly match the query's `connectionRef` and `provider`. Enter a provider-specific connection string in the masked input; use **Choose SQLite file** for an existing local file. **Test connection** executes a simple read query. Connections must be configured again after restarting the application.
 
-SQLite is opened read-only. A native authorizer also rejects changes, database attachment and attempts to disable query-only mode. SQL Server/MySQL/PostgreSQL accept write-capable accounts. A restricted read-only account is recommended; the optional profile checkbox records that restriction and prevents preparation using that profile. SQL Server relies on account permissions; rollback does not make arbitrary SQL side-effect free. MySQL/PostgreSQL additionally use read-only transactions. These settings do not replace database permissions. Query Studio does not provide setup/teardown writes.
+SQLite is opened read-only. A native authorizer also rejects changes, database attachment and attempts to disable query-only mode. SQL Server/MySQL/PostgreSQL accept write-capable accounts. A restricted read-only account is recommended; the optional profile checkbox records that restriction and prevents preparation using that profile. SQL Server/MySQL/MariaDB/PostgreSQL queries run directly without BEGIN, SET TRANSACTION READ ONLY or an explicit rollback. Account permissions determine allowed operations; no read-only account acknowledgement is required. Use Query Studio for SELECT queries and preparation for tracked setup/restore changes. SQLite retains its local read-only protections without an explicit transaction.
 
 ## Define queries and checks
 
@@ -66,5 +66,3 @@ All four adapters have automated integration coverage. Run `./Test-Databases.ps1
 The **Database demo** button creates `demo-fixtures.db` inside the application's workspace. It only creates its own demo table and inserts missing demo rows. The package is also available at [database-demo.json](../samples/generic/database-demo.json).
 
 This demonstration compares an echoed API ID/name with pre-existing database data. It does not claim to demonstrate server-side database mutation. The integration suite separately changes a test-owned SQLite value and verifies that the subsequent check fails while preserving prior evidence.
-
-Implementation references: [PostgreSQL transaction access modes](https://www.postgresql.org/docs/17/sql-set-transaction.html), [MySQL read-only transactions](https://dev.mysql.com/doc/refman/8.0/en/commit.html), [SQL Server read-only connection intent](https://learn.microsoft.com/en-us/sql/database-engine/availability-groups/windows/listeners-client-connectivity-application-failover?view=sql-server-ver17).
