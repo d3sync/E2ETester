@@ -41,6 +41,8 @@ need dotnet; need git; need curl; need python3; need osslsigncode
 sign_windows_file() {
   local input="$1" output
   output="$(mktemp "${input}.signed.XXXXXX")"
+  # osslsigncode creates its output and refuses an already-existing mktemp file.
+  rm -f "$output"
   osslsigncode sign -pkcs12 "$CODE_SIGN_PFX" -readpass "$CODE_SIGN_PASSWORD_FILE" \
     -h sha256 -n 'E2E Tester' -i https://d3sync.org -ts "$TIMESTAMP_URL" \
     -in "$input" -out "$output"
