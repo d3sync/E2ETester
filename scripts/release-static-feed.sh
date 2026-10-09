@@ -96,11 +96,13 @@ fi
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$ ]] || { echo "Version must look like 1.2.3, got: $VERSION" >&2; exit 1; }
 
 echo "==> Releasing E2E Tester $VERSION from $(git rev-parse --short HEAD)"
+# Remove only generated assets for this requested version before the publication audit,
+# so a failed packaging attempt can be safely retried without scanning stale output.
+rm -rf Releases "publish/win-$VERSION"
 python3 tools/check_publication.py
 dotnet build "$SOLUTION" -c Release -p:EnableWindowsTargeting=true
 dotnet run --project "$TEST_CSPROJ" -c Release --no-build -p:EnableWindowsTargeting=true
 
-rm -rf Releases "publish/win-$VERSION"
 mkdir -p Releases
 if [[ -d "$SITE_ROOT/releases" ]]; then
   cp -f "$SITE_ROOT/releases"/E2ETester-*.nupkg Releases/ 2>/dev/null || true
