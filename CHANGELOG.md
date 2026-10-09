@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.5
+
+- Authenticode-sign every distributed Windows executable and DLL with the d3sync code-signing certificate and an RFC 3161 timestamp before publication. Sign the Velopack setup bundle after packaging.
+
 ## 0.8.4
 
 - Execute Query Studio, fixture and database verification queries directly without explicit read-only transactions. Retain parameters, deadlines, cancellation, result limits and SQLite read-only protections.

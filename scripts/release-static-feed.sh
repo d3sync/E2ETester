@@ -25,9 +25,40 @@ APP_CSPROJ="src/E2ETester.Desktop/E2ETester.Desktop.csproj"
 TEST_CSPROJ="tests/E2ETester.IntegrationTests/E2ETester.IntegrationTests.csproj"
 SOLUTION="E2ETester.slnx"
 ICON="assets/branding/e2e-tester.ico"
+CODE_SIGN_DIR="${CODE_SIGN_DIR:-/root/.local/share/viridian/codesigning}"
+CODE_SIGN_PFX="${CODE_SIGN_PFX:-$CODE_SIGN_DIR/e2etester-d3sync-2026-2029.pfx}"
+CODE_SIGN_PASSWORD_FILE="${CODE_SIGN_PASSWORD_FILE:-$CODE_SIGN_DIR/e2etester-d3sync-2026-2029.pfx.password}"
+CODE_SIGN_CERT="${CODE_SIGN_CERT:-$CODE_SIGN_DIR/e2etester-d3sync-2026-2029.cert.pem}"
+TIMESTAMP_URL="${TIMESTAMP_URL:-http://timestamp.digicert.com}"
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }; }
-need dotnet; need git; need curl; need python3
+need dotnet; need git; need curl; need python3; need osslsigncode
+[[ -r "$CODE_SIGN_PFX" && -r "$CODE_SIGN_PASSWORD_FILE" && -r "$CODE_SIGN_CERT" ]] || {
+  echo 'Code-signing certificate, password file, or public certificate is unreadable.' >&2
+  exit 1
+}
+
+sign_windows_file() {
+  local input="$1" output
+  output="$(mktemp "${input}.signed.XXXXXX")"
+  osslsigncode sign -pkcs12 "$CODE_SIGN_PFX" -readpass "$CODE_SIGN_PASSWORD_FILE" \
+    -h sha256 -n 'E2E Tester' -i https://d3sync.org -ts "$TIMESTAMP_URL" \
+    -in "$input" -out "$output"
+  chmod --reference="$input" "$output"
+  mv -f "$output" "$input"
+  osslsigncode verify -in "$input" -CAfile "$CODE_SIGN_CERT" \
+    -TSA-CAfile /etc/ssl/certs/ca-certificates.crt >/dev/null
+}
+
+sign_windows_tree() {
+  local directory="$1" count=0 file
+  while IFS= read -r -d '' file; do
+    sign_windows_file "$file"
+    count=$((count + 1))
+  done < <(find "$directory" -type f \( -iname '*.exe' -o -iname '*.dll' \) -print0 | sort -z)
+  (( count > 0 )) || { echo "No Windows executables or DLLs found in $directory" >&2; exit 1; }
+  echo "Signed and RFC 3161-timestamped $count Windows binary/binaries in $directory"
+}
 export PATH="$PATH:$HOME/.dotnet/tools"
 if ! command -v vpk >/dev/null 2>&1; then
   dotnet tool install --global vpk
@@ -95,12 +126,19 @@ dotnet publish src/E2ETester.Mcp/E2ETester.Mcp.csproj -c Release -r win-x64 --no
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true \
   -p:DebugType=None -p:DebugSymbols=false -p:PublishTrimmed=false -p:Version="$VERSION" \
   -o "publish/win-$VERSION/mcp"
+
+# Sign every distributable PE binary before it is embedded into the Velopack package.
+sign_windows_tree "publish/win-$VERSION"
 printf '# E2E Tester %s\n\nStatic-feed release built from commit %s. Requires the .NET 10 Desktop Runtime.\n' "$VERSION" "$(git rev-parse --short HEAD)" > "$notes"
 vpk '[win]' pack --packId "$PACK_ID" --packVersion "$VERSION" \
   --packDir "publish/win-$VERSION" --mainExe E2ETester.Desktop.exe \
   --packTitle 'E2E Tester' --packAuthors 'd3sync and E2E Tester contributors' \
   --releaseNotes "$notes" --runtime win-x64 --channel "$CHANNEL" --delta None \
   --icon "$ICON" --outputDir Releases --yes
+
+# The bootstrap installer is produced by Velopack after package assembly, so sign it separately.
+sign_windows_file "Releases/E2ETester-win-Setup.exe"
+echo 'Signed and RFC 3161-timestamped Velopack setup installer'
 
 install -d -m 0755 "$SITE_ROOT/releases"
 cp -f Releases/* "$SITE_ROOT/releases/"
