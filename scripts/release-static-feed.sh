@@ -26,10 +26,13 @@ TEST_CSPROJ="tests/E2ETester.IntegrationTests/E2ETester.IntegrationTests.csproj"
 SOLUTION="E2ETester.slnx"
 ICON="assets/branding/e2e-tester.ico"
 SIGNER="${SIGNER:-$REPO_ROOT/scripts/sign-windows-binary.sh}"
+CODE_SIGN_DIR="${CODE_SIGN_DIR:-/root/.local/share/viridian/codesigning}"
+PUBLIC_CERT="${PUBLIC_CERT:-$CODE_SIGN_DIR/e2etester-d3sync-2026-2029.public.cer}"
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1" >&2; exit 1; }; }
 need dotnet; need git; need curl; need python3; need osslsigncode
 [[ -x "$SIGNER" ]] || { echo "Signing helper is not executable: $SIGNER" >&2; exit 1; }
+[[ -r "$PUBLIC_CERT" ]] || { echo "Public code-signing certificate is unreadable: $PUBLIC_CERT" >&2; exit 1; }
 
 sign_loose_dlls() {
   local directory="$1" count=0 file
@@ -122,7 +125,9 @@ vpk '[win]' pack --packId "$PACK_ID" --packVersion "$VERSION" \
   --signTemplate "$SIGNER {{file}}" \
   --icon "$ICON" --outputDir Releases --yes
 
-install -d -m 0755 "$SITE_ROOT/releases"
+install -d -m 0755 "$SITE_ROOT/releases" "$SITE_ROOT/certificates"
+install -m 0644 deploy/index.html "$SITE_ROOT/index.html"
+install -m 0644 "$PUBLIC_CERT" "$SITE_ROOT/certificates/d3sync-e2etester-codesigning-2026-2029.cer"
 cp -f Releases/* "$SITE_ROOT/releases/"
 chmod -R a+rX "$SITE_ROOT"
 python3 - "$SITE_ROOT/index.html" "$VERSION" <<'PY'
