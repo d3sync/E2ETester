@@ -14,6 +14,8 @@ internal static class UpdateSettingsSmoke
         {"Assets":[{"PackageId":"E2ETester","Version":"99.0.0","Type":"Full","FileName":"future.nupkg","SHA1":"0000000000000000000000000000000000000000","Size":1},{"PackageId":"E2ETester","Version":"0.0.1","Type":"Full","FileName":"old.nupkg","SHA1":"0000000000000000000000000000000000000000","Size":1}]}
         """);
         var settings=Path.Combine(root,"settings");
+        if(!UpdatePreferences.SourceCandidates(UpdatePreferences.PrimarySource).SequenceEqual([UpdatePreferences.PrimarySource,UpdatePreferences.MirrorSource]))throw new InvalidOperationException("Primary update feed did not include its mirror fallback.");
+        if(!UpdatePreferences.SourceCandidates("https://updates.example.test/releases/").SequenceEqual(["https://updates.example.test/releases/"]))throw new InvalidOperationException("Custom update feed unexpectedly gained a mirror.");
         var model=new UpdatesViewModel(()=>throw new InvalidOperationException("Checking must never apply an update."),settings){Source=feed,CheckOnStartup=true};
         model.SaveSettings.Execute(null);
         var reopened=new UpdatesViewModel(()=>Task.CompletedTask,settings);

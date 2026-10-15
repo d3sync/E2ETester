@@ -71,14 +71,26 @@ public sealed class UpdatesViewModel : Observable
         Busy = true; Versions.Clear(); Selected = null;
         try
         {
-            var input = Source.Trim(); var updateSource = CreateSource(input);
-            var nextManager = new UpdateManager(updateSource);
-            var feed = await updateSource.GetReleaseFeed(NullVelopackLogger.Instance, "E2ETester", "win").WaitAsync(TimeSpan.FromSeconds(30));
+            var candidates=UpdatePreferences.SourceCandidates(Source);
+            IUpdateSource? updateSource=null; UpdateManager? nextManager=null; List<VelopackAsset>? assets=null; string? usedCandidate=null; Exception? failure=null;
+            foreach(var candidate in candidates)
+            {
+                try
+                {
+                    var attemptSource=CreateSource(candidate);
+                    var attemptFeed=await attemptSource.GetReleaseFeed(NullVelopackLogger.Instance, "E2ETester", "win").WaitAsync(TimeSpan.FromSeconds(30));
+                    updateSource=attemptSource; nextManager=new UpdateManager(attemptSource); assets=attemptFeed.Assets.ToList(); usedCandidate=candidate;
+                    break;
+                }
+                catch(Exception ex) { failure=ex; }
+            }
+            if(updateSource is null || nextManager is null || assets is null || usedCandidate is null) throw failure ?? new InvalidDataException("No update feed source was available.");
             manager = nextManager;
-            foreach (var asset in feed.Assets.Where(a => a.Type == VelopackAssetType.Full && a.PackageId == "E2ETester").OrderByDescending(a => a.Version)) Versions.Add(asset);
+            foreach (var asset in assets.Where(a => a.Type == VelopackAssetType.Full && a.PackageId == "E2ETester").OrderByDescending(a => a.Version)) Versions.Add(asset);
             Selected = Versions.FirstOrDefault();
             SavePreferences();
             var summary=Versions.Count==0 ? "The feed contains no compatible versions." : HasNewerVersion ? $"Version {NewestVersion} is available." : "You're up to date.";
+            if(!string.Equals(usedCandidate,Source.Trim(),StringComparison.OrdinalIgnoreCase)) summary="Primary feed unavailable; using the d3sync mirror. " + summary;
             Status = summary + (manager.IsInstalled ? " Select a version to install or roll back. A workspace backup is created before applying." : " Use the Velopack installer to enable installation and rollback; the standalone executable cannot replace itself.");
         }
         finally { Busy = false; }
