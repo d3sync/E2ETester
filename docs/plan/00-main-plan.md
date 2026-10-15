@@ -16,6 +16,7 @@ The product is local-first, Windows-only at the UI layer, and deliberately simpl
 | [02 Architecture and file structure](02-architecture.md) | Projects, dependencies, persistence, proposed source tree |
 | [03 Contracts](03-contracts.md) | Package, run, attempt, assertion, evidence and versioning models |
 | [04 Delivery and validation](04-delivery.md) | Build sequence, dependencies, acceptance gates and open decisions |
+| [05 Faster testing experience](05-faster-testing-experience.md) | UX priorities, keyboard shortcuts, phased delivery and measurements |
 | [F01 Packages and authoring](features/F01-packages-authoring.md) | Import, edit, validate, export and reusable scenarios |
 | [F02 Guided WPF workspace](features/F02-guided-workspace.md) | Three columns, navigation, baseline values and custom tests |
 | [F03 HTTP execution](features/F03-http-execution.md) | Methods, headers, parameters, bodies, transport and captures |

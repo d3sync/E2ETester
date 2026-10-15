@@ -1,18 +1,11 @@
-using System.Security.Cryptography;
-using System.Text;
 using E2ETester.Core;
 
 namespace E2ETester.Application;
 
 public static class ManualAssessments
 {
-    public static string EvidenceHash(Attempt attempt) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PackageJson.Write(new
-    {
-        attempt.Id, attempt.CaseId, attempt.State, attempt.Verdict, attempt.IdentityAlias, attempt.AuthKind,
-        attempt.VerifiedIdentity, attempt.EffectiveUrl, attempt.Request, attempt.Assertions, attempt.Response,
-        attempt.Checks, attempt.Changes, attempt.Fixture, attempt.DatabasePlans, attempt.DatabaseEvidence, attempt.CaptureSources
-    }))));
-    public static bool IsCurrent(Attempt attempt, ManualAssessment assessment) => assessment.EvidenceHash == EvidenceHash(attempt);
+    public static string EvidenceHash(Attempt attempt) => AssessmentEvidence.EvidenceHash(attempt);
+    public static bool IsCurrent(Attempt attempt, ManualAssessment assessment) => AssessmentEvidence.IsCurrent(attempt, assessment);
 }
 
 public sealed partial class RunCoordinator

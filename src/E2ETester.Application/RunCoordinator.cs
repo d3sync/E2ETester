@@ -67,10 +67,10 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             var setup = run.Package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication);
             if (!bypassPrerequisites && setup is not null && baseline.Id != setup.Id)
             {
-                if (run.Attempts.LastOrDefault(a => a.CaseId == setup.Id)?.Verdict != Verdict.Pass)
+                if (Outcomes.ForAttempt(run.Attempts.LastOrDefault(a => a.CaseId == setup.Id)) != Verdict.Pass)
                     throw new InvalidOperationException("Complete the Swagger sign-in step first.");
                 var validation = run.Package.Cases.SkipWhile(c => c.Id != setup.Id).Skip(1).FirstOrDefault();
-                if (validation is not null && baseline.Id != validation.Id && (run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.Verdict != Verdict.Pass || run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.StartedAt < run.Attempts.Last(a => a.CaseId == setup.Id).FinishedAt))
+                if (validation is not null && baseline.Id != validation.Id && (Outcomes.ForAttempt(run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)) != Verdict.Pass || run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.StartedAt < run.Attempts.Last(a => a.CaseId == setup.Id).FinishedAt))
                     throw new InvalidOperationException("Complete remote-IP validation before running the suite.");
             }
             if (baseline.Preparation is not null && !preparationConfirmed && !PermissionIdentity.Matches(baseline.Preparation, identity)) throw new InvalidOperationException("This case requires explicit preparation in the desktop app before execution. Automated execution of preparation changes is not enabled.");

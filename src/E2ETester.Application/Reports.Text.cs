@@ -12,10 +12,10 @@ public static partial class Reports
         {
             var test = report.Coverage[i];
             var title = string.Join(" ", test.Title.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-            text.AppendLine($"TC-{i + 1} · {title} · {test.Verdict?.ToString().ToUpperInvariant() ?? "NOT RUN"}");
+            text.AppendLine($"TC-{i + 1} · {title} · {Effective(test)?.ToString().ToUpperInvariant() ?? "NOT RUN"}");
         }
         if (report.Coverage.Count == 0) text.AppendLine("No test cases.");
-        text.AppendLine("Latest automated result per test case. Manual assessments are shown separately below.");
+        text.AppendLine("Latest effective result per test case. Current manual assessments take precedence; automated results and reviews are retained below.");
         if (report.Summary.HadFailures) text.AppendLine("Historical failures are retained in the detailed results.");
         text.AppendLine().AppendLine(report.Redactions);
         if (run.PreparationLog is { Count: > 0 })

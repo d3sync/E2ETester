@@ -10,9 +10,9 @@ public partial class MainWindow : Window
     private bool updatingToken;
     private bool closingAfterSave, autosaving, handlingClose;
     private readonly System.Windows.Threading.DispatcherTimer draftTimer = new() { Interval = TimeSpan.FromSeconds(2) };
-    public MainWindow(MainViewModel model, bool restoreDraft = true, bool recoverOnStartup = true)
+    public MainWindow(MainViewModel model, bool restoreDraft = true, bool recoverOnStartup = true, string? shortcutSettingsPath = null)
     {
-        viewModel = model; InitializeComponent(); DataContext = model;
+        viewModel = model; InitializeComponent(); DataContext = model; InitializeShortcuts(shortcutSettingsPath);
         model.PropertyChanged += ModelChanged;
         if (model.SelectedCase?.Baseline.Kind == Core.TestStepKind.SwaggerAuthentication) RequestTabs.SelectedIndex = 3;
         model.OpenDatabaseRequested += ShowDatabase;

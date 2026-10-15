@@ -40,7 +40,7 @@ public sealed class AssessmentEditor : Observable
         Record = new(async () =>
         {
             Saving = true;
-            try { await record(Reviewer, Verdict, Reason); Reason = ""; Reload(); Message = "Assessment recorded. The automated result is unchanged."; }
+            try { await record(Reviewer, Verdict, Reason); Reason = ""; Reload(); Message = "Assessment recorded and applied to the case result. The automated evidence is retained."; }
             finally { Saving = false; }
         }, _ => Message = "Assessment could not be recorded. Check the run state and storage, then retry.", () => CanWrite && !string.IsNullOrWhiteSpace(Reviewer) && !string.IsNullOrWhiteSpace(Reason));
         Reload();

@@ -56,7 +56,7 @@ public partial class App : System.Windows.Application
             }
             if(packageFile is not null)model.OpenPackageFile(packageFile);
             if (e.Args.Contains("--auth-check") || e.Args.Contains("--gateway-exercise")) model.LoadGatewayAuthCheck();
-            var window = new MainWindow(model, smoke is null, !e.Args.Contains("--auth-check") && packageFile is null); MainWindow = window;
+            var window = new MainWindow(model, smoke is null, !e.Args.Contains("--auth-check") && packageFile is null, smoke is null ? null : Path.Combine(workspace, "shortcuts.json")); MainWindow = window;
             if (smoke is not null)
             {
                 var path = Path.GetFullPath(smoke[8..]); Directory.CreateDirectory(Path.GetDirectoryName(path)!);

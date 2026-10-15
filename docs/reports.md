@@ -8,7 +8,7 @@ JSON reports now use schema **1.7**, defined in [test-report.v1.7.schema.json](.
 
 - `provisional` is true while the run is open. `run.finishedAt` is null until the user finishes it.
 - `summary.verdict` reflects the latest attempt per case. Any latest failure means FAIL; missing or incomplete required coverage prevents PASS.
-- `summary.hadFailures` includes previous failed attempts, failed database evidence and manual FAIL assessments, even after a later pass. Manual assessments do not override `summary.verdict`.
+- `summary.hadFailures` includes previous failed attempts, failed database evidence and manual FAIL assessments, even after a later pass. The latest current manual assessment overrides the automated verdict when calculating `summary.verdict` and human-readable case summaries. Coverage `verdict` remains the automated value for compatibility; use `manualVerdict` when `manualAssessmentIsCurrent` is true.
 - `coverage` includes every original and variation case. A never-executed case has `state: "NotRun"`, null `verdict` and null `attemptId`. This is different from an executed INCONCLUSIVE result.
 - `run.attempts` retains all attempts, request snapshots, changes, checks, responses, identity facts, fixture selections and database evidence. Truncation and error categories remain explicit.
 - `targetBuild` is null because target-build identification is not implemented. Do not infer a deployment version from the report's application version.

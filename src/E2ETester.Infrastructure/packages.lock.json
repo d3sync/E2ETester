@@ -81,6 +81,12 @@
           "Microsoft.IdentityModel.Tokens": "8.16.0"
         }
       },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Direct",
+        "requested": "[9.0.21, )",
+        "resolved": "9.0.21",
+        "contentHash": "KD+oHoYIxwNCajjVe58WVwq9cRpum+Pg3tRveDRtkcaw6w3oc7sNBoMRtb5P5OehI3bgv1ucMpgjf8lpj5J96A=="
+      },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Direct",
         "requested": "[10.0.10, )",
@@ -289,11 +295,6 @@
         "resolved": "9.0.18",
         "contentHash": "4f3CBS22A2Y+M+shvdYzeWaEPYycZ3IaouaH+NxGLW6xoFahR1+L+YM8bt8NI3TQRZbqPBp/myt+6+JXc+IhRg=="
       },
-      "System.Security.Cryptography.Pkcs": {
-        "type": "Transitive",
-        "resolved": "9.0.18",
-        "contentHash": "NKMKhUdLGNZryY9GXXTF5dXyP6S37EYXhiA2JYvwshJbd4DRq07IOS9it8Opi9atadvv5rlNkD76Mio+5Oo2aQ=="
-      },
       "System.Threading.RateLimiting": {
         "type": "Transitive",
         "resolved": "9.0.18",
@@ -307,7 +308,7 @@
       "e2etester.application": {
         "type": "Project",
         "dependencies": {
-          "E2ETester.Core": "[0.8.0, )",
+          "E2ETester.Core": "[0.8.4, )",
           "JsonSchema.Net": "[8.0.5, )",
           "YamlDotNet": "[18.1.0, )"
         }

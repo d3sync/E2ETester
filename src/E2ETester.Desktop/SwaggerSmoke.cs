@@ -71,6 +71,12 @@ internal static class SwaggerSmoke
             await login.Browser.ExecuteScriptAsync("window.ui.authSelectors.authorized=()=>({oauth:{token:{access_token:'access-canary-551'}}})");
             await login.ReadAuthorizedAsync();
             if (!login.HasCandidate || imported is not null) throw new InvalidOperationException("Authorized token capture must require explicit import.");
+            await login.Browser.ExecuteScriptAsync("window.ui.authSelectors.authorized=()=>({})");
+            await login.ReadAndUseAsync();
+            if (imported is not null || !login.IsVisible || login.HasCandidate) throw new InvalidOperationException("Combined read imported a stale token after authorization disappeared.");
+            await login.Browser.ExecuteScriptAsync("window.ui.authSelectors.authorized=()=>({a:{token:{access_token:'first'}},b:{token:{access_token:'second'}}})");
+            await login.ReadAndUseAsync();
+            if (imported is not null || !login.IsVisible) throw new InvalidOperationException("Combined read imported an ambiguous token.");
             await login.Browser.ExecuteScriptAsync("fetch('/api',{headers:{Authorization:'Bearer network-canary-552'}})");
             await Task.Delay(500);
             using (var stream = File.Create(path + ".swagger-page.png")) await login.Browser.CoreWebView2.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, stream);
@@ -109,8 +115,7 @@ internal static class SwaggerSmoke
                     await dialog.Ready.Task.WaitAsync(TimeSpan.FromSeconds(30));
                     for (var i=0;i<100;i++) { if(await dialog.Browser.ExecuteScriptAsync("!!window.ui")=="true")break; await Task.Delay(100); }
                     await dialog.Browser.ExecuteScriptAsync("window.ui.authSelectors.authorized=()=>({oauth:{token:{access_token:'access-canary-551'}}})");
-                    await dialog.ReadAuthorizedAsync();
-                    dialog.UseToken.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    await dialog.ReadAndUseAsync();
                 }
                 Task? interaction = null;
                 _ = owner.Dispatcher.BeginInvoke(new Action(()=>interaction=ImportInDialog()));

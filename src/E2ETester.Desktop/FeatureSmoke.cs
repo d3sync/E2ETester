@@ -11,6 +11,7 @@ internal static class FeatureSmoke
 {
     public static async Task RunAsync(MainWindow window,MainViewModel model,string path)
     {
+        await KeyboardShortcutsSmoke.RunAsync(window, model, path);
         await UsabilityPolishSmoke.RunAsync(window, path);
         await RoleIdentitySmoke.RunAsync();
         await TesterSetupSmoke.RunAsync(window,path);
@@ -93,6 +94,11 @@ internal static class FeatureSmoke
         if (model.SelectedAttempt.Verdict != Verdict.Pass || !model.HasFailureVerdict || !model.SelectedCase!.Status.Contains("MANUAL: FAIL"))
             throw new InvalidOperationException("Manual FAIL must be visible beside automated PASS.");
         Save(window, path + ".manual-fail.png");
+        var correction = model.CreateAssessmentEditor();
+        correction.Reviewer = "UI tester"; correction.Reason = "Confirmed the result manually."; correction.Verdict = Verdict.Pass;
+        await correction.Record.RunAsync();
+        if (model.HasFailureVerdict || !model.SelectedCase.Status.StartsWith("PASS") || !model.VerdictText.StartsWith("RESULT: PASS"))
+            throw new InvalidOperationException("Manual PASS did not refresh the effective UI result.");
         bool inspected=false;
         _ = window.Dispatcher.BeginInvoke(new Action(()=>
         {

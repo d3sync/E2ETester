@@ -23,7 +23,7 @@ public static class ValueBindings
             var attempt = explicitlySelected ? run?.Attempts.SingleOrDefault(a => a.CaseId == id && a.Id == selectedAttempts![id]) : run?.Attempts.LastOrDefault(a => a.CaseId == id);
             if (selectedAttempts is not null && !explicitlySelected)
                 throw new InvalidOperationException($"No saved response can supply '{expression}'. Enter the verified value manually to run without this source case.");
-            if (attempt is not { State: AttemptState.Completed, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } } || (!explicitlySelected && attempt.Verdict != Verdict.Pass)) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
+            if (attempt is not { State: AttemptState.Completed, Response: { Truncated: false, ErrorCode: null, BodyEncoding: "text" } } || (!explicitlySelected && Outcomes.ForAttempt(attempt) != Verdict.Pass)) throw new InvalidOperationException($"Run source case '{id}' successfully before using its response.");
             if (sources is not null) sources[id] = attempt.Id;
             try { return Resolve("{{response." + source[(separator + 1)..] + "}}", null, attempt.Response.Body); }
             catch (JsonException) { throw new InvalidOperationException($"The saved response for '{id}' is not JSON and cannot supply this value. Choose a response containing the resource ID, find a saved resource, or enter the verified value manually."); }

@@ -65,8 +65,8 @@ public static class HeadlessRunner
             var attempt=run.Attempts.LastOrDefault(a=>a.CaseId==test.Id);
             var element=new XElement("testcase",new XAttribute("name",test.Title),new XAttribute("classname",run.Package.Id),new XAttribute("time",((attempt?.Response?.DurationMs??0)/1000.0).ToString(System.Globalization.CultureInfo.InvariantCulture)));
             if(issues.TryGetValue(test.Id,out var issue)){element.Add(new XElement("error",new XAttribute("message",issue)));errors++;}
-            else if(attempt?.Verdict==Verdict.Fail){element.Add(new XElement("failure",new XAttribute("message","FAIL"),string.Join("\n",attempt.Checks.Where(c=>c.Verdict==Verdict.Fail).Select(c=>c.Message))));failed++;}
-            else if(attempt?.Verdict!=Verdict.Pass){element.Add(new XElement("error",new XAttribute("message","INCONCLUSIVE: missing or incomplete evidence")));errors++;}
+            else if(Outcomes.ForAttempt(attempt)==Verdict.Fail){element.Add(new XElement("failure",new XAttribute("message","FAIL"),string.Join("\n",attempt!.Checks.Where(c=>c.Verdict==Verdict.Fail).Select(c=>c.Message))));failed++;}
+            else if(Outcomes.ForAttempt(attempt)!=Verdict.Pass){element.Add(new XElement("error",new XAttribute("message","INCONCLUSIVE: missing or incomplete evidence")));errors++;}
             suite.Add(element);
         }
         if(finishError is not null){suite.Add(new XElement("testcase",new XAttribute("name","Restore and finish"),new XElement("error",finishError)));errors++;}

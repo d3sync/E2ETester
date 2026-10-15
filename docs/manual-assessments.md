@@ -2,11 +2,11 @@
 
 Select a recorded attempt, then choose **Assess attempt** above its history. Enter a reviewer name, select PASS, FAIL or INCONCLUSIVE, and explain the reason. The assessment is saved to the journal before the UI confirms it. A reviewer and a nonblank reason are required; the limits are 120 and 4,000 characters respectively.
 
-The reviewer is explicitly **self-declared**. It is not an authenticated identity, approval signature or authorization decision. Notes are exported, so avoid secrets and business-sensitive data. Known active manual tokens and database connection strings are scrubbed, and notes are HTML-encoded in the human-readable report.
+The reviewer is explicitly **self-declared**. It is not an authenticated identity, approval signature or authorization decision. Notes are exported, so avoid secrets and business-sensitive data. Values are retained without redaction; notes are HTML-encoded in the human-readable report.
 
 ## Automated and manual results stay separate
 
-An assessment does not replace the attempt's automated verdict, alter assertions, change request/response evidence, or turn missing coverage into PASS. Both verdicts appear in the desktop and reports. The run's summary verdict continues to use automated outcomes. `hadFailures` includes historical manual FAIL assessments as well as automated and database failures.
+An assessment does not replace the attempt's automated verdict, alter assertions, change request/response evidence, or turn missing coverage into PASS. Both verdicts appear in the desktop and reports. The latest assessment of unchanged evidence determines the effective case result, follow-up prerequisites, response bindings and run summary. A manual PASS allows dependent cases to proceed without Run anyway; a manual FAIL takes precedence over an automated PASS. New attempts do not inherit older reviews, and stale assessments do not override the current automated result. `hadFailures` includes historical manual FAIL assessments as well as automated and database failures.
 
 Reassessment appends another record with a stable ID, UTC timestamp, reviewer, verdict, reason, the automated verdict at review time and an evidence hash. All earlier assessments remain available. There is no edit or delete action; add a correction as a new assessment.
 

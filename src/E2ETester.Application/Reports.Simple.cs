@@ -16,12 +16,12 @@ public static partial class Reports
     {
         var report = Create(run); var text = new StringBuilder();
         string Preview(string value) => value.Length <= 8192 ? value : value[..8192] + "\n[Preview shortened. Complete data is in the full ZIP.]";
-        text.AppendLine(run.Package.Title).AppendLine($"Automated result: {report.Summary.Verdict.ToString().ToUpperInvariant()} · {(run.FinishedAt is null ? "IN PROGRESS" : "FINISHED")}")
+        text.AppendLine(run.Package.Title).AppendLine($"Result: {report.Summary.Verdict.ToString().ToUpperInvariant()} · {(run.FinishedAt is null ? "IN PROGRESS" : "FINISHED")}")
             .AppendLine($"Run: {run.Id} · Started: {run.StartedAt:u}").AppendLine("Latest attempt per case; earlier attempts and full evidence are in the ZIP.");
         for (var i = 0; i < report.Coverage.Count; i++)
         {
             var c = report.Coverage[i];
-            text.AppendLine($"TC-{i + 1} · {c.Title} · {c.Verdict?.ToString().ToUpperInvariant() ?? "NOT RUN"}" +
+            text.AppendLine($"TC-{i + 1} · {c.Title} · {Effective(c)?.ToString().ToUpperInvariant() ?? "NOT RUN"}" +
                 (c.ManualVerdict is {} v ? $" · MANUAL {v.ToString().ToUpperInvariant()}{(c.ManualAssessmentIsCurrent == false ? " (review again)" : "")}" : ""));
         }
         foreach (var c in run.Package.Cases)
@@ -29,7 +29,7 @@ public static partial class Reports
             var attempt = run.Attempts.LastOrDefault(a => a.CaseId == c.Id);
             text.AppendLine().AppendLine(c.Title);
             if (attempt is null) { text.AppendLine("NOT RUN"); continue; }
-            text.AppendLine($"{attempt.Verdict.ToString().ToUpperInvariant()} · Identity: {attempt.IdentityAlias} · {attempt.StartedAt:u}");
+            text.AppendLine($"Automated: {attempt.Verdict.ToString().ToUpperInvariant()} · Identity: {attempt.IdentityAlias} · {attempt.StartedAt:u}");
             if (c.Kind == TestStepKind.SwaggerAuthentication) text.AppendLine("Sign-in recorded; no HTTP request.");
             else
             {

@@ -36,7 +36,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         && Cases.All(c => run.Attempts.LastOrDefault(a => a.CaseId == c.Baseline.Id)?.State == AttemptState.Completed);
     public string Progress => run is null ? $"{Cases.Count} cases · ready to start" : $"{Cases.Count(c => run.Attempts.Any(a => a.CaseId == c.Baseline.Id))}/{Cases.Count} tested · {run.Attempts.Count} attempts · {(run.FinishedAt is null ? "IN PROGRESS" : Outcomes.ForRun(run).ToString().ToUpperInvariant())}";
     public string RunLabel => run is null ? "NEW SESSION" : $"RUN {run.Id[..8].ToUpperInvariant()}";
-    public string VerdictText => SelectedAttempt is null ? "AWAITING REQUEST" : "AUTOMATED: " + SelectedAttempt.Verdict.ToString().ToUpperInvariant() + (SelectedAttempt.ManualAssessments.LastOrDefault() is { } assessment ? $"\nMANUAL: {assessment.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(SelectedAttempt, assessment) ? "" : " · REVIEW AGAIN")}" : "");
+    public string VerdictText => SelectedAttempt is null ? "AWAITING REQUEST" : "RESULT: " + Outcomes.ForAttempt(SelectedAttempt).ToString().ToUpperInvariant() + "\nAUTOMATED: " + SelectedAttempt.Verdict.ToString().ToUpperInvariant() + (SelectedAttempt.ManualAssessments.LastOrDefault() is { } assessment ? $"\nMANUAL: {assessment.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(SelectedAttempt, assessment) ? "" : " · REVIEW AGAIN")}" : "");
     public string ReportJson() => run is null ? throw new InvalidOperationException("No run has started.") : Reports.Json(run);
     public string ResponseText => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Sign-in step recorded. No API request was sent. Continue to remote-IP validation to check server access." : SelectedAttempt?.Response is { } r ? (r.Error is null ? DisplayResponseBody(r) : $"{r.ErrorCode}\n{r.Error}\n\n{DisplayResponseBody(r)}") : "Send a request to inspect its response here.";
     public string ResponseMeta => SelectedAttempt is not null && SelectedCase?.Baseline.Kind == TestStepKind.SwaggerAuthentication ? "Authentication only · no HTTP request" : SelectedAttempt?.Response is { } r ? $"{r.StatusCode?.ToString() ?? "NO RESPONSE"}  ·  {r.DurationMs} ms  ·  {r.CapturedBytes:N0} bytes · {r.BodyEncoding}{(r.Truncated ? " · TRUNCATED" : "")}" : "No response yet";
@@ -85,8 +85,8 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public AsyncCommand BrowseRuns { get; }
     public AsyncCommand ReviewAttempt { get; }
     public ActionCommand MarkAttemptFailed { get; }
-    public bool HasFailureVerdict => SelectedAttempt?.Verdict == Verdict.Fail || SelectedAttempt?.ManualAssessments.LastOrDefault()?.Verdict == Verdict.Fail;
-    private static string CaseStatus(Attempt? attempt) => attempt is null ? "NOT RUN" : attempt.Verdict.ToString().ToUpperInvariant() + (attempt.ManualAssessments.LastOrDefault() is { } review ? $" · MANUAL: {review.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(attempt, review) ? "" : " · REVIEW AGAIN")}" : "");
+    public bool HasFailureVerdict => Outcomes.ForAttempt(SelectedAttempt) == Verdict.Fail;
+    private static string CaseStatus(Attempt? attempt) => attempt is null ? "NOT RUN" : Outcomes.ForAttempt(attempt).ToString().ToUpperInvariant() + (attempt.ManualAssessments.LastOrDefault() is { } review ? $" · MANUAL: {review.Verdict.ToString().ToUpperInvariant()}{(ManualAssessments.IsCurrent(attempt, review) ? "" : " · REVIEW AGAIN")}" : "");
     public AsyncCommand AddVariation { get; }
     public ActionCommand Cancel { get; }
     public ActionCommand Next { get; }

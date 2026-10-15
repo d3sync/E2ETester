@@ -4,6 +4,7 @@ namespace E2ETester.Application;
 
 public static partial class Reports
 {
+    private static Verdict? Effective(CaseCoverage coverage) => coverage.ManualAssessmentIsCurrent == true ? coverage.ManualVerdict : coverage.Verdict;
     public static string Json(TestRun run) => PackageJson.Write(Create(run));
     public static TestReport Create(TestRun source, DateTimeOffset? exportedAt = null)
     {
@@ -23,7 +24,7 @@ public static partial class Reports
         }
         return new(run.Package.SchemaVersion == "1.8" ? "1.11" : run.Package.SchemaVersion == "1.7" ? "1.10" : run.Package.SchemaVersion is "1.6" or "1.7" ? "1.9" : run.PreparationLog is null && !run.Package.Cases.Any(c => c.Preparation is not null) ? "1.7" : "1.8", run.Id, exportedAt ?? DateTimeOffset.UtcNow, run.FinishedAt is null, typeof(Reports).Assembly.GetName().Version?.ToString(3) ?? "unknown", null,
             new(Outcomes.ForRun(run), run.Package.Cases.Count, run.Package.Cases.Count(c => run.Attempts.Any(a => a.CaseId == c.Id)), run.Attempts.Count,
-                run.Attempts.Any(a => a.Verdict == Verdict.Fail || a.DatabaseEvidence.Any(e => e.Assessment?.Verdict == Verdict.Fail) || a.ManualAssessments.Any(m => m.Verdict == Verdict.Fail)), "latest attempt per case; all historical attempts retained"),
+                run.Attempts.Any(a => a.Verdict == Verdict.Fail || a.DatabaseEvidence.Any(e => e.Assessment?.Verdict == Verdict.Fail) || a.ManualAssessments.Any(m => m.Verdict == Verdict.Fail)), "latest attempt per case; current latest manual assessment overrides automated verdict; all historical attempts retained"),
             run.Package.Cases.Select(c => { var latest = run.Attempts.LastOrDefault(a => a.CaseId == c.Id); var assessment = latest?.ManualAssessments.LastOrDefault(); return new CaseCoverage(c.Id, c.Title, c.ParentId, latest?.Id, latest?.Verdict, latest?.State.ToString() ?? "NotRun", assessment?.Verdict, assessment?.Id, assessment is null ? null : ManualAssessments.IsCurrent(latest!, assessment)); }).ToList(),
             checks, "Values are recorded without redaction. This is not a replay bundle.", run);
     }

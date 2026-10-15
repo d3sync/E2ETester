@@ -174,6 +174,14 @@ public sealed record TestRun
 
 public static class Outcomes
 {
+    public static Verdict ForAttempt(Attempt? attempt)
+    {
+        if (attempt is null) return Verdict.Inconclusive;
+        var review = attempt.ManualAssessments.LastOrDefault();
+        return attempt.State != AttemptState.Running && review is not null && AssessmentEvidence.IsCurrent(attempt, review)
+            ? review.Verdict : attempt.Verdict;
+    }
+
     public static Verdict Evaluate(IEnumerable<CheckResult> checks)
     {
         var required = checks.Where(c => c.Required).ToArray();
@@ -184,8 +192,8 @@ public static class Outcomes
     public static Verdict ForRun(TestRun run)
     {
         var latest = run.Package.Cases.Select(c => run.Attempts.LastOrDefault(a => a.CaseId == c.Id)).ToArray();
-        if (latest.Any(a => a?.Verdict == Verdict.Fail)) return Verdict.Fail;
-        return latest.Length > 0 && latest.All(a => a?.State == AttemptState.Completed && a.Verdict == Verdict.Pass)
+        if (latest.Any(a => ForAttempt(a) == Verdict.Fail)) return Verdict.Fail;
+        return latest.Length > 0 && latest.All(a => a?.State == AttemptState.Completed && ForAttempt(a) == Verdict.Pass)
             ? Verdict.Pass : Verdict.Inconclusive;
     }
 }
