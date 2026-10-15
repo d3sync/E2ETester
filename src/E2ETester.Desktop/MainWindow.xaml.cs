@@ -14,10 +14,13 @@ public partial class MainWindow : Window
     {
         viewModel = model; InitializeComponent(); DataContext = model; InitializeShortcuts(shortcutSettingsPath);
         model.PropertyChanged += ModelChanged;
+        SizeChanged += (_, _) => UpdateToolbarLayout();
+        Loaded += (_, _) => UpdateToolbarLayout();
         if (model.SelectedCase?.Baseline.Kind == Core.TestStepKind.SwaggerAuthentication) RequestTabs.SelectedIndex = 3;
         model.OpenDatabaseRequested += ShowDatabase;
         if (restoreDraft)
         {
+            WindowState = WindowState.Maximized;
             Loaded += async (_, _) => { if (recoverOnStartup) await model.RestoreDraft.RunAsync(); draftTimer.Start(); await model.CheckForUpdatesOnStartupAsync(this); };
             draftTimer.Tick += async (_, _) =>
             {
@@ -54,6 +57,17 @@ public partial class MainWindow : Window
 
         };
         Closed += (_, _) => { model.PropertyChanged -= ModelChanged; model.OpenDatabaseRequested -= ShowDatabase; model.Dispose(); };
+    }
+    private void UpdateToolbarLayout()
+    {
+        var compact = ActualWidth < 1450;
+        Grid.SetColumnSpan(ToolbarActions, compact ? 3 : 1);
+        Grid.SetRow(BaseUrlPanel, compact ? 1 : 0);
+        Grid.SetColumn(BaseUrlPanel, compact ? 0 : 1);
+        Grid.SetColumnSpan(BaseUrlPanel, compact ? 2 : 1);
+        BaseUrlPanel.Margin = compact ? new Thickness(0, 8, 12, 0) : new Thickness(20, 0, 20, 0);
+        Grid.SetRow(ToolbarRunActions, compact ? 1 : 0);
+        ToolbarRunActions.Margin = compact ? new Thickness(0, 8, 0, 0) : new Thickness(0);
     }
     private void DismissActivity(object sender, RoutedEventArgs e) => ActivityBanner.Visibility = Visibility.Collapsed;
     private void ShowActivity()

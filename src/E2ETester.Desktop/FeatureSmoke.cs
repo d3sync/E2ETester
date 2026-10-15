@@ -13,6 +13,8 @@ internal static class FeatureSmoke
     {
         await KeyboardShortcutsSmoke.RunAsync(window, model, path);
         await UsabilityPolishSmoke.RunAsync(window, path);
+        await BodyEditorSmoke.RunAsync(window, path);
+        await TabLayoutSmoke.RunAsync(window, path);
         await RoleIdentitySmoke.RunAsync();
         await TesterSetupSmoke.RunAsync(window,path);
         await SessionAndOverrideSmoke.RunAsync();
