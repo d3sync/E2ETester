@@ -134,9 +134,11 @@ public sealed partial class MainViewModel
     private void EnsurePreparationScope()
     {
         if (preparationRecoveryUnreadable) throw new InvalidOperationException(PreparationStatus);
-        if (preparations.Any(p => p.Status != "restored" && (!PermissionIdentity.IsPermissionPlan(p.Plan) || p.Status != "applied") && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl)))
-            throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
+        if (PreparationOutOfScope()) throw new InvalidOperationException("Restore prepared changes before sending outside their case and run.");
     }
+    /// <summary>True when an unrestored preparation belongs to another case, run, package or base URL than the one about to be sent.</summary>
+    private bool PreparationOutOfScope() =>
+        preparations.Any(p => p.Status != "restored" && (!PermissionIdentity.IsPermissionPlan(p.Plan) || p.Status != "applied") && (p.Status != "applied" || run is null || p.RunId != run.Id || p.PackageId != package.Id || (!p.CaseId.StartsWith("$action:", StringComparison.Ordinal) && (p.CaseId != SelectedCase?.Baseline.Id || SelectedCase?.Baseline.Preparation is null)) || p.BaseUrl != BaseUrl));
     private async Task EnsurePreparationReady(IdentitySession identity)
     {
         EnsurePreparationScope();

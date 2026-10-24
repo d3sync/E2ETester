@@ -56,7 +56,7 @@ public partial class App : System.Windows.Application
             }
             if(packageFile is not null)model.OpenPackageFile(packageFile);
             if (e.Args.Contains("--auth-check") || e.Args.Contains("--gateway-exercise")) model.LoadGatewayAuthCheck();
-            var window = new MainWindow(model, smoke is null, !e.Args.Contains("--auth-check") && packageFile is null, smoke is null ? null : Path.Combine(workspace, "shortcuts.json")); MainWindow = window;
+            var window = new MainWindow(model, smoke is null, !e.Args.Contains("--auth-check") && packageFile is null, smoke is null ? null : Path.Combine(workspace, "shortcuts.json"), smoke is null ? null : Path.Combine(workspace, "ui.json")); MainWindow = window;
             if (smoke is not null)
             {
                 var path = Path.GetFullPath(smoke[8..]); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -218,6 +218,7 @@ public partial class App : System.Windows.Application
                         studio.Close(); window.RequestTabs.SelectedIndex = 5;
                     }
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                    window.ActivityBanner.Visibility = Visibility.Collapsed; // the final capture doubles as documentation; the toast would hide the evidence pane
                     window.UpdateLayout();
                     var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
                     bitmap.Render(window); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));

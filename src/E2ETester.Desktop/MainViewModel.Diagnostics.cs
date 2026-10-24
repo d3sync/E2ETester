@@ -7,12 +7,18 @@ public sealed partial class MainViewModel
 {
     private readonly string workspacePath;
     private bool showAdvanced;
-    public bool ShowAdvanced { get => showAdvanced; set => Set(ref showAdvanced, value); }
+    public bool ShowAdvanced { get => showAdvanced; set { if (Set(ref showAdvanced, value)) { Changed(nameof(AdvancedMenuLabel)); Changed(nameof(HasDatabaseWork)); } } }
+    /// <summary>Tools menu entry that reveals or hides the Database and Transport tabs; the state is session-scoped and set automatically for database packages.</summary>
+    public string AdvancedMenuLabel => ShowAdvanced ? "Hide advanced tabs" : "Show advanced tabs";
+    private ActionCommand? toggleAdvanced;
+    public ActionCommand ToggleAdvanced => toggleAdvanced ??= new(() => ShowAdvanced = !ShowAdvanced);
     public ParameterCommand<FieldEditor> RemoveField { get; private set; } = null!;
     public AsyncCommand LoadCloudSample { get; private set; } = null!;
     public ActionCommand OpenUpdates { get; private set; } = null!;
     private string updateLabel="Updates…";
-    public string UpdateLabel {get=>updateLabel;private set=>Set(ref updateLabel,value);}
+    public string UpdateLabel {get=>updateLabel;private set{ if(Set(ref updateLabel,value)) Changed(nameof(HasUpdateAvailable)); }}
+    /// <summary>The toolbar shows the Updates button only when a newer version was found; Tools keeps the settings entry.</summary>
+    public bool HasUpdateAvailable => UpdateLabel != "Updates…";
     internal async Task CheckForUpdatesOnStartupAsync(Window owner)
     {
         var check=new UpdatesViewModel(()=>Task.CompletedTask);

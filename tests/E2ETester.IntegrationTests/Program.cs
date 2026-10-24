@@ -164,6 +164,11 @@ var forcePackage = new TestPackage { Cases = [new() { Id = "setup", Kind = TestS
 var forceRun = await coordinator.StartAsync(forcePackage, server.Url);
 forceRun.Attempts.AddRange(recoverySource.Attempts);
 await Reject(() => coordinator.ExecuteAsync(forceRun, forceCase, forceCase.Request, forceCase.Assertions, none, default), "normal requests retain setup prerequisite checks");
+var forceBlockers = RunCoordinator.Prerequisites(forceRun.Package.Cases, forceRun.Attempts, forceCase, forceCase.Request.IdentityRef, none, null, forceRun.Package.Queries, false, false);
+string? forceMessage = null;
+try { await coordinator.ExecuteAsync(forceRun, forceCase, forceCase.Request, forceCase.Assertions, none, default); } catch (InvalidOperationException ex) { forceMessage = ex.Message; }
+Check(forceBlockers.Count > 0 && forceBlockers[0].Code == "sign-in-step" && forceBlockers[0].CaseId == "setup" && forceBlockers[0].Message == forceMessage, "prerequisite blockers describe the same first rejection as execution");
+Check(RunCoordinator.Prerequisites(forceRun.Package.Cases, forceRun.Attempts, forceCase, forceCase.Request.IdentityRef, none, null, forceRun.Package.Queries, false, true).Count == 0, "Run anyway clears prerequisite blockers");
 var forcedAttempt = await coordinator.ExecuteAsync(forceRun, forceCase, forceCase.Request, forceCase.Assertions, none, default, bypassPrerequisites: true);
 Check(forcedAttempt.Verdict == Verdict.Pass && forcedAttempt.CaptureSources["create"] == "created" && forcedAttempt.Changes.Any(c => c.Path == "execution.prerequisites"), "Run anyway skips failed prior cases and records override with original response provenance");
 var manualForce = await coordinator.ExecuteAsync(forceRun, forceCase, forceCase.Request with { Url = "/inspect?item=456" }, [new() { Expected = "418" }], none, default, bypassPrerequisites: true);

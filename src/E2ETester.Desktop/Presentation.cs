@@ -233,7 +233,21 @@ public sealed class CaseEditor : Observable
 
     public string Title { get => title; set => Set(ref title, value); }
 
-    public string Instructions { get => instructions; set => Set(ref instructions, value); }
+    public string Instructions { get => instructions; set { if (Set(ref instructions, value)) { Changed(nameof(HasInstructions)); Changed(nameof(InstructionsSummary)); } } }
+
+    /// <summary>True when the case carries tester instructions; the Instructions expander opens only then.</summary>
+    public bool HasInstructions => !string.IsNullOrWhiteSpace(Instructions);
+
+    /// <summary>First line of the instructions for the collapsed expander header.</summary>
+    public string InstructionsSummary
+    {
+        get
+        {
+            if (!HasInstructions) return "No instructions for this case";
+            var line = Instructions.Trim().Split('\n')[0].Trim('\r', ' ');
+            return line.Length > 100 ? line[..100].TrimEnd() + "…" : line;
+        }
+    }
 
     public string Method { get => method; set => Set(ref method, value); }
 

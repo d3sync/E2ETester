@@ -1,6 +1,6 @@
 # Manual assessments
 
-Select a recorded attempt, then choose **Assess attempt** above its history. Enter a reviewer name, select PASS, FAIL or INCONCLUSIVE, and explain the reason. The assessment is saved to the journal before the UI confirms it. A reviewer and a nonblank reason are required; the limits are 120 and 4,000 characters respectively.
+Select a recorded attempt, then choose **Manual assessment…** beside the verdict (**Mark as failed…** opens the same dialog with FAIL preselected). Enter a reviewer name (prefilled with the last one you used), select PASS, FAIL or INCONCLUSIVE, and explain the reason. The assessment is saved to the journal before the UI confirms it. A reviewer and a nonblank reason are required; the limits are 120 and 4,000 characters respectively.
 
 The reviewer is explicitly **self-declared**. It is not an authenticated identity, approval signature or authorization decision. Notes are exported, so avoid secrets and business-sensitive data. Values are retained without redaction; notes are HTML-encoded in the human-readable report.
 

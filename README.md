@@ -42,7 +42,7 @@ For a generic cloud template, click **Cloud test** or double-click [cloud-checkr
 - Optional SQL Server, MySQL, PostgreSQL and SQLite fixtures/verification.
 - JSON/HTML reports and evidence bundles for people and AI agents.
 - MCP stdio tools, recovery, encrypted environments, backups and saved runs.
-- Light/dark themes, compact Auth and optional Advanced database/transport controls.
+- Light/dark themes, a readiness line that names the next needed action, compact Auth and advanced database/transport tabs on demand.
 - Single-file publishing and Velopack installation, version selection and rollback.
 
 See [features and limits](docs/features.md). Loading a package never sends requests automatically. Reports retain captured values, including request headers, tokens and business data.

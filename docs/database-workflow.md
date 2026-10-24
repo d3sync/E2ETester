@@ -2,7 +2,7 @@
 
 ## Optional fixtures
 
-Fixtures are optional by default, even when a saved query is assigned. Under **Advanced > Database**, enable **Require fixture before sending** only for cases that need a selected row. Package schema 1.3 and later store `fixtureRequired` (default `false`); the setting survives recovery and applies to desktop and MCP.
+Fixtures are optional by default, even when a saved query is assigned. In the **Database** tab (shown automatically for packages with queries; otherwise **Tools → Show advanced tabs**), enable **Require fixture before sending** only for cases that need a selected row. Package schema 1.3 and later store `fixtureRequired` (default `false`); the setting survives recovery and applies to desktop and MCP.
 
 Without a fixture, use manual request values. Replace active `{{fixture.column}}` placeholders or disable those fields before sending. Selected fixtures still resolve values and are recorded. Post-request checks have their own Required setting: required checks remain INCONCLUSIVE until verified; optional checks do not block an otherwise passing API result.
 
@@ -63,6 +63,6 @@ SQLite uses a native interrupt to bound long-running queries despite the provide
 
 All four adapters have automated integration coverage. Run `./Test-Databases.ps1` from the repository root to add disposable SQL Server, MySQL and PostgreSQL servers to the ordinary HTTP/SQLite suite. The launcher creates restricted database accounts, uses randomly allocated localhost ports and removes its own containers and volumes afterward. See [test infrastructure](../infra/database-tests/README.md).
 
-The **Database demo** button creates `demo-fixtures.db` inside the application's workspace. It only creates its own demo table and inserts missing demo rows. The package is also available at [database-demo.json](../samples/generic/database-demo.json).
+**Tools → Workspace… → Maintenance → Load local database demo** creates `demo-fixtures.db` inside the application's workspace. It only creates its own demo table and inserts missing demo rows. The package is also available at [database-demo.json](../samples/generic/database-demo.json).
 
 This demonstration compares an echoed API ID/name with pre-existing database data. It does not claim to demonstrate server-side database mutation. The integration suite separately changes a test-owned SQLite value and verifies that the subsequent check fails while preserving prior evidence.

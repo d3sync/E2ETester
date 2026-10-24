@@ -42,7 +42,7 @@ Pending changes survive a crash in the workspace's Windows user-encrypted `Prepa
 
 Preparation reports use schema **1.8** and include preparation/restoration events in JSON, readable text and HTML. Original values remain in encrypted local recovery storage, outside the audit summary. MCP supports explicit prepare_environment, list_preparations and restore_environment tools on Windows with encrypted recovery. Exact preparation plans and writable database aliases must be approved in local host configuration. See [the agent preparation guide](../skills/e2e-tester-author/references/preparation.md).
 
-**Next case** is also beside **Send request** to shorten the repeated mouse movement.
+**Previous**, **Send request** and **Next case** share one execution bar under the request, with the readiness line above it; View report, Export report and Finish run stay in the footer.
 
 ## Connection troubleshooting
 

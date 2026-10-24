@@ -12,11 +12,11 @@ Double-clicked files use separate workspaces based on their full paths. Opening 
 
 New suites, imported packages and exports start with Swagger sign-in, then GET `/whoami` (adjust the endpoint to your API's contract). Sign-in has `kind: swaggerAuthentication`; it records bearer-token availability without HTTP. The following case expects 200 and a non-empty string. Business cases require both steps to pass. Repeating sign-in requires fresh validation. Historical runs are not rewritten.
 
-Keep the `cloud-user` identity for both setup steps. Complete Swagger sign-in, import the token, then choose Complete sign-in step. Select Next case and send the IP request. Subsequent cases may use other identities. Fixtures remain optional by default.
+Keep the `cloud-user` identity for both setup steps. Complete Swagger sign-in, import the token, then choose Complete sign-in step. Select Next case and send the IP request. The readiness line above Send request states what is still needed and offers that action; Next case is highlighted once the selected case has been tested. Subsequent cases may use other identities. Fixtures remain optional by default.
 
 ## Readable reports
 
-View report opens a modal with Readable report and Structured JSON tabs. Select text or use Copy entire tab. Exporting JSON, HTML or ZIP also opens this modal. Attempts and untested cases remain visible; JSON is the complete evidence format. Response text cannot execute script in the viewer.
+View report opens a modal with Simple report, Full report and Structured JSON tabs. Select text or use Copy entire tab. Exporting JSON, HTML or ZIP also opens this modal. Attempts and untested cases remain visible; JSON is the complete evidence format. Response text cannot execute script in the viewer.
 
 ## API workspace
 

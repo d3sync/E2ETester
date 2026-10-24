@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.6
+
+- One execution bar beside Send request: Next case, Previous, Run anyway, Cancel and Variation; the footer keeps View report, Export report and Finish run. Next case is highlighted once the selected case has been tested, Finish run once every case has.
+- Added a readiness line above Send request that states what the next request still needs (sign-in, token expiry, an earlier step, a fixture, preparation, applicability, unverified database checks) with a button for that action. It reads existing state only; Send still enforces every rule.
+- Auth shows the identity state with one state-dependent primary action; the Swagger address, manual JWT/API token and registered OIDC client sit under Other sign-in methods and settings.
+- Moved authoring controls into a collapsed Edit package section that folds away when a run starts. Instructions collapse when empty and show a one-line summary. Attempt history shows its count; Mark as failed and Manual assessment sit together beside the verdict.
+- Grouped the toolbar: package actions and Tools, then Guided Actions and Query Studio only when the package uses them, Restore changes and the Updates button only when needed. Workspace and Show/Hide advanced tabs moved into Tools; the Advanced checkbox was removed.
+- Activity notifications appear as a dismissible toast in the lower right and fade after ten seconds; the footer keeps the full message as a tooltip.
+- Open sections and the last reviewer name are remembered in `Settings/ui.json`; manual assessments prefill the reviewer.
+- `RunCoordinator.Prerequisites` exposes the pre-flight checks as a pure function with unchanged order and messages; covered by the integration suite.
+
 ## 0.8.5
 
 - Authenticode-sign every distributed Windows executable and DLL with the d3sync code-signing certificate and an RFC 3161 timestamp before publication. Sign the Velopack setup bundle after packaging.

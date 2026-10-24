@@ -59,6 +59,7 @@ internal static class KeyboardShortcutsSmoke
         var text = window.CaseInstructions;
         var before = model.SelectedCase!.Instructions;
         text.SetBinding(TextBox.TextProperty, new Binding("SelectedCase.Instructions") { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.Explicit });
+        window.InstructionsExpander.IsExpanded = true;
         window.Activate(); text.Focus(); Keyboard.Focus(text);
         text.Text = "Unsaved keyboard edit";
         if (model.SelectedCase.Instructions != before) throw new InvalidOperationException("Test needs a pending binding.");

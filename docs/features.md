@@ -12,14 +12,14 @@
 | Preparation | Optional, host-approved setup (database value or API change) before a case, with captured originals and verified restoration |
 | API workspace | Ad-hoc requests, Swagger 2.0 / OpenAPI 3.x JSON import, cURL evidence |
 | Automation | Headless CLI with JUnit and canonical reports; MCP stdio tools with explicit target/query/authoring/preparation permissions and idempotency; AI prompt, template and skill kit |
-| Appearance | Light/dark themes, compact default layout, optional Advanced controls |
+| Appearance | Light/dark themes, compact default layout, readiness line above Send, advanced database/transport tabs on demand |
 | Distribution | Single-file executables plus Velopack installer/update feed, selectable versions and explicit rollback |
 
 ## Start small
 
 For a plain GET, choose an API-only package, enter its URL, configure Auth if needed, and Send request. You do not need a database or fixture. Use **Cloud test** for the included [sign-in and remote-IP sample](../samples/generic/cloud-checkremoteip.md), or `Start-Tester.ps1 -Demo` for the entirely local sample.
 
-Auth shows Swagger first. Manual JWT/API token and registered OIDC client configuration are collapsed. **Advanced** exposes database/transport configuration without changing any saved request settings. Use the × button beside a field to remove it; disabling its checkbox keeps it in the draft but omits it from the request.
+Auth shows the identity state with one primary action (Swagger sign-in, browser sign-in, or sign in again). The Swagger address, manual JWT/API token and registered OIDC client are under **Other sign-in methods and settings**. The readiness line above **Send request** states what the next request still needs and offers that action. The Database and Transport tabs appear automatically for packages with queries or checks, or through **Tools → Show advanced tabs**, without changing any saved request settings. Use the × button beside a field to remove it; disabling its checkbox keeps it in the draft but omits it from the request.
 
 ## Current limits
 

@@ -4,6 +4,8 @@ using E2ETester.Core;
 
 namespace E2ETester.Application;
 
+/// <summary>One pre-flight condition a case does not yet satisfy; <c>CaseId</c> names the earlier case that has to pass when that is the reason.</summary>
+public sealed record ExecutionBlocker(string Code, string Message, string? CaseId = null);
 public sealed partial class RunCoordinator(IRunStore store, IHttpTransport transport)
 {
     private readonly SemaphoreSlim execution = new(1, 1);
@@ -54,6 +56,46 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
         finally { execution.Release(); }
     }
 
+    /// <summary>
+    /// Pre-flight conditions a case must satisfy before it is sent, in the order <see cref="ExecuteAsync"/> enforces them and with
+    /// the same messages. Pure: it reads the run, the case and the identity snapshot and never changes state, so the desktop can show
+    /// what is still needed before the tester presses Send. <see cref="ExecuteAsync"/> throws the first blocker.
+    /// </summary>
+    public static List<ExecutionBlocker> Prerequisites(IReadOnlyList<TestCase> cases, IReadOnlyList<Attempt> attempts, TestCase baseline, string requiredIdentityRef, IdentitySession identity, FixtureSelection? fixture, IReadOnlyList<QueryDefinition> queries, bool preparationConfirmed, bool bypassPrerequisites)
+    {
+        var blockers = new List<ExecutionBlocker>();
+        var setup = cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication);
+        if (!bypassPrerequisites && setup is not null && baseline.Id != setup.Id)
+        {
+            if (Outcomes.ForAttempt(attempts.LastOrDefault(a => a.CaseId == setup.Id)) != Verdict.Pass)
+                blockers.Add(new("sign-in-step", "Complete the Swagger sign-in step first.", setup.Id));
+            var validation = cases.SkipWhile(c => c.Id != setup.Id).Skip(1).FirstOrDefault();
+            if (validation is not null && baseline.Id != validation.Id && (Outcomes.ForAttempt(attempts.LastOrDefault(a => a.CaseId == validation.Id)) != Verdict.Pass || attempts.LastOrDefault(a => a.CaseId == validation.Id)?.StartedAt < attempts.LastOrDefault(a => a.CaseId == setup.Id)?.FinishedAt))
+                blockers.Add(new("remote-ip-step", "Complete remote-IP validation before running the suite.", validation.Id));
+        }
+        if (baseline.Preparation is not null && !preparationConfirmed && !PermissionIdentity.Matches(baseline.Preparation, identity))
+            blockers.Add(new("preparation", "This case requires explicit preparation in the desktop app before execution. Automated execution of preparation changes is not enabled."));
+        if (baseline.Kind == TestStepKind.SwaggerAuthentication)
+        {
+            if (identity.Alias != requiredIdentityRef)
+                blockers.Add(new("identity-mismatch", $"The sign-in step requires identity '{requiredIdentityRef}', but '{identity.Alias}' is selected."));
+            if (identity.Kind != AuthKind.Bearer)
+                blockers.Add(new("identity-kind", $"Choose Bearer authentication for identity '{identity.Alias}' to complete the Swagger sign-in step."));
+            if (string.IsNullOrWhiteSpace(identity.Secret))
+                blockers.Add(new("token-missing", $"No bearer token is available for identity '{identity.Alias}'. In Swagger, read the authorized token and choose Use token for selected identity."));
+            return blockers;
+        }
+        if (baseline.FixtureRequired && fixture is null)
+            blockers.Add(new("fixture-required", "This case requires a database fixture. Select a fixture or turn off Require fixture before sending."));
+        if (baseline.FixtureQueryId.Length > 0 && fixture is not null)
+        {
+            var query = queries.Single(q => q.Id == baseline.FixtureQueryId);
+            if (fixture.Evidence.Query.Id != query.Id || fixture.Evidence.Query.Sql != query.Sql || fixture.Evidence.Query.ConnectionRef != query.ConnectionRef || fixture.Evidence.Query.Provider != query.Provider)
+                blockers.Add(new("fixture-stale", "Load and select a fixture from the case's saved query before sending."));
+        }
+        return blockers;
+    }
+
     public async Task<Attempt> ExecuteAsync(TestRun run, TestCase baseline, RequestDefinition draft, List<Assertion> assertions, IdentitySession identity, CancellationToken cancellationToken, FixtureSelection? fixture = null, string? executionId = null, bool preparationConfirmed = false, bool bypassPrerequisites = false, bool applicabilityConfirmed = false, IReadOnlyList<string>? applicabilityIssues = null)
     {
         if (!await execution.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("A request is already running.");
@@ -64,24 +106,10 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
             if (!run.Package.Cases.Any(c => c.Id == baseline.Id)) throw new InvalidOperationException("The case does not belong to this run.");
             if(baseline.AppliesWhen?.Count>0 && !applicabilityConfirmed) throw new InvalidOperationException("Review tester applicability before execution.");
             if(applicabilityIssues?.Count>0 && !bypassPrerequisites) throw new InvalidOperationException("This case does not apply: " + string.Join(" ",applicabilityIssues));
-            var setup = run.Package.Cases.FirstOrDefault(c => c.Kind == TestStepKind.SwaggerAuthentication);
-            if (!bypassPrerequisites && setup is not null && baseline.Id != setup.Id)
-            {
-                if (Outcomes.ForAttempt(run.Attempts.LastOrDefault(a => a.CaseId == setup.Id)) != Verdict.Pass)
-                    throw new InvalidOperationException("Complete the Swagger sign-in step first.");
-                var validation = run.Package.Cases.SkipWhile(c => c.Id != setup.Id).Skip(1).FirstOrDefault();
-                if (validation is not null && baseline.Id != validation.Id && (Outcomes.ForAttempt(run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)) != Verdict.Pass || run.Attempts.LastOrDefault(a => a.CaseId == validation.Id)?.StartedAt < run.Attempts.Last(a => a.CaseId == setup.Id).FinishedAt))
-                    throw new InvalidOperationException("Complete remote-IP validation before running the suite.");
-            }
-            if (baseline.Preparation is not null && !preparationConfirmed && !PermissionIdentity.Matches(baseline.Preparation, identity)) throw new InvalidOperationException("This case requires explicit preparation in the desktop app before execution. Automated execution of preparation changes is not enabled.");
+            if (Prerequisites(run.Package.Cases, run.Attempts, baseline, draft.IdentityRef, identity, fixture, run.Package.Queries, preparationConfirmed, bypassPrerequisites).FirstOrDefault() is { } blocker)
+                throw new InvalidOperationException(blocker.Message);
             if (baseline.Kind == TestStepKind.SwaggerAuthentication)
             {
-                if (identity.Alias != draft.IdentityRef)
-                    throw new InvalidOperationException($"The sign-in step requires identity '{draft.IdentityRef}', but '{identity.Alias}' is selected.");
-                if (identity.Kind != AuthKind.Bearer)
-                    throw new InvalidOperationException($"Choose Bearer authentication for identity '{identity.Alias}' to complete the Swagger sign-in step.");
-                if (string.IsNullOrWhiteSpace(identity.Secret))
-                    throw new InvalidOperationException($"No bearer token is available for identity '{identity.Alias}'. In Swagger, read the authorized token and choose Use token for selected identity.");
                 var auth = new Attempt { ExecutionId = executionId, CaseId = baseline.Id, CaseTitle = baseline.Title,
                     IdentityAlias = identity.Alias, AuthKind = identity.Kind,
                     Request = PackageJson.Clone(new RequestDefinition { Url = baseline.Request.Url, IdentityRef = identity.Alias }),
@@ -93,15 +121,7 @@ public sealed partial class RunCoordinator(IRunStore store, IHttpTransport trans
                 auth.State = AttemptState.Completed; auth.FinishedAt = DateTimeOffset.UtcNow; Recalculate(auth);
                 await store.SaveAsync(run); return auth;
             }
-            if (baseline.FixtureRequired && fixture is null)
-                throw new InvalidOperationException("This case requires a database fixture. Select a fixture or turn off Require fixture before sending.");
-            if (baseline.FixtureQueryId.Length > 0 && fixture is not null)
-            {
-                var query = run.Package.Queries.Single(q => q.Id == baseline.FixtureQueryId);
-                if (fixture is null || fixture.Evidence.Query.Id != query.Id || fixture.Evidence.Query.Sql != query.Sql || fixture.Evidence.Query.ConnectionRef != query.ConnectionRef || fixture.Evidence.Query.Provider != query.Provider)
-                    throw new InvalidOperationException("Load and select a fixture from the case's saved query before sending.");
-                _ = DatabaseQueries.SelectFixture(fixture.Evidence, fixture.RowIndex);
-            }
+            if (baseline.FixtureQueryId.Length > 0 && fixture is not null) _ = DatabaseQueries.SelectFixture(fixture.Evidence, fixture.RowIndex);
             fixture = fixture is null ? null : PackageJson.Clone(fixture);
             var frozen = ValueBindings.Request(draft, fixture, run, bypassPrerequisites ? GuidedActionBindings.Defaults(draft, run) : null);
             var resolvedBaseline = bypassPrerequisites || fixture is null && ValueBindings.RequiresFixture(baseline.Request)

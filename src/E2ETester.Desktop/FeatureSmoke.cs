@@ -22,6 +22,8 @@ internal static class FeatureSmoke
         await UpdateSettingsSmoke.RunAsync(window,path);
         await PreparationSmoke.RunAsync(window, path);
         await CheckNavigationAsync(window, path);
+        await CheckUiPreferencesAsync(window);
+        await CheckReadinessAsync();
         var originalCase = model.SelectedCase;
         if (!Descendants(window).OfType<CheckBox>().Any(c => Equals(c.Content, "Run anyway"))) throw new InvalidOperationException("Run anyway control is missing.");
         model.RunAnyway = true;
@@ -222,15 +224,18 @@ internal static class FeatureSmoke
         {
             await model.RestoreRunAsync(run.Id);
             await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
-            if (!model.AllCasesCompleted || Grid.GetColumn(view.FinishRunButton) != 4
-                || view.FinishRunButton.Background != System.Windows.Application.Current.Resources["Accent"])
+            var accent = System.Windows.Application.Current.Resources["Accent"];
+            if (!model.AllCasesCompleted || view.FinishRunButton.Background != accent || view.NextCaseButton.Background == accent)
                 throw new InvalidOperationException("Completed cases did not promote Finish run.");
             Save(view, path + ".finish-primary.png");
             await model.AddVariation.RunAsync();
             await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
-            if (model.AllCasesCompleted || Grid.GetColumn(view.NextCaseButton) != 4
-                || view.NextCaseButton.Background != System.Windows.Application.Current.Resources["Accent"])
-                throw new InvalidOperationException("An untested variation did not restore Next case as primary.");
+            if (model.AllCasesCompleted || view.FinishRunButton.Background == accent || view.NextCaseButton.Background == accent)
+                throw new InvalidOperationException("An untested variation did not demote Finish run and leave Send as the only primary action.");
+            model.SelectedCase = model.Cases[0];
+            await view.Dispatcher.InvokeAsync(()=>{}, DispatcherPriority.ApplicationIdle);
+            if (!model.NextIsPrimary || view.NextCaseButton.Background != accent || view.FinishRunButton.Background == accent)
+                throw new InvalidOperationException("A tested case did not promote Next case.");
             Save(view, path + ".next-primary.png");
             for (var i = 0; i < 30; i++) model.Cases.Add(new CaseEditor(new TestCase { Title = "Scroll test " + i }));
             model.SelectedCase = model.Cases[^2];
@@ -243,6 +248,64 @@ internal static class FeatureSmoke
                 throw new InvalidOperationException("Next case did not scroll the selected item into view.");
         }
         finally { view.DataContext = null; view.Close(); }
+    }
+    // The readiness line names the next needed action, reuses existing commands and never sends anything itself.
+    private static async Task CheckReadinessAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "E2E-readiness-smoke", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var suite = Path.Combine(root, "suite.jsee");
+        File.WriteAllText(suite, PackageJson.Write(SuiteDefaults.Create()));
+        using var model = new MainViewModel(Path.Combine(root, "workspace"), Path.Combine(root, "Sessions"));
+        model.OpenPackageFile(suite);
+        if (model.ReadinessState != "Blocked" || !ReferenceEquals(model.ReadinessAction, model.OpenSwagger) || !model.ReadinessText.Contains("sign-in", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("A fresh suite must ask for Swagger sign-in first: " + model.ReadinessText);
+        if (!ReferenceEquals(model.AuthAction, model.OpenSwagger) || !model.AuthActionIsPrimary) throw new InvalidOperationException("Auth must offer Swagger sign-in as its primary action.");
+        model.SelectedIdentity!.Kind = AuthKind.Bearer; model.SelectedIdentity.Secret = "smoke-token";
+        if (model.ReadinessState != "Ready") throw new InvalidOperationException("A stored token must make the sign-in step ready: " + model.ReadinessText);
+        if (model.AuthActionIsPrimary) throw new InvalidOperationException("Auth must demote its action once a token is stored.");
+        model.Next.Execute(null);
+        if (!ReferenceEquals(model.ReadinessAction, model.SelectBlockingCase)) throw new InvalidOperationException("The validation case must point back to the unfinished sign-in step: " + model.ReadinessText);
+        model.SelectBlockingCase.Execute(null);
+        if (model.SelectedCase != model.Cases[0]) throw new InvalidOperationException("Go to that case did not select the sign-in step.");
+        await model.Send.RunAsync();
+        model.Next.Execute(null);
+        if (model.ReadinessState != "Ready") throw new InvalidOperationException("After the sign-in step passes, the validation case must be ready: " + model.ReadinessText);
+    }
+    // View preferences: open sections and the last reviewer survive a restart, and a corrupt file falls back to defaults.
+    private static async Task CheckUiPreferencesAsync(MainWindow owner)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "E2E-ui-prefs-smoke", Guid.NewGuid().ToString("N"));
+        var prefsPath = Path.Combine(root, "ui.json");
+        async Task WithWindowAsync(string workspace, Action<MainWindow, MainViewModel> check)
+        {
+            using var model = new MainViewModel(Path.Combine(root, workspace));
+            var view = new MainWindow(model, restoreDraft: false, uiPreferencesPath: prefsPath) { Owner = owner };
+            view.Show();
+            try { await view.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle); check(view, model); }
+            finally { view.Close(); }
+        }
+        await WithWindowAsync("first", (view, model) =>
+        {
+            if (view.EditPackage.IsExpanded || view.AttemptHistory.IsExpanded || !view.InstructionsExpander.IsExpanded || model.LastReviewer.Length != 0)
+                throw new InvalidOperationException("Default view state must keep Edit package and history collapsed and open instructions for a case that has them.");
+            view.AttemptHistory.IsExpanded = true; view.InstructionsExpander.IsExpanded = false; view.EditPackage.IsExpanded = true;
+            model.LastReviewer = "Smoke reviewer";
+        });
+        if (!File.Exists(prefsPath)) throw new InvalidOperationException("View preferences were not saved.");
+        await WithWindowAsync("second", (view, model) =>
+        {
+            if (!view.EditPackage.IsExpanded || !view.AttemptHistory.IsExpanded || view.InstructionsExpander.IsExpanded || model.LastReviewer != "Smoke reviewer")
+                throw new InvalidOperationException("View preferences did not restore after reopening.");
+            model.SelectedCase = model.Cases[1];
+            if (view.InstructionsExpander.IsExpanded) throw new InvalidOperationException("A collapsed-instructions preference must apply to the next case too.");
+        });
+        File.WriteAllText(prefsPath, "{not json");
+        await WithWindowAsync("third", (view, model) =>
+        {
+            if (view.EditPackage.IsExpanded || view.AttemptHistory.IsExpanded || !view.InstructionsExpander.IsExpanded || model.LastReviewer.Length != 0)
+                throw new InvalidOperationException("Corrupt view preferences must fall back to defaults.");
+        });
     }
     private static void Save(FrameworkElement window,string path)
     {

@@ -20,7 +20,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     private IdentityEditor? selectedIdentity;
     private string baseUrl = "http://localhost:5188", message = "Open a test package or explore the local demo. Nothing runs automatically.";
     private bool busy, runAnyway;
-    public bool RunAnyway { get => runAnyway; set => Set(ref runAnyway, value); }
+    public bool RunAnyway { get => runAnyway; set { if (Set(ref runAnyway, value)) RefreshReadiness(); } }
     public ObservableCollection<CaseEditor> Cases { get; } = [];
     public ObservableCollection<Attempt> Attempts { get; } = [];
     public ObservableCollection<IdentityEditor> Identities { get; } = [new()];
@@ -57,7 +57,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     public Attempt? SelectedAttempt
     {
         get => selectedAttempt;
-        set { Set(ref selectedAttempt, value); Changed(nameof(VerdictText)); Changed(nameof(HasFailureVerdict)); Changed(nameof(ResponseText)); Changed(nameof(RequestDetails)); CopyCurl?.Refresh(); Changed(nameof(ResponseMeta)); Changed(nameof(ResponseHeaders)); Changed(nameof(ChangesText)); Changed(nameof(DatabaseEvidenceText)); VerifyDatabase?.Refresh(); ReviewAttempt?.Refresh(); MarkAttemptFailed?.Refresh(); SaveResponse?.Refresh(); }
+        set { Set(ref selectedAttempt, value); Changed(nameof(VerdictText)); Changed(nameof(VerdictSummary)); Changed(nameof(HasFailureVerdict)); Changed(nameof(ResponseText)); Changed(nameof(RequestDetails)); CopyCurl?.Refresh(); Changed(nameof(ResponseMeta)); Changed(nameof(ResponseHeaders)); Changed(nameof(ChangesText)); Changed(nameof(DatabaseEvidenceText)); VerifyDatabase?.Refresh(); ReviewAttempt?.Refresh(); MarkAttemptFailed?.Refresh(); SaveResponse?.Refresh(); RefreshReadiness(); }
     }
     public IdentityEditor? SelectedIdentity
     {
@@ -72,7 +72,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
                     validation.IdentityRef = value.Alias;
                 SelectedCase.IdentityRef = value.Alias;
             }
-            Set(ref selectedIdentity, value); LoginBrowser?.Refresh(); ForgetLogin?.Refresh();
+            Set(ref selectedIdentity, value); LoginBrowser?.Refresh(); ForgetLogin?.Refresh(); RefreshReadiness();
         }
     }
     public AsyncCommand Import { get; }
@@ -155,7 +155,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
     {
         OpenGuidedActions?.Refresh();
         Database.RefreshConnectionActions();
-        Changed(nameof(AllCasesCompleted));
+        Changed(nameof(AllCasesCompleted)); Changed(nameof(NextIsPrimary));
         Changed(nameof(PreparationStatus)); Changed(nameof(HasPendingPreparation)); Changed(nameof(HasCasePreparation)); PrepareCase?.Refresh(); RestorePreparation?.Refresh(); ConfigurePreparation?.Refresh();
         foreach (var command in new[] { Import, ExportPackage, Send, ExportReport, SaveResponse, Finish, Resume, AddVariation, BrowseRuns }) command?.Refresh();
         foreach (var command in new[] { Cancel, Next, Previous, NewCase, NewRun, AddQuery, AddHeader, AddCheck, NewIdentity }) command?.Refresh();
@@ -167,6 +167,7 @@ public sealed partial class MainViewModel : Observable, IDisposable
         CopyCurl?.Refresh(); OpenSwagger?.Refresh(); RemoveField?.Refresh(); LoadCloudSample?.Refresh(); OpenUpdates?.Refresh(); ManageIdentities?.Refresh(); OpenPlayground?.Refresh(); ImportOpenApi?.Refresh(); ViewReport?.Refresh();
         foreach (var command in new[] { OpenWorkspace, SaveEnvironment, LoadEnvironment, ForgetEnvironment, SaveLibrary, LoadLibrary, BackupWorkspace, ExportDiagnostics }) command?.Refresh();
         SaveDraft?.Refresh(); RestoreDraft?.Refresh(); DuplicateCase?.Refresh(); DeleteCase?.Refresh(); MoveCaseUp?.Refresh(); MoveCaseDown?.Refresh(); Changed(nameof(CanAuthor));
+        RefreshReadiness();
     }
     private IdentityEditor AddIdentity(string alias)
     {
@@ -188,13 +189,24 @@ public sealed partial class MainViewModel : Observable, IDisposable
         MarkWorkSaved(); NotifyRun();
     }
     private TestPackage CurrentPackage() => package with { SchemaVersion = package.SchemaVersion == "1.8" || Cases.Select(c => c.Definition()).Concat(package.GuidedActions ?? []).Any(c => c.AppliesWhen is not null || c.Preparation is {} p && IdentityBindings.KeyBinding(p) is not null) ? "1.8" : package.SchemaVersion == "1.7" || Cases.Any(c => c.Definition().Assertions.Any(a => a.Kind == CheckKind.JsonSchema)) ? "1.7" : package.SchemaVersion == "1.6" || package.GuidedActions is not null ? "1.6" : Cases.Any(c => c.Baseline.Preparation is not null) ? "1.5" : "1.4", BaseUrl = BaseUrl, Cases = Cases.Select(c => c.Definition()).ToList(), Queries = PackageJson.Clone(Database.Queries.ToList()) };
-    private void NotifyRun() { OpenGuidedActions?.Refresh(); Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); RefreshCommands(); }
+    private void NotifyRun() { OpenGuidedActions?.Refresh(); Database.CanSaveQueries = run is null; Changed(nameof(PackageTitle)); Changed(nameof(PackageDescription)); Changed(nameof(Progress)); Changed(nameof(RunLabel)); Changed(nameof(HasGuidedActions)); Changed(nameof(HasDatabaseWork)); RefreshCommands(); }
+    /// <summary>Toolbar shortcut to Guided Actions only when the package defines any; the Tools menu always lists it.</summary>
+    public bool HasGuidedActions => package.GuidedActions is { Count: > 0 } || PermissionActions.ForPackage(CurrentPackage()).Count > 0;
+    /// <summary>Toolbar shortcut to Query Studio only when the package uses a database or advanced tabs are shown; the Tools menu always lists it.</summary>
+    public bool HasDatabaseWork => ShowAdvanced || Database.Queries.Count > 0 || Cases.Any(c => c.FixtureQueryId.Length > 0 || c.DatabaseChecks.Count > 0 || c.Baseline.Preparation?.Kind == PreparationKind.DatabaseValue);
     private void LoadAttempts()
     {
         Attempts.Clear();
         if (run is not null) foreach (var a in run.Attempts.Where(a => a.CaseId == SelectedCase?.Baseline.Id).Reverse()) Attempts.Add(a);
         SelectedAttempt = Attempts.FirstOrDefault();
+        Changed(nameof(AttemptCountLabel)); Changed(nameof(NextIsPrimary));
     }
+    /// <summary>Next case is the suggested action once the selected case has been tested and the run is not yet complete; before that, Send is the only primary button.</summary>
+    public bool NextIsPrimary => !AllCasesCompleted && Attempts.Count > 0;
+    /// <summary>Header for the collapsed attempt-history expander.</summary>
+    public string AttemptCountLabel => Attempts.Count switch { 0 => "Attempt history · none yet", 1 => "Attempt history · 1 attempt", var n => $"Attempt history · {n} attempts" };
+    /// <summary>Single-line form of <see cref="VerdictText"/> for the compact verdict row.</summary>
+    public string VerdictSummary => VerdictText.Replace("\n", "  ·  ");
     private async Task ImportAsync()
     {
         var dialog = new OpenFileDialog { Filter = "E2E Tester package (*.jsee;*.json)|*.jsee;*.json" };
@@ -329,18 +341,24 @@ public sealed partial class MainViewModel : Observable, IDisposable
         if (id is not null) await RestoreRunAsync(id);
     }
     internal RunHistoryViewModel CreateRunHistory(Action<string> open) => new(store, open);
+    private string lastReviewer = "";
+    /// <summary>Self-declared reviewer name offered as the default in manual assessments. Display convenience kept by the window; the recorded assessment is what counts.</summary>
+    public string LastReviewer { get => lastReviewer; set { if (lastReviewer == value) return; lastReviewer = value; Changed(nameof(LastReviewer)); } }
     internal AssessmentEditor CreateAssessmentEditor()
     {
         var attempt = SelectedAttempt ?? throw new InvalidOperationException("Select an attempt first.");
         var recordedRun = run ?? throw new InvalidOperationException("No run is open.");
-        return new(attempt, run.FinishedAt is null, async (reviewer, verdict, reason) =>
+        var editor = new AssessmentEditor(attempt, run.FinishedAt is null, async (reviewer, verdict, reason) =>
         {
             Busy = true;
             try { await coordinator.AssessAsync(recordedRun, attempt, reviewer, verdict, reason, Identities.Select(i => i.Secret).Concat(Database.Connections.Select(c => c.Profile.ConnectionString))); }
             finally { Busy = false; }
+            LastReviewer = reviewer;
             RefreshDatabaseEvidence();
             Message = $"Manual {verdict.ToString().ToUpperInvariant()} recorded. The automated result and review reason are retained in the report.";
         });
+        editor.Reviewer = LastReviewer;
+        return editor;
     }
     private Task ReviewAttemptAsync()
     {

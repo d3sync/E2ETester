@@ -2,7 +2,7 @@
 
 ## Import a Swagger access token
 
-The Auth tab includes **Sign in through Swagger / import token**. It opens an embedded Edge WebView2 browser, initially pointed at `https://api.example.test/swagger/`. Sign in yourself and complete Swagger's authorization flow. No desktop client secret is needed for importing a token acquired by Swagger.
+The Auth tab shows the identity state with one primary action, **Sign in with Swagger** (**Sign in again** once a token is stored). It opens an embedded Edge WebView2 browser, initially pointed at `https://api.example.test/swagger/`. Sign in yourself and complete Swagger's authorization flow. No desktop client secret is needed for importing a token acquired by Swagger.
 
 Choose **Read authorized token**, then **Use token for selected identity**. If the page does not expose its authorization model, use Swagger's **Try it out** on an appropriate read-only API request. The browser captures its Bearer authorization header, and Use token imports it. Requests you run inside Swagger are real requests; they are not recorded as tester attempts.
 

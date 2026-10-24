@@ -2,6 +2,8 @@
 
 Date: 2026-10-02. Scope: desktop UX, no JSEE schema change.
 
+Status 2026-10-24 (0.8.6): increments 2, 3 and 4 delivered (single execution bar, Edit package section, collapsible instructions, readiness line with identity/preparation state and the single Auth action); increment 5 partly (attempt count, merged assessment actions, more response space); increment 6 partly (grouped toolbar, remembered view preferences in `UiPreferences.cs`). The readiness logic lives in `MainViewModel.Readiness.cs` over `RunCoordinator.Prerequisites`.
+
 ## Goal and evidence
 
 Make the repeated loop **review → send → inspect → next** easy with either mouse or keyboard. Keep the tester's ability to change data, override prerequisites, reuse named identities and recover through Guided Actions.

@@ -41,7 +41,7 @@ Use the environment's actual HTTPS issuer as Authority. Scopes default to `openi
 
 On the suite sign-in step, **Sign in with Swagger → Read authorized token → Use token for selected identity** imports the token and records the sign-in step automatically. Reading alone previews a token; **Use token** installs it. Continue to remote-IP validation to verify server access. Changing the sign-in identity also changes its paired validation request when they previously shared an identity; explicitly different identities on other tests remain separate.
 
-Open **Auth → Manage** or **Tools → Manage identities** to add, rename or delete identities, or clear their tokens. Authentication settings remain editable in the Auth tab. Use **Workspace → Save environment** to persist new identities and credentials with Windows user encryption.
+Open **Auth → Manage** or **Tools → Manage identities** to add, rename or delete identities, or clear their tokens. Authentication settings remain editable in the Auth tab. Use **Tools → Workspace… → Environments → Save current settings** to persist new identities and credentials with Windows user encryption.
 
 Deleting an identity used by tests requires choosing a replacement. Sign-in steps require a named replacement. Renaming/deleting updates current test references and matching saved identities in this workspace; historical attempts keep the identity names recorded when they ran. The built-in `none` identity cannot be renamed or deleted.
 

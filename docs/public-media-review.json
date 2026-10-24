@@ -1,5 +1,5 @@
 {
-  "reviewedOn": "2026-09-21",
+  "reviewedOn": "2026-10-24",
   "method": "Visual inspection of screenshots and source artwork; generated branding variants verified by provenance. Changes require a fresh review.",
   "files": {
     "assets/branding/e2e-tester-icon-128.png": {
@@ -63,7 +63,7 @@
       "review": "Reviewed logo artwork or generated icon/wordmark derivative"
     },
     "docs/images/database-verification.png": {
-      "sha256": "c7e1b4c47503c0f4178d82ccc9df72d0534f90d75ba634d64791fb64325953b3",
+      "sha256": "4853581b94946aab2d919e1f3228a85458ccfc9b3ee33930635bee7b0be6ac69",
       "review": "Database-backed demo case screenshot; synthetic SQLite fixture and localhost API only"
     },
     "docs/images/query-studio.png": {
@@ -75,11 +75,11 @@
       "review": "Generic isolated UI capture visually reviewed"
     },
     "docs/images/workspace-dark.png": {
-      "sha256": "90fb3a9c5eca8b3cd1fba8fb11f1c8f145eb4943a420374d902630ca49830e73",
+      "sha256": "9ea270e8a5a4e1d9d4c2702f74f85f6e5fd46b99b68739c780dc4e12f08fa96d",
       "review": "Dark workspace screenshot of the synthetic local demo (localhost API, no real data)"
     },
     "docs/images/workspace-light.png": {
-      "sha256": "7fb8ff5f9ce7e89465e704dcf9be121a91583ba02f04192f4711d1c30699336d",
+      "sha256": "78b6af0e9721d002ff2da83111fe8f91713b230d6ad6930f8632d507b50a9a60",
       "review": "Light workspace screenshot of the synthetic local demo (localhost API, no real data)"
     },
     "src/E2ETester.Desktop/Assets/d3sync-logo.png": {

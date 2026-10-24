@@ -10,7 +10,7 @@ Run `./tools/Publish-Installer.ps1 -Version <version>`. It restores the pinned `
 
 ## Use a feed
 
-The default feed is the maintainer's release feed, `https://e2e.dev.xpk.gr/releases/`. Forks and self-hosted builds should change it here or build with a different default in `UpdatePreferences.cs`. It must serve `releases.win.json` and each referenced `.nupkg`. Open **Updates…** in the main toolbar or **Tools → Updates and settings…**. You can check manually, change the HTTPS/local feed, and toggle **Check for newer versions when the app starts**. Choose **Save update settings** to persist preferences in `%LOCALAPPDATA%/E2ETester/Updates/settings.json`. Existing `update-source.txt` settings are migrated when saved.
+The default feed is the maintainer's release feed, `https://e2e.dev.xpk.gr/releases/`. Forks and self-hosted builds should change it here or build with a different default in `UpdatePreferences.cs`. It must serve `releases.win.json` and each referenced `.nupkg`. Open **Tools → Updates and settings…** (the toolbar shows an **Update … available** button only when a newer version was found). You can check manually, change the HTTPS/local feed, and toggle **Check for newer versions when the app starts**. Choose **Save update settings** to persist preferences in `%LOCALAPPDATA%/E2ETester/Updates/settings.json`. Existing `update-source.txt` settings are migrated when saved.
 
 Startup checks are enabled by default. A newer version produces a notification and an Updates button showing the available version. Nothing downloads or installs automatically. Offline/unavailable feeds do not block startup; retry manually to see the failure status. If an API operation or modal dialog is active, the button announces the update without interrupting it.
 

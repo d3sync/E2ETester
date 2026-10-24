@@ -6,7 +6,7 @@ Required fields remain editable and can be disabled for negative tests. Sensitiv
 
 Optional cookies are kept only in memory, separated by run, origin, identity alias and token value. They are lost on restart. Authentication cookies are redacted from recorded headers and known echoes.
 
-**Transport** configures HTTP version preference (fallback allowed and recorded), timeout, custom proxy, local client-certificate thumbprint and redirects. Client certificates come from Current User / Personal and need a valid private key. Normal TLS validation remains mandatory. The default is no redirect following. Optional following is limited to the same origin, records the chain, honors a total timeout, and caps hops. A 303 or POST 301/302 changes the next method to GET; 307/308 retains the method/body. Redirects are recorded network sends, not retries. Raw malformed wire traffic and CONNECT tunneling are outside the .NET request editor.
+**Transport** (an advanced tab: **Tools → Show advanced tabs**) configures HTTP version preference (fallback allowed and recorded), timeout, custom proxy, local client-certificate thumbprint and redirects. Client certificates come from Current User / Personal and need a valid private key. Normal TLS validation remains mandatory. The default is no redirect following. Optional following is limited to the same origin, records the chain, honors a total timeout, and caps hops. A 303 or POST 301/302 changes the next method to GET; 307/308 retains the method/body. Redirects are recorded network sends, not retries. Raw malformed wire traffic and CONNECT tunneling are outside the .NET request editor.
 
 ## Response chaining
 

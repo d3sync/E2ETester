@@ -16,10 +16,10 @@ The desktop accepts `--smoke=<png>` and runs in a temporary workspace. `--exerci
 
 | Flag | Coverage |
 | --- | --- |
-| `--features-exercise` | About/notices, reports, identities, updates, preparation, case-list status badges and manual assessments |
+| `--features-exercise` | About/notices, reports, identities, updates, preparation, case-list status badges, manual assessments, execution-bar emphasis, remembered view preferences and the readiness line |
 | `--authentication-exercise` | Auth configuration failures without contacting an identity provider |
 | `--authoring-exercise`, `--assessment-exercise`, `--history-exercise` | Case authoring, manual assessments and saved-run review |
-| `--usability-exercise` | Fixture explanation, cloud-package switch, field deletion/recovery, tab hover template and compact Auth |
+| `--usability-exercise` | Fixture explanation, cloud-package switch, field deletion/recovery, tab hover template, compact Auth and the grouped toolbar |
 | `--exit-exercise` | Dirty tracking, save/cancel/exit policy, actual modal cancel/save closing, draft restoration |
 | `--swagger-exercise` | Local WebView2 access-token import, popup/redirect/opener/close and browser-session reuse |
 | `--workspace-exercise` | Protected profiles, query/body recovery and package library |

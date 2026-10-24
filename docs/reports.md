@@ -1,6 +1,6 @@
 # JSON and HTML reports
 
-Choose **Export report**, then select JSON, HTML or a ZIP evidence bundle in the save dialog. Both formats can be exported during a run or after finishing it. They use the same detached snapshot of the recorded run. Export does not send requests, rerun checks or modify evidence. A failed export leaves the journal available for another export attempt.
+Choose **Export report**: the HTML report and the ZIP evidence bundle (which contains the JSON) are written to the workspace's Reports folder, you can copy them to a folder of your choice, and the report opens. Both formats can be exported during a run or after finishing it. They use the same detached snapshot of the recorded run. Export does not send requests, rerun checks or modify evidence. A failed export leaves the journal available for another export attempt.
 
 JSON reports now use schema **1.7**, defined in [test-report.v1.7.schema.json](../schemas/test-report.v1.7.schema.json). The 1.2 and 1.3 schemas remain available for older exports. Test-package exports use 1.4, including the optional `fixtureRequired` setting. Existing journal records do not require migration; exporting an old run produces the current report format. The application does not yet import report files.
 
