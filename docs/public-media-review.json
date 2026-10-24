@@ -67,12 +67,12 @@
       "review": "Database-backed demo case screenshot; synthetic SQLite fixture and localhost API only"
     },
     "docs/images/query-studio.png": {
-      "sha256": "da4d1b554e401b0317af4fc222f7b08e86024c412478aac5775f2ee1a753ff2b",
+      "sha256": "c3d2a768b42c247d300a76eedba5c7e46fe06552c349ef07899ee741069160be",
       "review": "Query Studio screenshot; synthetic demo SQLite fixture only"
     },
     "docs/images/report-modal.png": {
-      "sha256": "d5dcf0fbefa8a33033e3a710340a709a73a8f2017228b7b1fc01eb91026c9d38",
-      "review": "Generic isolated UI capture visually reviewed"
+      "sha256": "7d26e2f02c9fe47847c18f80309fe4fa730a5eb3147dd1d0fd8e402f20eeac52",
+      "review": "Report modal (Simple report tab) for the synthetic example suite; placeholder host and smoke-generated run only"
     },
     "docs/images/workspace-dark.png": {
       "sha256": "9ea270e8a5a4e1d9d4c2702f74f85f6e5fd46b99b68739c780dc4e12f08fa96d",

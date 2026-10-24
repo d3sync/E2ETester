@@ -6,7 +6,7 @@
 
 MIT licensed · WPF / .NET 10 · Local-first · MCP support
 
-![E2E Tester workspace: test flow with pass badges, request editor and evidence pane](docs/images/workspace-dark.png)
+![E2E Tester workspace: test flow with pass badges, request editor with the readiness line and execution bar, and the evidence pane](docs/images/workspace-dark.png)
 
 Created by [d3sync](https://d3sync.org). Click the status-bar version, or Tools > About E2E Tester, for license and build details.
 
@@ -14,9 +14,9 @@ Created by [d3sync](https://d3sync.org). Click the status-bar version, or Tools 
 
 1. **Open a package.** A `.jsee` file is plain JSON describing an ordered list of cases: request, identity, checks and optional database verification. Opening one never sends anything.
 2. **Sign in.** Import a token through the embedded Swagger browser, paste a JWT/API token, or use a registered OIDC client. Each case names the identity it runs as.
-3. **Run one case at a time.** Edit values before sending; changes are recorded against the original. Every send becomes an attempt with the prepared request, cURL with captured values, response and check results.
-4. **Verify.** Optionally pick a fixture row in Query Studio and confirm the API's effect with a read-only query. A case stays INCONCLUSIVE until required checks finish.
-5. **Finish and report.** Export JSON, HTML or a ZIP evidence bundle. Manual assessments sit beside automated verdicts.
+3. **Run one case at a time.** The readiness line above **Send request** states what the next request still needs (sign-in, an earlier step, a fixture, preparation) and offers that action. Edit values before sending; changes are recorded against the original. Every send becomes an attempt with the prepared request, cURL with captured values, response and check results. **Next case** lights up once the case has been tested.
+4. **Verify.** Optionally pick a fixture row in Query Studio and confirm the API's effect with a read-only query. A case stays INCONCLUSIVE until required checks finish; the readiness line offers **Verify database** when they are pending.
+5. **Finish and report.** **Finish run** writes an HTML report and a ZIP evidence bundle (with the full JSON) to the workspace, offers to copy them elsewhere, and opens the report. Manual assessments sit beside automated verdicts.
 
 ## Try it
 
@@ -31,7 +31,7 @@ dotnet restore --locked-mode
 
 The local demo starts its own API. Send a request, review the result, edit a parameter, add a variation and continue. Finish the run to export a report. The demo does not contact external services.
 
-For a generic cloud template, click **Cloud test** or double-click [cloud-checkremoteip.jsee](samples/generic/cloud-checkremoteip.jsee) ([JSON copy](samples/generic/cloud-checkremoteip.json)). Replace the placeholder URL and endpoint with your environment, then follow the [walkthrough](samples/generic/cloud-checkremoteip.md). This GET workflow needs **no database fixtures**. Authenticated results require your own account and permissions.
+For a generic cloud template, choose **Tools → Cloud test** or double-click [cloud-checkremoteip.jsee](samples/generic/cloud-checkremoteip.jsee) ([JSON copy](samples/generic/cloud-checkremoteip.json)). Replace the placeholder URL and endpoint with your environment, then follow the [walkthrough](samples/generic/cloud-checkremoteip.md). This GET workflow needs **no database fixtures**. Authenticated results require your own account and permissions.
 
 ## Features
 
@@ -51,9 +51,11 @@ Tools > API workspace opens ad-hoc requests with OpenAPI JSON/YAML and Postman c
 
 ## Screenshots
 
-| Database-backed case | Query Studio |
+| Light theme | Database-backed case |
 | --- | --- |
-| ![A POST case verified against a SQLite fixture](docs/images/database-verification.png) | ![Query Studio selecting a fixture row](docs/images/query-studio.png) |
+| ![Light workspace with a completed demo run and Finish run highlighted](docs/images/workspace-light.png) | ![A POST case verified against a SQLite fixture, with the Database and Transport tabs shown automatically](docs/images/database-verification.png) |
+| **Query Studio** | **Report** |
+| ![Query Studio selecting a fixture row](docs/images/query-studio.png) | ![Report modal with Simple report, Full report and Structured JSON tabs](docs/images/report-modal.png) |
 
 ## AI agents and MCP
 
@@ -84,7 +86,7 @@ python tools/test_mcp.py
 ./tools/Publish-Installer.ps1
 ```
 
-The first publish script creates one self-contained executable per host plus docs/samples. The second creates Velopack setup and update assets. Official builds check the maintainer's feed for updates but never download or install without confirmation; forks should point the default feed at their own host (see [updates](docs/updates.md)). Builds are currently unsigned. Keep older full packages in the feed to make them selectable for rollback.
+The first publish script creates one self-contained executable per host plus docs/samples. The second creates Velopack setup and update assets. Official builds check the maintainer's feed for updates but never download or install without confirmation; forks should point the default feed at their own host (see [updates](docs/updates.md)). Official releases are Authenticode-signed by d3sync; builds you publish locally with these scripts are unsigned. Keep older full packages in the feed to make them selectable for rollback.
 
 ## Contribute
 
