@@ -6,9 +6,9 @@ Workspaces retain the SQLite journal, unfinished draft and selected case, prepar
 
 On opening a package, the app keeps a local copy in the workspace's `Packages` folder. When executing a run it also stores a run-specific package snapshot and source filename. Reports use that original filename even after restarting. In-app packages without a source file use their title.
 
-**Query Studio → Add/Edit connection → Remember connection and credentials for my Windows user** saves the full connection using Windows DPAPI CurrentUser encryption. It is scoped by API origin and reloaded on startup/package opening. Clear the checkbox and save, or delete the connection, to remove this remembered copy. Existing separately saved environment profiles remain independent; remove those through Workspace if no longer wanted. Package exports contain no connection credentials. Credential-free server defaults continue to work when Remember is off.
+**Query Studio → Add/Edit connection → Remember connection and credentials for my Windows user** saves the full connection using Windows DPAPI CurrentUser encryption. It is scoped by API origin and reloaded on startup/package opening. Clear the checkbox and save, or delete the connection, to remove this remembered copy. Existing separately saved environment profiles remain independent; remove those through **Tools → Workspace… → Environments → Remove saved** if no longer wanted. Package exports contain no connection credentials. Credential-free server defaults continue to work when Remember is off.
 
-**Workspace → Save environment** explicitly saves identity settings/tokens and connections in an encrypted local profile. Browser cookies and valid remembered JWTs also survive restart independently. Encryption is tied to this Windows user and machine; copying protected files to another account is not a supported migration.
+**Tools → Workspace… → Environments → Save current settings** explicitly saves identity settings/tokens and connections in an encrypted local profile. Browser cookies and valid remembered JWTs also survive restart independently. Encryption is tied to this Windows user and machine; copying protected files to another account is not a supported migration.
 
 **Finish run / Export report** creates two files in the current workspace's `Reports` directory before offering to copy them elsewhere:
 

@@ -4,15 +4,15 @@
 
 Open Query Studio and choose **+ Connection**. Choose a database type and enter the server, port, database, username and password supplied by your administrator. Port 0 uses the default. SQLite uses a file picker; SQL Server supports Windows authentication. Server connections use encrypted transport. Advanced driver options remain available through the existing connection-string field.
 
-Administrators can export a connection template for testers to import. Templates contain connection details and usernames, but never passwords. Enter the password locally. Workspace → Save environment remembers connection credentials in Windows user-encrypted storage; otherwise connections remain session-only.
+Administrators can export a connection template for testers to import. Templates contain connection details and usernames, but never passwords. Enter the password locally. Tick **Remember connection and credentials for my Windows user** in the connection dialog, or use **Tools → Workspace… → Environments → Save current settings**, to keep credentials in Windows user-encrypted storage; otherwise connections remain session-only.
 
-Query Studio remains read-only. Confirm the read-only checkbox only when the account is restricted by the database administrator. Write-capable profiles work for both queries and preparation; leave the optional read-only checkbox off for these accounts.
+Query Studio does not enforce read-only on server providers; the account's permissions decide. Confirm the read-only checkbox only when the account is restricted by the database administrator. Write-capable profiles work for both queries and preparation; leave the optional read-only checkbox off for these accounts.
 
 ## Prepare, sign in, send, next
 
 In a case's **Preparation** tab, package authors choose **Configure preparation** to describe the setup. Testers choose **Prepare** beside Send to review the target and value before applying it. Optional flag labels appear as checkboxes and combine through a 64-bit bitwise OR.
 
-Preparation is optional and never executes merely by opening a package. Cases with data preparation need successful preparation; permission cases may reuse a matching valid identity. Packages containing preparation use schema **1.5**, defined in `schemas/test-package.v1.5.schema.json`; older packages remain supported.
+Preparation is optional and never executes merely by opening a package. Cases with data preparation need successful preparation; permission cases may reuse a matching valid identity. Packages containing preparation use schema **1.5** or newer (`schemas/test-package.v1.5.schema.json`; 1.6–1.8 add Guided Actions, JSON Schema and tester bindings); older packages remain supported.
 
 ### Database value
 
@@ -40,7 +40,7 @@ Preparing another scenario restores the previous preparation first. Finish run, 
 
 Pending changes survive a crash in the workspace's Windows user-encrypted `Preparation/profiles.protected` file. Reopen the same workspace, reload the original connection environment, and use Restore changes. Database recovery requires the original connection profile; API recovery requires the original base URL and administrator identity. Restoration does not change an issued token; obtain another JWT when the original permissions are needed.
 
-Preparation reports use schema **1.8** and include preparation/restoration events in JSON, readable text and HTML. Original values remain in encrypted local recovery storage, outside the audit summary. MCP supports explicit prepare_environment, list_preparations and restore_environment tools on Windows with encrypted recovery. Exact preparation plans and writable database aliases must be approved in local host configuration. See [the agent preparation guide](../skills/e2e-tester-author/references/preparation.md).
+Preparation reports use schema **1.8** for 1.5 packages and 1.9–1.11 for 1.6–1.8 packages, and include preparation/restoration events in JSON, readable text and HTML. Original values remain in encrypted local recovery storage, outside the audit summary. MCP supports explicit prepare_environment, list_preparations and restore_environment tools on Windows with encrypted recovery. Exact preparation plans and writable database aliases must be approved in local host configuration. See [the agent preparation guide](../skills/e2e-tester-author/references/preparation.md).
 
 **Previous**, **Send request** and **Next case** share one execution bar under the request, with the readiness line above it; View report, Export report and Finish run stay in the footer.
 
@@ -54,6 +54,6 @@ MySQL preparation and restoration use fresh connections with protocol pipelining
 
 Adding or editing a connection through the setup dialog remembers its noncredential fields in `%LOCALAPPDATA%/E2ETester/Connections`, scoped by API origin and connection alias. Opening a package seeds missing connections referenced by its saved queries or database preparations. In Query Studio, select the seeded connection and choose Edit to supply username/password. Existing connections in the session are never overwritten. Deleting a connection also removes its defaults.
 
-These files use a list of the existing connection-template objects; username is cleared and the format has no password field. They remain local, outside the `.jsee` package. Credentials are session-only unless explicitly saved in an encrypted workspace environment. Connection strings edited directly in Advanced settings are not automatically captured as defaults; use the setup dialog to save defaults.
+These files use a list of the existing connection-template objects; username is cleared and the format has no password field. They remain local, outside the `.jsee` package. Credentials are session-only unless remembered through the connection dialog or saved in an encrypted workspace environment. Connection strings edited directly in Advanced settings are not automatically captured as defaults; use the setup dialog to save defaults.
 
 Transaction isolation is an application implementation detail, not a package setting. An older executable that starts SERIALIZABLE transactions cannot be repaired by relabeling a package schema or editing a preparation description. Use a build containing the MySQL REPEATABLE READ fix.

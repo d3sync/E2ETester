@@ -1,6 +1,6 @@
 # Imports and CI
 
-Tools → API workspace → Import OpenAPI opens the shared OpenAPI/Postman importer. Choose a local JSON/YAML file or an HTTP(S) specification URL. Import one request or all requests as a package. Import never runs requests. Export the reviewed package as `.jsee`.
+**Tools → Import OpenAPI request** (also available in the API workspace) opens the shared OpenAPI/Postman importer. Choose a local JSON/YAML file or an HTTP(S) specification URL. Import one request or all requests as a package. Import never runs requests. Export the reviewed package as `.jsee`.
 
 Postman Collection v2.1 imports nested folders in order, collection/folder variables, request methods, URLs, query/header toggles, raw/form bodies and bearer/basic/API-key authentication. Scripts are **not** translated or run, and no assertions are invented. Warnings identify missing variables, unsupported authentication and file/body modes. Resolve `REPLACE_…` values and add checks before running. Imported secrets remain literal values: replace them with identity aliases before sharing the package.
 
@@ -38,7 +38,7 @@ Headless login never opens a browser or reads desktop sessions. Supply already i
 
 ## JSON Schema assertions
 
-Use package schema **1.7** (a superset of 1.6). Select `JsonSchema` in Checks and place the schema JSON in Expected; Selector is unused. The entire captured response is validated by JsonSchema.Net. Use an explicit `$schema` for the dialect. Local `$ref` definitions are supported; external references are disabled. `format` follows the library/dialect's annotation behavior; do not assume it asserts email/date syntax. Schema text is limited to 100 KB. A binary, truncated or missing response is INCONCLUSIVE; invalid JSON or a schema mismatch is FAIL.
+Use package schema **1.7** or newer (each is a superset of the previous). Select `JsonSchema` in Checks and place the schema JSON in Expected; Selector is unused. The entire captured response is validated by JsonSchema.Net. Use an explicit `$schema` for the dialect. Local `$ref` definitions are supported; external references are disabled. `format` follows the library/dialect's annotation behavior; do not assume it asserts email/date syntax. Schema text is limited to 100 KB. A binary, truncated or missing response is INCONCLUSIVE; invalid JSON or a schema mismatch is FAIL.
 
 ```json
 {

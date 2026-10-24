@@ -2,7 +2,7 @@
 
 Choose **Export report**: the HTML report and the ZIP evidence bundle (which contains the JSON) are written to the workspace's Reports folder, you can copy them to a folder of your choice, and the report opens. Both formats can be exported during a run or after finishing it. They use the same detached snapshot of the recorded run. Export does not send requests, rerun checks or modify evidence. A failed export leaves the journal available for another export attempt.
 
-JSON reports now use schema **1.7**, defined in [test-report.v1.7.schema.json](../schemas/test-report.v1.7.schema.json). The 1.2 and 1.3 schemas remain available for older exports. Test-package exports use 1.4, including the optional `fixtureRequired` setting. Existing journal records do not require migration; exporting an old run produces the current report format. The application does not yet import report files.
+JSON reports use schema **1.7** to **1.11**, matching the package schema (1.4→1.7, 1.5→1.8, 1.6→1.9, 1.7→1.10, 1.8→1.11), defined under [schemas](../schemas). The 1.2 and 1.3 schemas remain available for older exports. Package exports keep schema 1.6–1.8; older packages export as 1.4 (1.5 with preparation), including the optional `fixtureRequired` setting. Existing journal records do not require migration; exporting an old run produces the current report format. The application does not yet import report files.
 
 ## Reading the result
 
@@ -27,7 +27,7 @@ Lifecycle and verdict are separate: attempt states serialize in camel case (`com
 
 The HTML file is self-contained and works offline. It includes coverage, chronological attempts, checks, identity provenance, failures and expandable request/response/database evidence. All data is HTML-encoded, with no remote assets or JavaScript. A restrictive content-security policy blocks active content. Expand the evidence sections you want before printing; collapsed sections carry a print reminder.
 
-HTML, text and JSON use the same complete journal values. The legacy `redactions` report field states that values are captured without redaction; its name remains unchanged for schema compatibility. Large response/query bodies remain subject to the execution capture limits. External artifact bundles and signed/hash manifests are not implemented in this version.
+HTML, text and JSON use the same complete journal values. The legacy `redactions` report field states that values are captured without redaction; its name remains unchanged for schema compatibility. Large response/query bodies remain subject to the execution capture limits. ZIP evidence bundles include a SHA-256 `manifest.json` for integrity; it is not a digital signature.
 
 ## Validation
 

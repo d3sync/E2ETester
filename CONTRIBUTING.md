@@ -4,7 +4,7 @@ E2E Tester welcomes bug fixes, tests, documentation and focused feature proposal
 
 ## Set up
 
-Use Windows, .NET SDK 10.0.302 or a compatible patch, and Edge WebView2 Runtime for browser sign-in. Python 3 is used for protocol/schema validation. Docker is optional for the four-provider database suite.
+Use Windows, .NET SDK 10.0.401 (pinned in `global.json`) or a later 10.0.4xx patch, and Edge WebView2 Runtime for browser sign-in. Python 3 is used for protocol/schema validation. Docker is optional for the four-provider database suite.
 
 ```powershell
 dotnet restore --locked-mode
@@ -20,7 +20,7 @@ The tests use synthetic HTTP/OIDC services and SQLite; they do not require real 
 
 1. Read the [architecture](docs/architecture.md) and relevant workflow guide.
 2. Keep domain contracts in Core, use-case logic in Application, external adapters in Infrastructure, and presentation in Desktop/Mcp.
-3. Preserve original requests, historical attempts, redaction and report compatibility. Do not silently retry API writes or change a failed attempt into a passing historical result.
+3. Preserve original requests, historical attempts, unmodified captured values and report compatibility. Do not silently retry API writes or change a failed attempt into a passing historical result.
 4. Add focused tests for behavior changes. Check both themes for UI changes and inspect binding logs.
 5. Update the schemas, samples and docs when changing a public contract. Commit package lockfiles alongside dependency changes.
 6. Describe the problem, resulting behavior and validation in your pull request.

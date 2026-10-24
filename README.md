@@ -15,7 +15,7 @@ Created by [d3sync](https://d3sync.org). Click the status-bar version, or Tools 
 1. **Open a package.** A `.jsee` file is plain JSON describing an ordered list of cases: request, identity, checks and optional database verification. Opening one never sends anything.
 2. **Sign in.** Import a token through the embedded Swagger browser, paste a JWT/API token, or use a registered OIDC client. Each case names the identity it runs as.
 3. **Run one case at a time.** The readiness line above **Send request** states what the next request still needs (sign-in, an earlier step, a fixture, preparation) and offers that action. Edit values before sending; changes are recorded against the original. Every send becomes an attempt with the prepared request, cURL with captured values, response and check results. **Next case** lights up once the case has been tested.
-4. **Verify.** Optionally pick a fixture row in Query Studio and confirm the API's effect with a read-only query. A case stays INCONCLUSIVE until required checks finish; the readiness line offers **Verify database** when they are pending.
+4. **Verify.** Optionally pick a fixture row in Query Studio and confirm the API's effect with a SELECT query. A case stays INCONCLUSIVE until required checks finish; the readiness line offers **Verify database** when they are pending.
 5. **Finish and report.** **Finish run** writes an HTML report and a ZIP evidence bundle (with the full JSON) to the workspace, offers to copy them elsewhere, and opens the report. Manual assessments sit beside automated verdicts.
 
 ## Try it

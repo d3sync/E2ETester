@@ -8,13 +8,13 @@ Without a fixture, use manual request values. Replace active `{{fixture.column}}
 
 ## What is available
 
-Query Studio runs saved or exploratory SQL, displays typed result rows, selects a row as a fixture, and attaches evidence to an API attempt. Cases can declare required or optional row-count/scalar checks. Queries travel in the package; connection strings stay in memory and are never exported.
+Query Studio runs saved or exploratory SQL, displays typed result rows, selects a row as a fixture, and attaches evidence to an API attempt. Cases can declare required or optional row-count/scalar checks. Queries travel in the package; connection strings are never exported; they stay in memory unless you tick **Remember connection and credentials for my Windows user** or save an environment.
 
 Providers: SQLite, Microsoft SQL Server, MySQL and PostgreSQL. The implementation uses Microsoft.Data.Sqlite, Microsoft.Data.SqlClient, MySqlConnector and Npgsql. SQLite runs in the standard integration suite. `Test-Databases.ps1` runs the same checks against disposable SQL Server, MySQL and PostgreSQL containers (see [database tests](../infra/database-tests/README.md)). No shared or production database is used by the tests.
 
 ## Connect
 
-Open Query Studio and add a connection. Its alias and provider must exactly match the query's `connectionRef` and `provider`. Enter a provider-specific connection string in the masked input; use **Choose SQLite file** for an existing local file. **Test connection** executes a simple read query. Connections must be configured again after restarting the application.
+Open Query Studio and add a connection. Its alias and provider must exactly match the query's `connectionRef` and `provider`. Enter a provider-specific connection string in the masked input; use **Choose SQLite file** for an existing local file. **Test connection** executes a simple read query. Unless a connection is remembered or saved in an environment, re-enter its credentials after restarting; credential-free server defaults are kept per API origin.
 
 SQLite is opened read-only. A native authorizer also rejects changes, database attachment and attempts to disable query-only mode. SQL Server/MySQL/PostgreSQL accept write-capable accounts. A restricted read-only account is recommended; the optional profile checkbox records that restriction and prevents preparation using that profile. SQL Server/MySQL/MariaDB/PostgreSQL queries run directly without BEGIN, SET TRANSACTION READ ONLY or an explicit rollback. Account permissions determine allowed operations; no read-only account acknowledgement is required. Use Query Studio for SELECT queries and preparation for tracked setup/restore changes. SQLite retains its local read-only protections without an explicit transaction.
 

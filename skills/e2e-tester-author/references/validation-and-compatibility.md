@@ -4,7 +4,7 @@ Use this reference when generating packages or investigating import, connection,
 
 ## Validate the delivered file
 
-Generate new packages as schema 1.5; preparation is optional. Schema 1.4 remains a compatibility format, not the default for new output. Do not change a schemaVersion label to work around a failed validation.
+Generate new packages as schema 1.6 or newer (1.7 for JSON Schema assertions, 1.8 for tester claim bindings); preparation is optional. Schemas 1.4 and 1.5 remain compatibility formats, not the default for new output. Do not change a schemaVersion label to work around a failed validation.
 
 The outer JSON can be valid while nested expectations are invalid. Use a JSON serializer twice: serialize the expected JSON value, then serialize the package containing that string. Examples of package fields:
 

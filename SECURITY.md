@@ -15,8 +15,8 @@ Include the affected version, a synthetic reproduction, expected/actual behavior
 - Request/response values, headers, tokens and database evidence are retained without redaction in workspace journals and exports. Remembered credential profiles remain protected separately with Windows user protection.
 - Swagger runs in a persistent WebView2 profile. Cookies and saved passwords stay in that browser profile. Token capture is restricted to the chosen API origin; login forms are not scraped.
 - Windows-protected environment profiles are separate from exported packages. They are tied to the Windows account, not a portable secret vault.
-- SQL access relies on read-only database credentials as well as query validation. Do not point the query studio at a privileged account.
+- Query Studio opens SQLite read-only. For SQL Server, MySQL and PostgreSQL, write protection relies only on the database account's permissions; query validation checks structure, not intent. Use a restricted account for Query Studio and keep writable accounts for preparation.
 - MCP deployments must configure allowed targets, credentials, authoring/query permissions and optional interactive login deliberately.
-- Update feeds supply executable code. Use a feed you control/trust and HTTPS or a trusted local directory. Package hash verification is not publisher authentication; release signing remains a deployment responsibility.
+- Update feeds supply executable code. Use a feed you control/trust and HTTPS or a trusted local directory. Package hash verification is not publisher authentication; official releases are Authenticode-signed by d3sync, and self-built or forked feeds must arrange their own signing.
 
 See [architecture](docs/architecture.md), [MCP setup](docs/mcp.md) and [updates](docs/updates.md).

@@ -1,6 +1,6 @@
 # Import, schema assertions and CI
 
-Package schema 1.7 adds assertion kind `jsonSchema`; Expected contains serialized JSON Schema text, Selector is unused. Validate the whole response. Prefer explicit draft 2020-12, with bundled local references. Never fetch remote schema references. Binary/truncated responses remain inconclusive. Schema 1.7 also supports preparation and Guided Actions; older schemas remain appropriate when the new assertion is not needed. Use the bundled test-package.v1.7.schema.json.
+Package schema 1.7 adds assertion kind `jsonSchema`; Expected contains serialized JSON Schema text, Selector is unused. Validate the whole response. Prefer explicit draft 2020-12, with bundled local references. Never fetch remote schema references. Binary/truncated responses remain inconclusive. Schema 1.7 also supports preparation and Guided Actions; older schemas remain appropriate when the new assertion is not needed. Use the bundled test-package.v1.7.schema.json, or v1.8 when tester bindings are used.
 
 Postman 2.1 import is a starting point: scripts do not become checks, unsupported authentication/body modes and missing variables produce warnings. Review warnings and translate expected business results explicitly. Do not claim a migrated suite is equivalent until its scripts and checks have been accounted for. OpenAPI supports JSON/YAML and explicitly supplied local reference documents.
 

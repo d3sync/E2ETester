@@ -1,6 +1,6 @@
 # AI test generation and MCP setup
 
-Choose Tools > AI test generator. Copy its prompt and template, then supply API requirements or a specification. Output is package schema JSON (1.4, or 1.5 with preparation) saved as `.jsee`, without credentials. The [prompt](test-generation-prompt.md) and [skill](../skills/e2e-tester-author/SKILL.md) are included in the distribution.
+Choose Tools > AI test generator. Copy its prompt and template, then supply API requirements or a specification. Output is package schema 1.6 or newer (1.7 for JSON Schema checks, 1.8 for tester claim bindings and applicability) saved as `.jsee`, without credentials. The [prompt](test-generation-prompt.md) and [skill](../skills/e2e-tester-author/SKILL.md) are included in the distribution.
 
 From the unpacked single-file distribution:
 

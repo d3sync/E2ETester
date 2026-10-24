@@ -28,7 +28,7 @@ The desktop accepts `--smoke=<png>` and runs in a temporary workspace. `--exerci
 
 Add `--dark` to check the dark theme. Browser restart verification launches separate app and Chromium processes and uses synthetic persistent HTTP-only cookies. It does not prove a particular Microsoft tenant will skip MFA.
 
-Validate reports with `tools/validate_report.py` using Python `jsonschema`. Version changes should also test the built single-file executable. Installer/update checks must use isolated folders and a local feed; see [updates](updates.md). A clean-machine installation and public signed release remain separate deployment checks.
+Validate reports with `tools/validate_report.py` using Python `jsonschema`. Version changes should also test the built single-file executable. Installer/update checks must use isolated folders and a local feed; see [updates](updates.md). A clean-machine installation remains a separate deployment check; official releases are signed during publication.
 
 To exercise real Velopack replacement and restart, build two test versions into the same local feed, preserving the older portable ZIP before building the newer version. Run `python tools/test_velopack.py <older-portable.zip> <feed-folder> <new-version> <old-version>`. It extracts into a unique temporary folder and refuses a non-portable installation. The check verifies the restarted assembly version after both upgrade and rollback. Test-only version packages must not be published as historical releases.
 

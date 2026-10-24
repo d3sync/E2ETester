@@ -40,13 +40,13 @@ Fixtures are optional data inputs, not a GET requirement. A package's `fixtureRe
 
 Workspace journals and drafts live under `%LOCALAPPDATA%/E2ETester/Workspaces` by default. A process lock prevents concurrent writers to one workspace. Interrupted requests are recovered as uncertain evidence rather than replayed. Recovery drafts retain all entered values; explicit save state is separate from automatic recovery writes.
 
-Manual JWT/API tokens can be saved explicitly in Windows-protected environment files. Native OIDC uses PKCE and validated identity tokens; refresh sessions stay in memory. Swagger token import uses a persistent WebView2 profile keyed by origin and identity alias. OAuth popups share that profile/environment and retain their opener. Web authentication and API bearer lifetime are separate.
+Imported or used tokens are remembered automatically per API origin with Windows user encryption, and manual JWT/API tokens can also be saved explicitly in Windows-protected environment files. Native OIDC uses PKCE and validated identity tokens; refresh sessions stay in memory. Swagger token import uses one persistent WebView2 profile per API origin, shared by named identities; JWTs stay stored per identity. OAuth popups share that profile/environment and retain their opener. Web authentication and API bearer lifetime are separate.
 
 ## Extension points
 
 Add assertions in Core/Application, database adapters in Infrastructure, and expose the same behavior through Desktop/MCP where appropriate. Extend schema files and fixtures with contract changes. Avoid placing authorization or outcome rules only in UI controls.
 
-Velopack operates before WPF initialization. Update checks are user-triggered. The installed desktop can select an exact full package from a trusted feed; a lower version is an explicit downgrade. Before applying, the app saves its draft and backs up the workspace. Application rollback does not downgrade database schema or restore user data automatically.
+Velopack operates before WPF initialization. The app checks the feed at startup (configurable) and on demand; downloading and installing are always explicit. The installed desktop can select an exact full package from a trusted feed; a lower version is an explicit downgrade. Before applying, the app saves its draft and backs up the workspace. Application rollback does not downgrade database schema or restore user data automatically.
 
 The historical design notes remain under `docs/plan`; they describe intent and may include deferred ideas. This document describes the current implementation. See [feature overview](features.md) and [testing](testing.md).
 

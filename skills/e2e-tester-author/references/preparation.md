@@ -20,7 +20,7 @@ Inspect capabilities first. Preparation requires Windows, `allowPreparation: tru
 4. Call `prepare_case`, then `execute_prepared`, and inspect its operation and attempt. `prepare_case` only previews the HTTP execution; it does not mutate the database.
 5. Call `restore_environment` before preparing another scenario. Call `finish_run` to restore remaining changes and finish. If a write was interrupted or a row changed independently, inspect state and resolve the conflict; do not retry with a new UUID or bypass restoration.
 
-Original values are encrypted for the current Windows user in the MCP workspace's `Preparation` directory. Keep this workspace across restarts and until restoration completes. Exiting MCP preserves pending recovery; it does not automatically restore. Reports include preparation audit events using report schema 1.8. After restoration, obtain another token before testing restored permissions.
+Original values are encrypted for the current Windows user in the MCP workspace's `Preparation` directory. Keep this workspace across restarts and until restoration completes. Exiting MCP preserves pending recovery; it does not automatically restore. Reports include preparation audit events using report schema 1.8 for 1.5 packages and 1.9–1.11 for 1.6–1.8 packages. After restoration, obtain another token before testing restored permissions.
 
 For database variant restrictions, TLS, account roles and conflict handling, read [validation and compatibility](validation-and-compatibility.md). MySQL preparation uses REPEATABLE READ with a locking read and conditional update for compatibility with Percona enforcing mode; do not disable strict mode as a workaround.
 

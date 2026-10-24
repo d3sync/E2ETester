@@ -1,6 +1,6 @@
 # Production readiness review — 23 September 2026
 
-> **Status:** historical record. The five findings below were fixed and independently rechecked (see the end of this page); the fixes are committed and ship in 0.7.7. References to uncommitted work and to `artifacts/` evidence files describe the reviewer's local working tree at the time and are not part of the repository. Remaining release acceptance work is tracked in [implementation status](implementation-status.md).
+> **Status:** historical record. The five findings below were fixed and independently rechecked (see the end of this page); the fixes are committed and ship in 0.7.7. References to uncommitted work and to `artifacts/` evidence files describe the reviewer's local working tree at the time and are not part of the repository. Remaining release acceptance work is tracked in [implementation status](implementation-status.md). Since this review, value redaction was removed (0.7.20/0.8.3) and official releases are Authenticode-signed (0.8.5); GitHub CI remains absent. The body below is unchanged.
 
 Verdict: not ready for an unrestricted production release. Suitable for a controlled development pilot after the high-priority preparation/restart issues are resolved. This assessment covers the current working tree, including the uncommitted preparation implementation; it does not certify the previously installed/public release.
 

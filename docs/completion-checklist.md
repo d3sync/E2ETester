@@ -10,8 +10,8 @@ This checklist tracks the implementation pass. A checked item is implemented and
 - [x] Package library, complete query drafts and dependency-aware authoring.
 - [x] Report artifact manifest and integrity hashes.
 - [x] Workspace retention/backup controls and diagnostics.
-- [x] Self-contained Windows x64 distribution and workstation release checks (clean-machine/signing acceptance remains external).
+- [x] Self-contained Windows x64 distribution and workstation release checks (clean-machine acceptance remains external; official releases are Authenticode-signed since 0.8.5).
 - [x] Final local HTTP/OIDC/database/MCP and desktop regression checks.
 - [ ] Native client registration with a real identity provider, real MFA/account switching, API-token conventions and pilot tests in a real environment.
 
-Manual assessments, JSON/HTML reports, four database adapters, saved-run browsing, core authoring and redacted draft recovery are also implemented. See [implementation status](implementation-status.md).
+Manual assessments, JSON/HTML reports, four database adapters, saved-run browsing, core authoring and draft recovery with unmodified values are also implemented. See [implementation status](implementation-status.md).
